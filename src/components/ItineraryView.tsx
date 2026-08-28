@@ -22,7 +22,7 @@ import {
   Footprints
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { Trip, DaySchedule, ActivityItem, ActivityCategory, TransportMode } from '../types/travel';
+import type { Trip, DaySchedule, ActivityItem, ActivityCategory, TransportMode, TripRole } from '../types/travel';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { useI18n, translateWeekday } from '../utils/i18n';
 
@@ -32,7 +32,7 @@ interface ItineraryViewProps {
   onOpenAddActivityModal: (dayId: string) => void;
   onOpenEditActivityModal: (dayId: string, activity: ActivityItem) => void;
   onShowTaxiAddress: (thaiAddress: string, title: string) => void;
-  isReadOnly?: boolean;
+  role: TripRole;
 }
 
 // Transport mode → icon, i18n key, google maps travelmode
@@ -59,9 +59,11 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   onOpenAddActivityModal,
   onOpenEditActivityModal,
   onShowTaxiAddress,
-  isReadOnly
+  role
 }) => {
   const { lang, t } = useI18n();
+  const isAdmin = role === 'admin';
+  const isReadOnly = role === 'viewer';
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
   const [showAllDays, setShowAllDays] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,7 +102,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
   // Reorder activity up or down
   const handleMoveActivity = (dayId: string, activityIndex: number, direction: 'up' | 'down') => {
-    if (isReadOnly) return;
+    if (!isAdmin) return;
     const targetDay = trip.days.find(d => d.id === dayId);
     if (!targetDay) return;
 
@@ -118,7 +120,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
   // Delete activity
   const handleDeleteActivity = (dayId: string, activityId: string) => {
-    if (isReadOnly) return;
+    if (!isAdmin) return;
     if (!window.confirm(t('confirmDeleteActivity'))) return;
     const updatedDays = trip.days.map(day => {
       if (day.id !== dayId) return day;
@@ -578,6 +580,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                               {/* Actions */}
                               {!isReadOnly && (
                                 <div className="flex items-center gap-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 w-fit">
+                                  {isAdmin && (<>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handleMoveActivity(day.id, actIdx, 'up'); }}
                                     disabled={actIdx === 0}
@@ -594,6 +597,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                   >
                                     <ArrowDown className="w-3.5 h-3.5" />
                                   </button>
+                                  </>)}
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handleDuplicateActivity(day.id, activity); }}
                                     className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
@@ -608,6 +612,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                   >
                                     <Edit3 className="w-3.5 h-3.5" />
                                   </button>
+                                  {isAdmin && (
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handleDeleteActivity(day.id, activity.id); }}
                                     className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition"
@@ -615,6 +620,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
+                                  )}
                                 </div>
                               )}
                             </div>

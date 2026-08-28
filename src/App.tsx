@@ -6,9 +6,9 @@ import {
   Car, 
   Compass
 } from 'lucide-react';
-import type { Trip, ActivityItem } from './types/travel';
+import type { Trip, ActivityItem, TripRole } from './types/travel';
 import { storageService } from './services/storage';
-import { sharingService } from './services/sharing';
+import { sharingService, resolveShareRole } from './services/sharing';
 import type { SharePayload } from './services/sharing';
 import { Navbar } from './components/Navbar';
 import { TripBanner } from './components/TripBanner';
@@ -29,8 +29,7 @@ export function App() {
   const [trips, setTrips] = useState<Trip[]>(() => storageService.getTrips());
   const [activeTripId, setActiveTripId] = useState<string>(() => storageService.getActiveTripId());
   
-  // Shared URL & Read-Only State
-  const [isReadOnly, setIsReadOnly] = useState<boolean>(false);
+  // Shared URL state
   const [pendingSharePayload, setPendingSharePayload] = useState<SharePayload | null>(null);
   const [isPasscodePromptOpen, setIsPasscodePromptOpen] = useState<boolean>(false);
 
@@ -62,15 +61,24 @@ export function App() {
   }, []);
 
   const applySharedTrip = (payload: SharePayload) => {
-    const sharedTrip = payload.trip;
-    setIsReadOnly(payload.readOnly);
-    
-    // Add to storage or switch to it
+    const grantedRole = resolveShareRole(payload);
+
+    // Never let a share link downgrade or overwrite the owner's own copy:
+    // if we already hold this trip as its admin, just switch to it.
+    const existing = storageService.getTrips().find(t => t.id === payload.trip.id);
+    if (existing && (existing.myRole === undefined || existing.myRole === 'admin')) {
+      setActiveTripId(existing.id);
+      storageService.setActiveTripId(existing.id);
+      sharingService.clearShareHash();
+      return;
+    }
+
+    const sharedTrip: Trip = { ...payload.trip, myRole: grantedRole };
     const updatedTrips = storageService.saveTrip(sharedTrip);
     setTrips(updatedTrips);
     setActiveTripId(sharedTrip.id);
     storageService.setActiveTripId(sharedTrip.id);
-    
+
     // Clean hash from URL so it doesn't stay permanently
     sharingService.clearShareHash();
   };
@@ -78,11 +86,13 @@ export function App() {
   // Get active trip object
   const activeTrip = trips.find(t => t.id === activeTripId) || trips[0];
 
+  // Role of this user for the active trip: locally created trips = admin
+  const role: TripRole = activeTrip?.myRole || 'admin';
+
   // Switch trip
   const handleSelectTrip = (tripId: string) => {
     setActiveTripId(tripId);
     storageService.setActiveTripId(tripId);
-    setIsReadOnly(false);
   };
 
   // Update trip in state and local storage
@@ -97,7 +107,6 @@ export function App() {
     setTrips(newTrips);
     setActiveTripId(newTrip.id);
     storageService.setActiveTripId(newTrip.id);
-    setIsReadOnly(false);
   };
 
   // Delete trip
@@ -166,7 +175,7 @@ export function App() {
         onOpenShareModal={() => setIsShareModalOpen(true)}
         onOpenTaxiCardsModal={() => setIsTaxiCardsModalOpen(true)}
         onPrint={() => window.print()}
-        isReadOnly={isReadOnly}
+        role={role}
       />
 
       {/* Main Container */}
@@ -175,7 +184,7 @@ export function App() {
         <TripBanner
           trip={activeTrip}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
-          isReadOnly={isReadOnly}
+          role={role}
         />
 
         {/* Tab Navigation (Itinerary, Budget, Packing Checklist) */}
@@ -236,7 +245,7 @@ export function App() {
             onOpenAddActivityModal={handleOpenAddActivity}
             onOpenEditActivityModal={handleOpenEditActivity}
             onShowTaxiAddress={handleShowTaxiAddress}
-            isReadOnly={isReadOnly}
+            role={role}
           />
         )}
 
@@ -245,7 +254,7 @@ export function App() {
             key={activeTrip.id}
             trip={activeTrip}
             onUpdateTrip={handleUpdateTrip}
-            isReadOnly={isReadOnly}
+            role={role}
           />
         )}
 
@@ -254,7 +263,7 @@ export function App() {
             key={activeTrip.id}
             trip={activeTrip}
             onUpdateTrip={handleUpdateTrip}
-            isReadOnly={isReadOnly}
+            role={role}
           />
         )}
       </main>
@@ -281,6 +290,7 @@ export function App() {
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         trip={activeTrip}
+        role={role}
         onImportTrip={(imported) => {
           handleCreateTrip(imported);
         }}
@@ -306,6 +316,7 @@ export function App() {
         onClose={() => setIsTaxiCardsModalOpen(false)}
         trip={activeTrip}
         onUpdateTrip={handleUpdateTrip}
+        role={role}
       />
 
       <PasscodePromptModal

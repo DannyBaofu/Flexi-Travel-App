@@ -12,13 +12,13 @@ import {
   HeartPulse, 
   Luggage
 } from 'lucide-react';
-import type { Trip, ChecklistItem } from '../types/travel';
+import type { Trip, ChecklistItem, TripRole } from '../types/travel';
 import { useI18n } from '../utils/i18n';
 
 interface ChecklistTabProps {
   trip: Trip;
   onUpdateTrip: (updatedTrip: Trip) => void;
-  isReadOnly?: boolean;
+  role: TripRole;
 }
 
 const CATEGORY_T_KEYS: Record<string, string> = {
@@ -42,9 +42,11 @@ const CATEGORY_ICONS: Record<string, any> = {
 export const ChecklistTab: React.FC<ChecklistTabProps> = ({
   trip,
   onUpdateTrip,
-  isReadOnly
+  role
 }) => {
   const { t } = useI18n();
+  const isAdmin = role === 'admin';
+  const isReadOnly = role === 'viewer';
   const [newItemTitle, setNewItemTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ChecklistItem['category']>('Bangkok Specific');
 
@@ -107,7 +109,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
   };
 
   const handleDeleteItem = (itemId: string) => {
-    if (isReadOnly) return;
+    if (!isAdmin) return;
     onUpdateTrip({
       ...trip,
       checklist: (trip.checklist || []).filter(c => c.id !== itemId)
@@ -224,7 +226,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
                       </span>
                     </button>
 
-                    {!isReadOnly && (
+                    {isAdmin && (
                       <button
                         onClick={() => handleDeleteItem(item.id)}
                         className="p-1 text-slate-600 hover:text-red-400 transition"

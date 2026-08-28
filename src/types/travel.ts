@@ -9,6 +9,12 @@ export type ActivityCategory =
   | 'relax'
   | 'other';
 
+// Role of THIS browser's user for a given trip.
+// 'admin'  — trip creator/organizer: full control
+// 'member' — invited traveler: basic edits (activities, checklist ticks, expenses)
+// 'viewer' — read-only guest
+export type TripRole = 'admin' | 'member' | 'viewer';
+
 export type TransportMode =
   | 'bts'
   | 'mrt'
@@ -117,4 +123,7 @@ export interface Trip {
   shareSettings: ShareSettings;
   createdAt: string;
   updatedAt: string;
+  // Role of this browser's user for this trip. Undefined = locally created = admin.
+  // Set when a trip arrives via a share link, from the link's permission level.
+  myRole?: TripRole;
 }

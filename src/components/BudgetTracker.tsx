@@ -8,22 +8,24 @@ import {
   Calculator, 
   Receipt
 } from 'lucide-react';
-import type { Trip, ExpenseItem, ActivityCategory } from '../types/travel';
+import type { Trip, ExpenseItem, ActivityCategory, TripRole } from '../types/travel';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { useI18n } from '../utils/i18n';
 
 interface BudgetTrackerProps {
   trip: Trip;
   onUpdateTrip: (updatedTrip: Trip) => void;
-  isReadOnly?: boolean;
+  role: TripRole;
 }
 
 export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   trip,
   onUpdateTrip,
-  isReadOnly
+  role
 }) => {
   const { lang, t } = useI18n();
+  const isAdmin = role === 'admin';
+  const isReadOnly = role === 'viewer';
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
@@ -119,7 +121,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   };
 
   const handleDeleteExpense = (expId: string) => {
-    if (isReadOnly) return;
+    if (!isAdmin) return;
     onUpdateTrip({
       ...trip,
       expenses: (trip.expenses || []).filter(e => e.id !== expId)
@@ -444,7 +446,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                           <div className="text-[10px] text-slate-500">{t('splitByN', { n: exp.splitWithTravelerIds?.length || trip.travelers.length })}</div>
                         </div>
 
-                        {!isReadOnly && (
+                        {isAdmin && (
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
                             className="p-1.5 text-slate-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition"

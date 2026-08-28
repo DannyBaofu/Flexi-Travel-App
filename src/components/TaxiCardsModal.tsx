@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Car, Plus, Trash2, Sparkles, Navigation } from 'lucide-react';
-import type { TaxiCard, Trip } from '../types/travel';
+import type { TaxiCard, Trip, TripRole } from '../types/travel';
 import { useI18n } from '../utils/i18n';
 
 interface TaxiCardsModalProps {
@@ -8,6 +8,7 @@ interface TaxiCardsModalProps {
   onClose: () => void;
   trip: Trip;
   onUpdateTrip: (updatedTrip: Trip) => void;
+  role: TripRole;
 }
 
 const COMMON_THAI_PHRASES = [
@@ -23,9 +24,12 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
   isOpen,
   onClose,
   trip,
-  onUpdateTrip
+  onUpdateTrip,
+  role
 }) => {
   const { lang, t } = useI18n();
+  const isAdmin = role === 'admin';
+  const canAdd = role !== 'viewer';
   const [selectedCard, setSelectedCard] = useState<TaxiCard | null>(
     trip.taxiCards && trip.taxiCards.length > 0 ? trip.taxiCards[0] : null
   );
@@ -107,12 +111,14 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
           <div className="md:col-span-4 p-4 space-y-4 overflow-y-auto max-h-[70vh]">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('destCards')}</h3>
+              {canAdd && (
               <button
                 onClick={() => setIsAddingNew(true)}
                 className="text-xs flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-medium"
               >
                 <Plus className="w-3.5 h-3.5" /> {t('addPlace')}
               </button>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -278,12 +284,14 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
 
                 <div className="flex items-center justify-between text-xs text-slate-400">
                   <span>{t('taxiTip')}</span>
+                  {isAdmin && (
                   <button
                     onClick={() => handleDeleteCard(selectedCard.id)}
                     className="text-red-400 hover:text-red-300 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-red-500/10 transition"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> {t('deleteCard')}
                   </button>
+                  )}
                 </div>
               </div>
             ) : (

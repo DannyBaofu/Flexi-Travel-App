@@ -242,6 +242,23 @@ const dict: Record<string, Entry> = {
   printTaxiCards: { zh: '🚕 曼谷出租车卡片（出示给司机）', en: '🚕 Bangkok Taxi Flashcards for Drivers' },
   printStation: { zh: '车站', en: 'Station' },
 
+  // ---- Roles ----
+  roleAdmin: { zh: '管理员', en: 'Admin' },
+  roleMember: { zh: '旅伴', en: 'Member' },
+  roleViewer: { zh: '访客', en: 'Viewer' },
+  memberBanner: {
+    zh: '🤝 您以旅伴身份协作：可添加/编辑活动、勾选清单、记录支出。行程设置与删除由管理员管理。',
+    en: '🤝 You are collaborating as a Member: add & edit activities, tick checklists, log expenses. Trip settings & deletions are managed by the Admin.'
+  },
+  shareAsAdmin: { zh: '管理员（完全控制）', en: 'Admin (Full Control)' },
+  shareAsAdminDesc: { zh: '行程设置、删除、旅伴管理等全部权限', en: 'Full access: settings, deletions, manage travelers' },
+  shareAsMember: { zh: '旅伴（基础编辑）', en: 'Member (Basic Edits)' },
+  shareAsMemberDesc: { zh: '可编辑活动、勾选清单、记录支出', en: 'Can edit activities, tick checklists, log expenses' },
+  memberShareNote: { zh: '只有管理员可以创建可编辑的分享链接，您可以分享只读链接。', en: 'Only the admin can create editable share links. You can share a read-only link.' },
+  qrTooLong: { zh: '行程内容较多，超出二维码容量。请使用「复制链接」或「系统分享」发送给朋友。', en: 'This trip is too large for a QR code. Use "Copy Link" or "Share via…" instead.' },
+  nativeShare: { zh: '系统分享…', en: 'Share via…' },
+  copyFailed: { zh: '复制失败，请长按链接手动复制。', en: 'Copy failed — long-press the link to copy it manually.' },
+
   // ---- Shared trip / passcode ----
   sharedTrip: { zh: '共享行程', en: 'Shared Trip' }
 };

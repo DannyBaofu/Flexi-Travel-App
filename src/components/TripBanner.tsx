@@ -1,20 +1,21 @@
 import React from 'react';
 import { Calendar, MapPin, Edit2 } from 'lucide-react';
-import type { Trip } from '../types/travel';
+import type { Trip, TripRole } from '../types/travel';
 import { useI18n } from '../utils/i18n';
 
 interface TripBannerProps {
   trip: Trip;
   onOpenSettings: () => void;
-  isReadOnly?: boolean;
+  role: TripRole;
 }
 
 export const TripBanner: React.FC<TripBannerProps> = ({
   trip,
   onOpenSettings,
-  isReadOnly
+  role
 }) => {
   const { lang, t } = useI18n();
+  const isAdmin = role === 'admin';
   // Calculate total activities count
   const totalActivities = trip.days.reduce((sum, day) => sum + (day.activities?.length || 0), 0);
 
@@ -72,7 +73,7 @@ export const TripBanner: React.FC<TripBannerProps> = ({
             </span>
           </div>
 
-          {!isReadOnly && (
+          {isAdmin && (
             <button
               onClick={onOpenSettings}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700 backdrop-blur-md transition shadow-md"

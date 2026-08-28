@@ -1,13 +1,22 @@
 import LZString from 'lz-string';
-import type { Trip } from '../types/travel';
+import type { Trip, TripRole } from '../types/travel';
 
 export interface SharePayload {
   version: number;
   trip: Trip;
-  readOnly: boolean;
+  readOnly: boolean; // kept for backwards compatibility with v1 links
+  role?: TripRole; // permission granted to whoever opens the link
   requiresPin: boolean;
   pinHash?: string;
   createdAt: string;
+}
+
+// Resolve the role a share link grants, tolerating old links without `role`.
+export function resolveShareRole(payload: SharePayload): TripRole {
+  if (payload.role === 'admin' || payload.role === 'member' || payload.role === 'viewer') {
+    return payload.role;
+  }
+  return payload.readOnly ? 'viewer' : 'member';
 }
 
 export function hashPin(pin: string): string {
@@ -25,14 +34,17 @@ export const sharingService = {
   /**
    * Generates a fully self-contained compressed URL that friends can open anywhere.
    */
-  generateShareUrl(trip: Trip, options: { readOnly: boolean; pin?: string }): string {
+  generateShareUrl(trip: Trip, options: { role: TripRole; pin?: string }): string {
+    // Never embed the sharer's own role in the payload trip
+    const { myRole: _myRole, ...tripSnapshot } = trip;
     const payload: SharePayload = {
-      version: 1,
+      version: 2,
       trip: {
-        ...trip,
+        ...tripSnapshot,
         updatedAt: new Date().toISOString()
       },
-      readOnly: options.readOnly,
+      readOnly: options.role === 'viewer',
+      role: options.role,
       requiresPin: Boolean(options.pin && options.pin.trim().length > 0),
       pinHash: options.pin && options.pin.trim().length > 0 ? hashPin(options.pin.trim()) : undefined,
       createdAt: new Date().toISOString()
