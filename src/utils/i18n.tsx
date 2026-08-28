@@ -9,7 +9,7 @@ type Entry = { zh: string; en: string };
 const dict: Record<string, Entry> = {
   // ---- App shell ----
   loading: { zh: '正在加载您的旅行计划…', en: 'Loading Your Travel Planner...' },
-  appTagline: { zh: 'TravelSync • 安全的在线行程分享与规划', en: 'TravelSync • Safe Online Trip Sharing & Itinerary Planner' },
+  appTagline: { zh: '旅行行程规划', en: 'Travel Itinerary Planner' },
   tabItinerary: { zh: '每日行程', en: 'Day-by-Day Schedule' },
   tabBudget: { zh: '预算与分账', en: 'Budget & Expense Splitter' },
   tabChecklist: { zh: '行李清单', en: 'Packing & Checklist' },

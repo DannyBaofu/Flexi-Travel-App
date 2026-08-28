@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Compass,
   Share2,
   Plus,
   Sliders,
@@ -53,21 +52,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16">
           {/* Logo & Trip Dropdown */}
           <div className="flex items-center gap-1.5 sm:gap-6 min-w-0">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/20">
-                <Compass className="w-5 h-5 font-bold" />
-              </div>
-              <span className="text-lg font-extrabold tracking-tight text-white hidden md:inline-block">
-                Travel<span className="text-emerald-400">Sync</span>
-              </span>
-            </div>
-
             {/* Trip Selector */}
             <div className="relative flex items-center">
               <select
                 value={activeTrip.id}
                 onChange={(e) => onSelectTrip(e.target.value)}
-                className="appearance-none bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-white text-xs sm:text-sm font-semibold rounded-xl pl-3.5 pr-8 py-2 focus:outline-none focus:border-emerald-500 cursor-pointer max-w-[104px] sm:max-w-[260px] truncate"
+                className="appearance-none bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-white text-xs sm:text-sm font-semibold rounded-xl pl-3.5 pr-8 py-2 focus:outline-none focus:border-emerald-500 cursor-pointer max-w-[150px] sm:max-w-[260px] truncate"
               >
                 {trips.map((t) => (
                   <option key={t.id} value={t.id}>
