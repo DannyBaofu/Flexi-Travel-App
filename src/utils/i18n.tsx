@@ -259,6 +259,30 @@ const dict: Record<string, Entry> = {
   nativeShare: { zh: '系统分享…', en: 'Share via…' },
   copyFailed: { zh: '复制失败，请长按链接手动复制。', en: 'Copy failed — long-press the link to copy it manually.' },
 
+  // ---- Cloud sync & auth ----
+  signIn: { zh: '登录', en: 'Sign In' },
+  signOut: { zh: '退出登录', en: 'Sign Out' },
+  signInTitle: { zh: '登录云同步', en: 'Sign in to Cloud Sync' },
+  signInSubtitle: { zh: '登录后行程可实时同步给所有旅伴', en: 'Sign in to sync trips live with all travelers' },
+  emailLabel: { zh: '邮箱地址', en: 'Email Address' },
+  sendCode: { zh: '发送验证码', en: 'Send Code' },
+  sendingCode: { zh: '发送中…', en: 'Sending…' },
+  codeSentInfo: { zh: '6 位验证码已发送到邮箱，请查收（垃圾邮件也看看）。', en: 'A 6-digit code was sent to your email (check spam too).' },
+  codeLabel: { zh: '6 位验证码', en: '6-digit Code' },
+  verifyCode: { zh: '验证并登录', en: 'Verify & Sign In' },
+  verifying: { zh: '验证中…', en: 'Verifying…' },
+  authFailed: { zh: '登录失败：{msg}', en: 'Sign-in failed: {msg}' },
+  confirmSignOut: { zh: '确定退出登录？退出后将回到本地模式。', en: 'Sign out? You will return to local-only mode.' },
+  cloudOn: { zh: '云同步已开启', en: 'Cloud sync on' },
+  inviteSection: { zh: '实时协作邀请（云同步）', en: 'Live Collaboration Invite (Cloud)' },
+  createInviteBtn: { zh: '创建邀请链接', en: 'Create Invite Link' },
+  creatingInvite: { zh: '创建中…', en: 'Creating…' },
+  inviteHint: { zh: '朋友打开链接并登录后，即可实时同步这份行程 — 管理员的修改会即时出现在所有人手机上。', en: 'Friends who open this link and sign in will sync this trip live — admin edits appear on everyone’s phone instantly.' },
+  inviteRequiresLogin: { zh: '登录后（右上角）即可创建实时邀请链接。', en: 'Sign in (top right) to create live invite links.' },
+  joiningTrip: { zh: '正在加入行程…', en: 'Joining trip…' },
+  joinFailed: { zh: '加入行程失败：{msg}', en: 'Failed to join trip: {msg}' },
+  snapshotSection: { zh: '快照分享（离线，无需登录）', en: 'Snapshot Share (offline, no login needed)' },
+
   // ---- Shared trip / passcode ----
   sharedTrip: { zh: '共享行程', en: 'Shared Trip' }
 };

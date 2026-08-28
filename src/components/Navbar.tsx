@@ -1,13 +1,15 @@
 import React from 'react';
-import { 
-  Compass, 
-  Share2, 
-  Plus, 
-  Sliders, 
-  Car, 
-  Printer, 
-  ChevronDown
+import {
+  Compass,
+  Share2,
+  Plus,
+  Sliders,
+  Car,
+  Printer,
+  ChevronDown,
+  LogIn
 } from 'lucide-react';
+import type { User } from '@supabase/supabase-js';
 import type { Trip, TripRole } from '../types/travel';
 import { useI18n } from '../utils/i18n';
 
@@ -21,6 +23,10 @@ interface NavbarProps {
   onOpenTaxiCardsModal: () => void;
   onPrint: () => void;
   role: TripRole;
+  cloudEnabled: boolean;
+  user: User | null;
+  onOpenAuthModal: () => void;
+  onSignOut: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -32,7 +38,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenShareModal,
   onOpenTaxiCardsModal,
   onPrint,
-  role
+  role,
+  cloudEnabled,
+  user,
+  onOpenAuthModal,
+  onSignOut
 }) => {
   const { lang, setLang, t } = useI18n();
   const isAdmin = role === 'admin';
@@ -83,6 +93,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Quick Actions */}
           <div className="flex items-center gap-1.5 sm:gap-3">
+            {/* Cloud Sign In / Account */}
+            {cloudEnabled && (
+              user ? (
+                <button
+                  onClick={onSignOut}
+                  className="w-8 h-8 shrink-0 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 text-xs font-bold flex items-center justify-center transition hover:bg-sky-500/30"
+                  title={`${t('cloudOn')} · ${user.email} · ${t('signOut')}`}
+                >
+                  {(user.email || '?').charAt(0).toUpperCase()}
+                </button>
+              ) : (
+                <button
+                  onClick={onOpenAuthModal}
+                  className="p-1.5 sm:px-3 sm:py-2 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
+                  title={t('signInTitle')}
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('signIn')}</span>
+                </button>
+              )
+            )}
+
             {/* Language Toggle */}
             <button
               onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}

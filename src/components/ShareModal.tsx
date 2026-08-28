@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import type { Trip, TripRole } from '../types/travel';
 import { sharingService } from '../services/sharing';
+import { createInvite, buildInviteUrl } from '../services/cloudSync';
 import { useI18n } from '../utils/i18n';
 
 interface ShareModalProps {
@@ -25,6 +26,7 @@ interface ShareModalProps {
   onClose: () => void;
   trip: Trip;
   role: TripRole;
+  cloudMode: boolean;
   onImportTrip: (importedTrip: Trip) => void;
 }
 
@@ -36,11 +38,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   onClose,
   trip,
   role,
+  cloudMode,
   onImportTrip
 }) => {
   const { t } = useI18n();
   const isAdmin = role === 'admin';
   const [shareRole, setShareRole] = useState<TripRole>(isAdmin ? 'member' : 'viewer');
+  const [inviteUrl, setInviteUrl] = useState('');
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [usePin, setUsePin] = useState(false);
   const [pinCode, setPinCode] = useState('');
   const [shareUrl, setShareUrl] = useState('');
@@ -63,6 +70,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       setCopyError(false);
       setImportError(null);
       setImportSuccess(false);
+      setInviteUrl('');
+      setInviteError(null);
+      setInviteCopied(false);
     }
   }, [isOpen, trip, effectiveShareRole, usePin, pinCode]);
 
@@ -100,6 +110,27 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     } catch {
       // User cancelled or share failed — nothing to do
     }
+  };
+
+  const handleCreateInvite = async () => {
+    setInviteBusy(true);
+    setInviteError(null);
+    try {
+      const code = await createInvite(trip.id, effectiveShareRole);
+      setInviteUrl(buildInviteUrl(code));
+    } catch (err: any) {
+      setInviteError(err?.message || String(err));
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+
+  const handleCopyInvite = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2500);
+    } catch { /* ignore */ }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -230,9 +261,60 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             </div>
           </div>
 
+          {/* Live Collaboration Invite (cloud sync) */}
+          {cloudMode && isAdmin && (
+            <div className="space-y-3 bg-sky-500/5 border border-sky-500/20 rounded-2xl p-4">
+              <h3 className="text-xs font-bold text-sky-300 uppercase tracking-wider">{t('inviteSection')}</h3>
+              <p className="text-xs text-slate-400">{t('inviteHint')}</p>
+
+              {inviteUrl ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={inviteUrl}
+                      className="flex-1 min-w-0 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-sky-200 font-mono select-all focus:outline-none"
+                    />
+                    <button
+                      onClick={handleCopyInvite}
+                      className={`px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition shrink-0 ${
+                        inviteCopied
+                          ? 'bg-emerald-500 text-slate-950'
+                          : 'bg-sky-600 hover:bg-sky-500 text-white'
+                      }`}
+                    >
+                      {inviteCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      {inviteCopied ? t('copied') : t('copyLink')}
+                    </button>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl w-fit shadow-lg">
+                    <QRCodeSVG value={inviteUrl} size={110} level="M" />
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={handleCreateInvite}
+                  disabled={inviteBusy}
+                  className="px-4 py-2.5 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 font-bold rounded-xl text-xs transition"
+                >
+                  {inviteBusy ? t('creatingInvite') : t('createInviteBtn')}
+                </button>
+              )}
+
+              {inviteError && (
+                <div className="p-2.5 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-300">
+                  {inviteError}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Share Link & QR Code Box */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('shareableLink')}</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              {cloudMode ? t('snapshotSection') : t('shareableLink')}
+            </h3>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input

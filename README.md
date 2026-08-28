@@ -67,3 +67,16 @@ The output will be in the `dist/` directory, ready to be deployed to Vercel, Net
 2. Choose **Collaborative Edit** (if you want friends to add places) or **Viewer (Read-Only)**.
 3. (Optional) Turn on **"Require PIN / Passcode"** and type a 4-digit code (e.g. `2026`).
 4. Click **"Copy Link"** or let friends scan the **QR Code** directly with their smartphone cameras!
+
+## Cloud Sync (Supabase)
+
+Optional realtime backend: sign in, invite friends with tiny links, and admin edits appear on every member's phone instantly. Without keys the app runs in local-only mode (localStorage + snapshot share links).
+
+Setup (once):
+1. Create a free project at https://supabase.com (no credit card).
+2. In the project: SQL Editor -> paste and run `supabase/schema.sql`.
+3. Settings -> API: copy the Project URL and the `anon` public key.
+4. Copy `.env.example` to `.env` and fill both values (local dev),
+   and add the same two variables in Vercel -> Project Settings -> Environment Variables, then redeploy.
+
+Roles: whoever creates a trip is its admin. Admins create invite links (admin / member / viewer) from the Share dialog; friends open the link, sign in with an email code, and are joined with that role. Row Level Security enforces membership and write permissions server-side.

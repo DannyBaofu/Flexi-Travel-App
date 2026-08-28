@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Calendar, 
   DollarSign, 
@@ -22,7 +22,23 @@ import { NewTripModal } from './components/NewTripModal';
 import { TaxiCardsModal } from './components/TaxiCardsModal';
 import { PasscodePromptModal } from './components/PasscodePromptModal';
 import { PrintItineraryView } from './components/PrintItineraryView';
+import { AuthModal } from './components/AuthModal';
 import { useI18n } from './utils/i18n';
+import type { User } from '@supabase/supabase-js';
+import {
+  isCloudEnabled,
+  getSession,
+  onAuthChange,
+  signOut,
+  fetchMyTrips,
+  createTripCloud,
+  upsertTripCloud,
+  deleteTripCloud,
+  subscribeTrip,
+  joinTripByCode,
+  parseJoinCodeFromUrl,
+  clearJoinHash
+} from './services/cloudSync';
 
 export function App() {
   const { t } = useI18n();
@@ -32,6 +48,14 @@ export function App() {
   // Shared URL state
   const [pendingSharePayload, setPendingSharePayload] = useState<SharePayload | null>(null);
   const [isPasscodePromptOpen, setIsPasscodePromptOpen] = useState<boolean>(false);
+
+  // Cloud sync state
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const cloudMode = isCloudEnabled && !!user;
+  const pushTimerRef = useRef<number | null>(null);
 
   // Active Tab: 'itinerary' | 'budget' | 'checklist'
   const [activeTab, setActiveTab] = useState<'itinerary' | 'budget' | 'checklist'>('itinerary');
@@ -49,6 +73,12 @@ export function App() {
 
   // Parse share hash from URL on page mount
   useEffect(() => {
+    const joinCode = parseJoinCodeFromUrl();
+    if (joinCode && isCloudEnabled) {
+      setPendingJoinCode(joinCode);
+      clearJoinHash();
+      return;
+    }
     const payload = sharingService.parseShareFromUrl();
     if (payload) {
       if (payload.requiresPin && payload.pinHash) {
@@ -59,6 +89,69 @@ export function App() {
       }
     }
   }, []);
+
+  // Cloud auth bootstrap
+  useEffect(() => {
+    if (!isCloudEnabled) return;
+    getSession().then(s => setUser(s?.user ?? null));
+    const off = onAuthChange(setUser);
+    return off;
+  }, []);
+
+  // An invite link needs a signed-in user
+  useEffect(() => {
+    if (pendingJoinCode && isCloudEnabled && !user) {
+      setIsAuthModalOpen(true);
+    }
+  }, [pendingJoinCode, user]);
+
+  // On sign-in: pull cloud trips, upload local admin trips that are not there yet
+  useEffect(() => {
+    if (!cloudMode) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const cloudTrips = await fetchMyTrips();
+        const cloudIds = new Set(cloudTrips.map(ct => ct.id));
+        const localTrips = storageService.getTrips();
+        for (const lt of localTrips) {
+          if (!cloudIds.has(lt.id) && (lt.myRole === undefined || lt.myRole === 'admin')) {
+            try {
+              await createTripCloud(lt);
+              cloudTrips.push({ ...lt, myRole: 'admin' });
+            } catch (e) {
+              console.error('Failed to upload local trip:', e);
+            }
+          }
+        }
+        if (cancelled || cloudTrips.length === 0) return;
+        storageService.saveTrips(cloudTrips);
+        setTrips(cloudTrips);
+        setActiveTripId(prev => (cloudTrips.some(ct => ct.id === prev) ? prev : cloudTrips[0].id));
+      } catch (e) {
+        console.error('Cloud sync bootstrap failed:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [cloudMode]);
+
+  // Join a trip from an invite link once signed in
+  useEffect(() => {
+    if (!cloudMode || !pendingJoinCode) return;
+    (async () => {
+      try {
+        const tripId = await joinTripByCode(pendingJoinCode);
+        const cloudTrips = await fetchMyTrips();
+        storageService.saveTrips(cloudTrips);
+        setTrips(cloudTrips);
+        setActiveTripId(tripId);
+        storageService.setActiveTripId(tripId);
+      } catch (e: any) {
+        setJoinError(e?.message || String(e));
+      }
+      setPendingJoinCode(null);
+    })();
+  }, [cloudMode, pendingJoinCode]);
 
   const applySharedTrip = (payload: SharePayload) => {
     const grantedRole = resolveShareRole(payload);
@@ -95,10 +188,16 @@ export function App() {
     storageService.setActiveTripId(tripId);
   };
 
-  // Update trip in state and local storage
+  // Update trip in state and local storage; mirror to cloud when signed in
   const handleUpdateTrip = (updatedTrip: Trip) => {
     const newTrips = storageService.saveTrip(updatedTrip);
     setTrips(newTrips);
+    if (cloudMode && updatedTrip.myRole !== 'viewer') {
+      if (pushTimerRef.current) window.clearTimeout(pushTimerRef.current);
+      pushTimerRef.current = window.setTimeout(() => {
+        upsertTripCloud(updatedTrip).catch(err => console.error('Cloud push failed:', err));
+      }, 600);
+    }
   };
 
   // Create new trip
@@ -107,6 +206,9 @@ export function App() {
     setTrips(newTrips);
     setActiveTripId(newTrip.id);
     storageService.setActiveTripId(newTrip.id);
+    if (cloudMode) {
+      createTripCloud(newTrip).catch(err => console.error('Cloud create failed:', err));
+    }
   };
 
   // Delete trip
@@ -114,6 +216,35 @@ export function App() {
     const remaining = storageService.deleteTrip(tripId);
     setTrips(remaining);
     setActiveTripId(remaining[0].id);
+    if (cloudMode) {
+      deleteTripCloud(tripId).catch(err => console.error('Cloud delete failed:', err));
+    }
+  };
+
+  // Live updates: apply remote edits to the active trip
+  useEffect(() => {
+    if (!cloudMode || !activeTripId) return;
+    const unsubscribe = subscribeTrip(activeTripId, (remoteTrip) => {
+      setTrips(prev => {
+        const current = prev.find(pt => pt.id === remoteTrip.id);
+        // Skip our own echo and anything older than what we already have
+        if (current?.updatedAt && remoteTrip.updatedAt && remoteTrip.updatedAt <= current.updatedAt) {
+          return prev;
+        }
+        const merged: Trip = { ...remoteTrip, myRole: current?.myRole };
+        const next = current
+          ? prev.map(pt => (pt.id === remoteTrip.id ? merged : pt))
+          : [merged, ...prev];
+        storageService.saveTrips(next);
+        return next;
+      });
+    });
+    return unsubscribe;
+  }, [cloudMode, activeTripId]);
+
+  const handleSignOut = async () => {
+    if (!window.confirm(t('confirmSignOut'))) return;
+    await signOut();
   };
 
   // Add / Edit Activity handlers
@@ -176,7 +307,23 @@ export function App() {
         onOpenTaxiCardsModal={() => setIsTaxiCardsModalOpen(true)}
         onPrint={() => window.print()}
         role={role}
+        cloudEnabled={isCloudEnabled}
+        user={user}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onSignOut={handleSignOut}
       />
+
+      {joinError && (
+        <div className="bg-red-950/80 border-b border-red-800/60 px-4 py-2 text-center text-xs text-red-200 no-print flex items-center justify-center gap-3">
+          <span>{t('joinFailed', { msg: joinError })}</span>
+          <button onClick={() => setJoinError(null)} className="underline hover:text-white">X</button>
+        </div>
+      )}
+      {cloudMode && pendingJoinCode && (
+        <div className="bg-sky-950/80 border-b border-sky-800/60 px-4 py-2 text-center text-xs text-sky-200 no-print">
+          {t('joiningTrip')}
+        </div>
+      )}
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 no-print">
@@ -291,6 +438,7 @@ export function App() {
         onClose={() => setIsShareModalOpen(false)}
         trip={activeTrip}
         role={role}
+        cloudMode={cloudMode}
         onImportTrip={(imported) => {
           handleCreateTrip(imported);
         }}
@@ -317,6 +465,11 @@ export function App() {
         trip={activeTrip}
         onUpdateTrip={handleUpdateTrip}
         role={role}
+      />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
       />
 
       <PasscodePromptModal
