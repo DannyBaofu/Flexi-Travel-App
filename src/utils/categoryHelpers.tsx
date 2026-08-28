@@ -14,6 +14,7 @@ import type { ActivityCategory } from '../types/travel';
 
 export interface CategoryMeta {
   label: string;
+  labelZh: string;
   icon: LucideIcon;
   bgColor: string;
   textColor: string;
@@ -24,6 +25,7 @@ export interface CategoryMeta {
 export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
   flight: {
     label: 'Flight & Transit',
+    labelZh: '航班交通',
     icon: Plane,
     bgColor: 'bg-sky-500/10',
     textColor: 'text-sky-400',
@@ -32,6 +34,7 @@ export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
   },
   hotel: {
     label: 'Stay & Hotel',
+    labelZh: '住宿酒店',
     icon: Hotel,
     bgColor: 'bg-indigo-500/10',
     textColor: 'text-indigo-400',
@@ -40,6 +43,7 @@ export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
   },
   food: {
     label: 'Food & Dining',
+    labelZh: '美食餐饮',
     icon: Utensils,
     bgColor: 'bg-amber-500/10',
     textColor: 'text-amber-400',
@@ -48,6 +52,7 @@ export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
   },
   sightseeing: {
     label: 'Sightseeing & Culture',
+    labelZh: '观光文化',
     icon: Camera,
     bgColor: 'bg-emerald-500/10',
     textColor: 'text-emerald-400',
@@ -56,6 +61,7 @@ export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
   },
   shopping: {
     label: 'Shopping & Market',
+    labelZh: '购物市集',
     icon: ShoppingBag,
     bgColor: 'bg-pink-500/10',
     textColor: 'text-pink-400',
@@ -64,6 +70,7 @@ export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
   },
   transport: {
     label: 'Transport & Ride',
+    labelZh: '交通出行',
     icon: Car,
     bgColor: 'bg-blue-500/10',
     textColor: 'text-blue-400',
@@ -72,6 +79,7 @@ export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
   },
   nightlife: {
     label: 'Nightlife & Bars',
+    labelZh: '夜生活酒吧',
     icon: Moon,
     bgColor: 'bg-purple-500/10',
     textColor: 'text-purple-400',
@@ -80,6 +88,7 @@ export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
   },
   relax: {
     label: 'Relax & Massage',
+    labelZh: '放松按摩',
     icon: Sparkles,
     bgColor: 'bg-teal-500/10',
     textColor: 'text-teal-400',
@@ -88,6 +97,7 @@ export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
   },
   other: {
     label: 'Other Activity',
+    labelZh: '其他活动',
     icon: HelpCircle,
     bgColor: 'bg-slate-500/10',
     textColor: 'text-slate-400',

@@ -33,6 +33,7 @@ export const bangkokDefaultTrip: Trip = {
       activities: [
         {
           id: 'act-1-1',
+          transportToNext: { mode: 'airportRail', durationMin: 45, costHint: '~45 THB/人', note: 'Airport Rail Link to Phaya Thai, then BTS Sukhumvit line', noteZh: '机场快线至 Phaya Thai 站，转 BTS 素坤逸线' },
           time: '11:30 AM',
           title: 'Arrive at Suvarnabhumi Airport (BKK)',
           category: 'flight',
@@ -46,6 +47,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-1-2',
+          transportToNext: { mode: 'walk', durationMin: 5, note: 'Walk into the hotel lobby', noteZh: '步行进入酒店大堂' },
           time: '01:00 PM',
           title: 'Airport Rail Link / Grab to Sukhumvit Hotel',
           category: 'transport',
@@ -58,6 +60,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-1-3',
+          transportToNext: { mode: 'boat', durationMin: 50, costHint: '~30 THB/人', note: 'BTS to Saphan Taksin, then blue-flag tourist boat to Wat Arun pier', noteZh: 'BTS 至 Saphan Taksin 站，转蓝旗观光船至郑王庙码头' },
           time: '02:30 PM',
           title: 'Hotel Check-in & Freshen Up',
           category: 'hotel',
@@ -68,6 +71,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-1-4',
+          transportToNext: { mode: 'taxi', durationMin: 30, costHint: '~200 THB', note: 'Cross-river ferry, then Grab to Tichuca', noteZh: '过河渡轮后打 Grab 前往' },
           time: '04:30 PM',
           title: 'Wat Arun (Temple of Dawn) at Sunset',
           category: 'sightseeing',
@@ -104,6 +108,7 @@ export const bangkokDefaultTrip: Trip = {
       activities: [
         {
           id: 'act-2-1',
+          transportToNext: { mode: 'walk', durationMin: 10, note: 'Walk south along Sanam Chai Rd', noteZh: '沿 Sanam Chai 路向南步行' },
           time: '08:30 AM',
           title: 'The Grand Palace & Wat Phra Kaew (Emerald Buddha)',
           category: 'sightseeing',
@@ -117,6 +122,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-2-2',
+          transportToNext: { mode: 'taxi', durationMin: 15, costHint: '~60 THB', note: 'Short taxi or tuk-tuk ride', noteZh: '打车或嘟嘟车前往' },
           time: '11:30 AM',
           title: 'Wat Pho (Temple of Reclining Buddha) & Thai Massage',
           category: 'relax',
@@ -130,6 +136,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-2-3',
+          transportToNext: { mode: 'taxi', durationMin: 25, costHint: '~120 THB', note: 'Grab to Ari neighborhood', noteZh: '打 Grab 前往阿里社区' },
           time: '01:30 PM',
           title: 'Lunch at Krua Apsorn (Award-winning Thai cuisine)',
           category: 'food',
@@ -143,6 +150,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-2-4',
+          transportToNext: { mode: 'mrt', durationMin: 40, costHint: '~40 THB/人', note: 'BTS from Ari, transfer to MRT, alight at Wat Mangkon', noteZh: 'BTS 阿里站出发转 MRT，至龙莲寺站 (Wat Mangkon)' },
           time: '03:30 PM',
           title: 'Afternoon Rest / Cafe Break at Ari neighborhood',
           category: 'relax',
@@ -178,6 +186,7 @@ export const bangkokDefaultTrip: Trip = {
       activities: [
         {
           id: 'act-3-1',
+          transportToNext: { mode: 'walk', durationMin: 8, note: 'Walk to Pratunam (Pink Shirt)', noteZh: '步行至水门鸡饭（粉红制服）' },
           time: '10:00 AM',
           title: 'Platinum Fashion Mall & CentralWorld Shopping',
           category: 'shopping',
@@ -191,6 +200,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-3-2',
+          transportToNext: { mode: 'walk', durationMin: 18, note: 'Walk via Ratchaprasong skywalk', noteZh: '经 Ratchaprasong 空中步道步行' },
           time: '01:00 PM',
           title: 'Lunch at Food Republic / Go-Ang Pratunam Chicken Rice',
           category: 'food',
@@ -204,6 +214,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-3-3',
+          transportToNext: { mode: 'mrt', durationMin: 30, costHint: '~45 THB/人', note: 'BTS to Asok, transfer to MRT Phra Ram 9 (Exit 2)', noteZh: 'BTS 至 Asok 站转 MRT 至 Phra Ram 9 站 2 号出口' },
           time: '03:00 PM',
           title: 'Siam Paragon & Siam Square Walking Street',
           category: 'shopping',
@@ -239,6 +250,7 @@ export const bangkokDefaultTrip: Trip = {
       activities: [
         {
           id: 'act-4-1',
+          transportToNext: { mode: 'mrt', durationMin: 40, costHint: '~50 THB/人', note: 'MRT to Krung Thon Buri, then BTS Gold Line to Charoen Nakhon', noteZh: 'MRT 至 Krung Thon Buri，转 BTS 金线至 Charoen Nakhon 站' },
           time: '10:00 AM',
           title: 'Wat Paknam Phasi Charoen (Giant Golden Buddha)',
           category: 'sightseeing',
@@ -252,6 +264,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-4-2',
+          transportToNext: { mode: 'walk', durationMin: 5, note: 'Walk through the mall to the riverside', noteZh: '穿过商场步行至河滨' },
           time: '12:30 PM',
           title: 'ICONSIAM & SOOKSIAM Indoor Floating Market',
           category: 'food',
@@ -265,6 +278,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-4-3',
+          transportToNext: { mode: 'walk', durationMin: 10, note: 'Walk to ICONSIAM pier for boarding', noteZh: '步行至 ICONSIAM 码头登船' },
           time: '04:00 PM',
           title: 'Riverside Park & Apple Store Terrace at ICONSIAM',
           category: 'relax',
@@ -297,6 +311,7 @@ export const bangkokDefaultTrip: Trip = {
       activities: [
         {
           id: 'act-5-1',
+          transportToNext: { mode: 'taxi', durationMin: 40, note: 'Tour van transfer', noteZh: '跟团面包车接送' },
           time: '07:30 AM',
           title: 'Maeklong Railway Market (Talad Rom Hub)',
           category: 'sightseeing',
@@ -310,6 +325,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-5-2',
+          transportToNext: { mode: 'taxi', durationMin: 90, note: 'Drive back to Sukhumvit, Bangkok', noteZh: '乘车返回曼谷市区素坤逸' },
           time: '11:00 AM',
           title: 'Damnoen Saduak / Amphawa Floating Market',
           category: 'sightseeing',
@@ -322,6 +338,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-5-3',
+          transportToNext: { mode: 'mrt', durationMin: 40, costHint: '~45 THB/人', note: 'BTS to Asok, MRT to Sanam Chai, walk to Tha Tien', noteZh: 'BTS 至 Asok 转 MRT 至 Sanam Chai 站，步行至塔田码头' },
           time: '04:30 PM',
           title: '2-Hour Thai Herbal Aromatherapy & Hot Stone Spa',
           category: 'relax',
@@ -357,6 +374,7 @@ export const bangkokDefaultTrip: Trip = {
       activities: [
         {
           id: 'act-6-1',
+          transportToNext: { mode: 'walk', durationMin: 15, note: 'Walk via skywalk to Siam Square', noteZh: '经空中步道步行至暹罗广场' },
           time: '09:30 AM',
           title: 'Big C Supercenter Rajdamri (Souvenir Central)',
           category: 'shopping',
@@ -370,6 +388,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-6-2',
+          transportToNext: { mode: 'bts', durationMin: 15, costHint: '~30 THB/人', note: 'BTS back to hotel for luggage', noteZh: 'BTS 回酒店取行李' },
           time: '12:00 PM',
           title: 'Last Thai Lunch: Som Tam Nua & Mango Tango',
           category: 'food',
@@ -382,6 +401,7 @@ export const bangkokDefaultTrip: Trip = {
         },
         {
           id: 'act-6-3',
+          transportToNext: { mode: 'walk', durationMin: 15, note: 'Check-in, VAT refund & immigration', noteZh: '办理值机、退税与出境安检' },
           time: '02:00 PM',
           title: 'Hotel Check-out & Grab to Suvarnabhumi Airport',
           category: 'transport',

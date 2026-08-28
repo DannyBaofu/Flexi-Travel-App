@@ -9,6 +9,25 @@ export type ActivityCategory =
   | 'relax'
   | 'other';
 
+export type TransportMode =
+  | 'bts'
+  | 'mrt'
+  | 'boat'
+  | 'taxi'
+  | 'walk'
+  | 'bus'
+  | 'train'
+  | 'airportRail';
+
+// Suggested transport from this activity to the NEXT activity in the same day
+export interface TransportSuggestion {
+  mode: TransportMode;
+  durationMin: number; // estimated door-to-door travel time in minutes
+  note?: string; // route hint, e.g. "BTS to Saphan Taksin, then blue-flag boat"
+  noteZh?: string; // Chinese route hint
+  costHint?: string; // e.g. "~45 THB/person"
+}
+
 export interface ActivityItem {
   id: string;
   time: string; // e.g. "09:30 AM" or "09:30"
@@ -24,6 +43,7 @@ export interface ActivityItem {
   booked?: boolean;
   assignedTravelerIds?: string[];
   photoUrl?: string;
+  transportToNext?: TransportSuggestion;
 }
 
 export interface DaySchedule {

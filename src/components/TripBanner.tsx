@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, MapPin, Edit2 } from 'lucide-react';
 import type { Trip } from '../types/travel';
+import { useI18n } from '../utils/i18n';
 
 interface TripBannerProps {
   trip: Trip;
@@ -13,6 +14,7 @@ export const TripBanner: React.FC<TripBannerProps> = ({
   onOpenSettings,
   isReadOnly
 }) => {
+  const { lang, t } = useI18n();
   // Calculate total activities count
   const totalActivities = trip.days.reduce((sum, day) => sum + (day.activities?.length || 0), 0);
 
@@ -32,12 +34,13 @@ export const TripBanner: React.FC<TripBannerProps> = ({
 
   // Format dates display
   const formatDateDisplay = (start: string, end: string) => {
+    const locale = lang === 'zh' ? 'zh-CN' : 'en-US';
     try {
       const s = new Date(start);
       const e = new Date(end);
-      return `${s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      return `${s.toLocaleDateString(locale, { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })}`;
     } catch {
-      return `${start} to ${end}`;
+      return `${start} – ${end}`;
     }
   };
 
@@ -75,7 +78,7 @@ export const TripBanner: React.FC<TripBannerProps> = ({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700 backdrop-blur-md transition shadow-md"
             >
               <Edit2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Customize Trip</span>
+              <span>{t('customizeTrip')}</span>
             </button>
           )}
         </div>
@@ -101,7 +104,7 @@ export const TripBanner: React.FC<TripBannerProps> = ({
               ))}
             </div>
             <span className="text-xs text-slate-300 font-medium">
-              {trip.travelers?.length || 1} Travelers ({trip.travelers?.map(t => t.name.split(' ')[0]).join(', ')})
+              {t('travelers', { n: trip.travelers?.length || 1 })} ({trip.travelers?.map(tv => tv.name.split(' ')[0]).join(', ')})
             </span>
           </div>
         </div>
@@ -109,22 +112,22 @@ export const TripBanner: React.FC<TripBannerProps> = ({
         {/* Bottom Statistics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-800/80">
           <div className="bg-slate-900/80 backdrop-blur border border-slate-800 p-3 rounded-2xl">
-            <div className="text-[11px] font-medium text-slate-400">Total Duration</div>
+            <div className="text-[11px] font-medium text-slate-400">{t('totalDuration')}</div>
             <div className="text-base font-bold text-white mt-0.5">
-              {trip.days.length} Days / {trip.days.length - 1} Nights
+              {t('daysNights', { d: trip.days.length, n: trip.days.length - 1 })}
             </div>
           </div>
 
           <div className="bg-slate-900/80 backdrop-blur border border-slate-800 p-3 rounded-2xl">
-            <div className="text-[11px] font-medium text-slate-400">Scheduled Activities</div>
+            <div className="text-[11px] font-medium text-slate-400">{t('scheduledActivities')}</div>
             <div className="text-base font-bold text-white mt-0.5">
-              {totalActivities} Events
+              {t('events', { n: totalActivities })}
             </div>
           </div>
 
           <div className="bg-slate-900/80 backdrop-blur border border-slate-800 p-3 rounded-2xl">
             <div className="text-[11px] font-medium text-slate-400 flex items-center justify-between">
-              <span>Estimated Budget</span>
+              <span>{t('estimatedBudget')}</span>
               <span className="text-[10px] text-emerald-400 font-mono">1 {trip.homeCurrency} ≈ {rate} {trip.currency}</span>
             </div>
             <div className="text-base font-bold text-emerald-400 mt-0.5 truncate">
@@ -137,7 +140,7 @@ export const TripBanner: React.FC<TripBannerProps> = ({
 
           <div className="bg-slate-900/80 backdrop-blur border border-slate-800 p-3 rounded-2xl">
             <div className="text-[11px] font-medium text-slate-400 flex items-center justify-between">
-              <span>Packing & Checklist</span>
+              <span>{t('packingChecklist')}</span>
               <span className="text-[10px] text-sky-400">{checklistPercent}%</span>
             </div>
             <div className="w-full bg-slate-800 rounded-full h-2 mt-2 overflow-hidden">

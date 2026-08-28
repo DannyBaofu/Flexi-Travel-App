@@ -4,6 +4,36 @@ import { initialTrips } from '../data/defaultTrips';
 const TRIPS_STORAGE_KEY = 'travelsync_trips_v1';
 const ACTIVE_TRIP_KEY = 'travelsync_active_trip_id_v1';
 
+// Backfill transport suggestions from the bundled default trips into
+// stored trips that predate the transportToNext field. Only fills gaps —
+// user-edited activities keep whatever they already have.
+function backfillTransportSuggestions(trips: Trip[]): Trip[] {
+  return trips.map(trip => {
+    const defaultTrip = initialTrips.find(d => d.id === trip.id);
+    if (!defaultTrip) return trip;
+
+    const defaults = new Map<string, NonNullable<Trip['days'][number]['activities'][number]['transportToNext']>>();
+    defaultTrip.days.forEach(day =>
+      day.activities.forEach(act => {
+        if (act.transportToNext) defaults.set(act.id, act.transportToNext);
+      })
+    );
+    if (defaults.size === 0) return trip;
+
+    return {
+      ...trip,
+      days: trip.days.map(day => ({
+        ...day,
+        activities: day.activities.map(act =>
+          !act.transportToNext && defaults.has(act.id)
+            ? { ...act, transportToNext: defaults.get(act.id) }
+            : act
+        )
+      }))
+    };
+  });
+}
+
 export const storageService = {
   getTrips(): Trip[] {
     try {
@@ -14,7 +44,7 @@ export const storageService = {
       }
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return backfillTransportSuggestions(parsed);
       }
       this.saveTrips(initialTrips);
       return initialTrips;

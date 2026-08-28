@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { Trip, ExpenseItem, ActivityCategory } from '../types/travel';
 import { categoryMetaMap } from '../utils/categoryHelpers';
+import { useI18n } from '../utils/i18n';
 
 interface BudgetTrackerProps {
   trip: Trip;
@@ -22,6 +23,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   onUpdateTrip,
   isReadOnly
 }) => {
+  const { lang, t } = useI18n();
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
@@ -140,33 +142,33 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl">
           <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <span>Total Group Spent</span>
+            <span>{t('totalGroupSpent')}</span>
             <Receipt className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-2 font-mono">
             {totalSpent.toLocaleString()} {trip.currency}
           </div>
           <div className="text-xs text-slate-400 mt-1">
-            ≈ {trip.homeCurrency} {totalSpentHome} (Rate: 1 {trip.homeCurrency} = {rate} {trip.currency})
+            ≈ {trip.homeCurrency} {totalSpentHome} ({t('rateLabel')}: 1 {trip.homeCurrency} = {rate} {trip.currency})
           </div>
         </div>
 
         <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl">
           <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <span>Per Person Average</span>
+            <span>{t('perPersonAverage')}</span>
             <Users className="w-4 h-4 text-sky-400" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-sky-400 mt-2 font-mono">
             {trip.travelers.length > 0 ? Math.round(totalSpent / trip.travelers.length).toLocaleString() : 0} {trip.currency}
           </div>
           <div className="text-xs text-slate-400 mt-1">
-            Split evenly across {trip.travelers.length} travelers
+            {t('splitEvenly', { n: trip.travelers.length })}
           </div>
         </div>
 
         <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <span>Quick Action</span>
+            <span>{t('quickAction')}</span>
             <Calculator className="w-4 h-4 text-amber-400" />
           </div>
           <div className="pt-2">
@@ -175,10 +177,10 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                 onClick={() => setIsAdding(!isAdding)}
                 className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-500/20"
               >
-                <Plus className="w-4 h-4" /> {isAdding ? 'Close Form' : 'Log New Expense'}
+                <Plus className="w-4 h-4" /> {isAdding ? t('closeForm') : t('logNewExpense')}
               </button>
             ) : (
-              <div className="text-xs text-slate-400">Viewing shared expense ledger</div>
+              <div className="text-xs text-slate-400">{t('viewingSharedLedger')}</div>
             )}
           </div>
         </div>
@@ -189,32 +191,32 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         <form onSubmit={handleAddExpense} className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-6 shadow-2xl space-y-4 animate-fadeIn">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Plus className="w-5 h-5 text-emerald-400" /> Add Travel Expense
+              <Plus className="w-5 h-5 text-emerald-400" /> {t('addTravelExpense')}
             </h3>
             <button
               type="button"
               onClick={() => setIsAdding(false)}
               className="text-xs text-slate-400 hover:text-white"
             >
-              Cancel
+              {t('cancel')}
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Expense Description *</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('expenseDescription')}</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Chao Phraya Dinner Cruise / Grab Taxi"
+                placeholder={t('expensePlaceholder')}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Amount ({trip.currency}) *</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('amountLabel', { cur: trip.currency })}</label>
               <input
                 type="number"
                 min="1"
@@ -230,7 +232,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('category')}</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as ActivityCategory)}
@@ -238,14 +240,14 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
               >
                 {(Object.keys(categoryMetaMap) as ActivityCategory[]).map(cat => (
                   <option key={cat} value={cat}>
-                    {categoryMetaMap[cat].label}
+                    {lang === 'zh' ? categoryMetaMap[cat].labelZh : categoryMetaMap[cat].label}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Paid By</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('paidBy')}</label>
               <select
                 value={paidBy}
                 onChange={(e) => setPaidBy(e.target.value)}
@@ -260,7 +262,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Date</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('date')}</label>
               <input
                 type="date"
                 value={date}
@@ -272,7 +274,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
 
           {/* Split with checkboxes */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2">Split With (Whose share is this?)</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-2">{t('splitWithLabel')}</label>
             <div className="flex flex-wrap gap-2">
               {trip.travelers.map(t => {
                 const isSelected = splitWith.includes(t.id);
@@ -301,13 +303,13 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
               onClick={() => setIsAdding(false)}
               className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
               className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition"
             >
-              Save Expense
+              {t('saveExpense')}
             </button>
           </div>
         </form>
@@ -319,10 +321,10 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         <div className="lg:col-span-5 space-y-4">
           <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-emerald-400" /> Group Settlement Summary
+              <Users className="w-4 h-4 text-emerald-400" /> {t('groupSettlement')}
             </h3>
             <p className="text-xs text-slate-400">
-              Smart debt simplification algorithm calculates exact repayments.
+              {t('settlementHint')}
             </p>
 
             <div className="space-y-2.5 pt-2">
@@ -344,14 +346,14 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                 ))
               ) : (
                 <div className="text-center py-6 text-xs text-slate-500 bg-slate-950/40 rounded-2xl">
-                  🎉 All expenses are currently balanced!
+                  {t('allBalanced')}
                 </div>
               )}
             </div>
 
             {/* Traveler Net Balances */}
             <div className="pt-4 border-t border-slate-800 space-y-2">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Individual Balances</div>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('individualBalances')}</div>
               {trip.travelers.map(t => {
                 const bal = Math.round(balances[t.id] || 0);
                 const isPositive = bal > 0;
@@ -375,7 +377,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
           {/* Category Breakdown Progress */}
           <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-sky-400" /> Category Breakdown
+              <PieChart className="w-4 h-4 text-sky-400" /> {t('categoryBreakdown')}
             </h3>
             <div className="space-y-2.5 pt-1">
               {(Object.keys(categoryTotals) as ActivityCategory[]).map(catKey => {
@@ -388,7 +390,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                     <div className="flex justify-between text-xs font-medium">
                       <span className="text-slate-300 flex items-center gap-1.5">
                         <span className={`w-2 h-2 rounded-full ${meta.textColor}`} />
-                        {meta.label}
+                        {lang === 'zh' ? meta.labelZh : meta.label}
                       </span>
                       <span className="font-mono text-slate-300">{amount.toLocaleString()} {trip.currency} ({percent}%)</span>
                     </div>
@@ -407,7 +409,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-emerald-400" /> Expense History ({trip.expenses?.length || 0})
+                <Receipt className="w-4 h-4 text-emerald-400" /> {t('expenseHistory')} ({trip.expenses?.length || 0})
               </h3>
             </div>
 
@@ -429,7 +431,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                         <div>
                           <div className="text-sm font-bold text-white">{exp.title}</div>
                           <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                            <span>Paid by <strong className="text-slate-200">{getTravelerName(exp.paidByTravelerId)}</strong></span>
+                            <span>{t('paidByLabel')} <strong className="text-slate-200">{getTravelerName(exp.paidByTravelerId)}</strong></span>
                             <span>•</span>
                             <span>{exp.date}</span>
                           </div>
@@ -439,14 +441,14 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                       <div className="flex items-center gap-3">
                         <div className="text-right font-mono">
                           <div className="text-sm font-bold text-emerald-400">{exp.amount.toLocaleString()} {exp.currency}</div>
-                          <div className="text-[10px] text-slate-500">Split by {exp.splitWithTravelerIds?.length || trip.travelers.length}</div>
+                          <div className="text-[10px] text-slate-500">{t('splitByN', { n: exp.splitWithTravelerIds?.length || trip.travelers.length })}</div>
                         </div>
 
                         {!isReadOnly && (
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
                             className="p-1.5 text-slate-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition"
-                            title="Delete Expense"
+                            title={t('deleteExpense')}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -457,7 +459,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                 })
               ) : (
                 <div className="text-center py-10 text-xs text-slate-500">
-                  No expenses logged yet. Click "Log New Expense" above to get started.
+                  {t('noExpensesYet')}
                 </div>
               )}
             </div>

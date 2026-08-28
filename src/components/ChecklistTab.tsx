@@ -13,12 +13,22 @@ import {
   Luggage
 } from 'lucide-react';
 import type { Trip, ChecklistItem } from '../types/travel';
+import { useI18n } from '../utils/i18n';
 
 interface ChecklistTabProps {
   trip: Trip;
   onUpdateTrip: (updatedTrip: Trip) => void;
   isReadOnly?: boolean;
 }
+
+const CATEGORY_T_KEYS: Record<string, string> = {
+  'Documents & Money': 'cat_documents',
+  'Electronics': 'cat_electronics',
+  'Clothes': 'cat_clothes',
+  'Toiletries & Medicine': 'cat_toiletries',
+  'Bangkok Specific': 'cat_bangkok',
+  'Essentials': 'cat_essentials'
+};
 
 const CATEGORY_ICONS: Record<string, any> = {
   'Documents & Money': FileCheck2,
@@ -34,6 +44,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
   onUpdateTrip,
   isReadOnly
 }) => {
+  const { t } = useI18n();
   const [newItemTitle, setNewItemTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ChecklistItem['category']>('Bangkok Specific');
 
@@ -113,17 +124,17 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
       <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="space-y-1 text-center sm:text-left">
           <h2 className="text-xl font-bold text-white flex items-center justify-center sm:justify-start gap-2">
-            <Luggage className="w-5 h-5 text-emerald-400" /> Pre-Trip & Packing Readiness
+            <Luggage className="w-5 h-5 text-emerald-400" /> {t('checklistTitle')}
           </h2>
           <p className="text-xs text-slate-400">
-            Ensure travel documents, e-SIM, Bangkok outfits, and essentials are ready before departure!
+            {t('checklistHint')}
           </p>
         </div>
 
         <div className="flex items-center gap-4 shrink-0">
           <div className="text-right">
             <div className="text-2xl font-black text-emerald-400 font-mono">{progressPercent}%</div>
-            <div className="text-[11px] text-slate-400">{completedItems} of {totalItems} packed</div>
+            <div className="text-[11px] text-slate-400">{t('packedCount', { done: completedItems, total: totalItems })}</div>
           </div>
           <div className="w-20 bg-slate-800 rounded-full h-3 overflow-hidden">
             <div
@@ -143,7 +154,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
             className="bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-500"
           >
             {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat} value={cat}>{t(CATEGORY_T_KEYS[cat] || cat)}</option>
             ))}
           </select>
 
@@ -151,7 +162,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
             type="text"
             value={newItemTitle}
             onChange={(e) => setNewItemTitle(e.target.value)}
-            placeholder="Add new item (e.g. Umbrella, Extra THB cash, Power bank)..."
+            placeholder={t('checklistPlaceholder')}
             className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
           />
 
@@ -159,7 +170,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
             type="submit"
             className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition shrink-0"
           >
-            <Plus className="w-4 h-4" /> Add Item
+            <Plus className="w-4 h-4" /> {t('addItem')}
           </button>
         </form>
       )}
@@ -180,7 +191,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
                   <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                     <Icon className="w-4 h-4" />
                   </div>
-                  <h3 className="text-sm font-bold text-white">{cat}</h3>
+                  <h3 className="text-sm font-bold text-white">{t(CATEGORY_T_KEYS[cat] || cat)}</h3>
                 </div>
                 <span className="text-xs font-mono text-slate-400">
                   {completedInCat} / {itemsInCat.length}
@@ -217,7 +228,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
                       <button
                         onClick={() => handleDeleteItem(item.id)}
                         className="p-1 text-slate-600 hover:text-red-400 transition"
-                        title="Delete item"
+                        title={t('deleteItem')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -227,7 +238,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
 
                 {itemsInCat.length === 0 && (
                   <div className="text-xs text-slate-500 py-3 text-center">
-                    No items in this category.
+                    {t('noItemsInCategory')}
                   </div>
                 )}
               </div>

@@ -22,8 +22,10 @@ import { NewTripModal } from './components/NewTripModal';
 import { TaxiCardsModal } from './components/TaxiCardsModal';
 import { PasscodePromptModal } from './components/PasscodePromptModal';
 import { PrintItineraryView } from './components/PrintItineraryView';
+import { useI18n } from './utils/i18n';
 
 export function App() {
+  const { t } = useI18n();
   const [trips, setTrips] = useState<Trip[]>(() => storageService.getTrips());
   const [activeTripId, setActiveTripId] = useState<string>(() => storageService.getActiveTripId());
   
@@ -146,7 +148,7 @@ export function App() {
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white p-4">
         <div className="text-center space-y-4">
           <Compass className="w-12 h-12 text-emerald-400 mx-auto animate-spin" />
-          <h2 className="text-xl font-bold">Loading Your Travel Planner...</h2>
+          <h2 className="text-xl font-bold">{t('loading')}</h2>
         </div>
       </div>
     );
@@ -188,7 +190,7 @@ export function App() {
               }`}
             >
               <Calendar className="w-4 h-4" />
-              <span>Day-by-Day Schedule</span>
+              <span>{t('tabItinerary')}</span>
             </button>
 
             <button
@@ -200,7 +202,7 @@ export function App() {
               }`}
             >
               <DollarSign className="w-4 h-4" />
-              <span>Budget & Expense Splitter</span>
+              <span>{t('tabBudget')}</span>
             </button>
 
             <button
@@ -212,7 +214,7 @@ export function App() {
               }`}
             >
               <Luggage className="w-4 h-4" />
-              <span>Packing & Checklist</span>
+              <span>{t('tabChecklist')}</span>
             </button>
           </div>
 
@@ -221,7 +223,7 @@ export function App() {
             className="hidden sm:flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-2 rounded-xl border border-amber-500/30 font-semibold transition"
           >
             <Car className="w-4 h-4 text-amber-400" />
-            <span>Show Taxi Cards</span>
+            <span>{t('showTaxiCards')}</span>
           </button>
         </div>
 
@@ -256,7 +258,7 @@ export function App() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950/80 py-6 text-center text-xs text-slate-500 no-print">
-        <p>TravelSync • Safe Online Trip Sharing & Itinerary Planner</p>
+        <p>{t('appTagline')}</p>
       </footer>
 
       {/* Print / PDF Document Layout (Only shown in print mode) */}
@@ -305,7 +307,7 @@ export function App() {
       <PasscodePromptModal
         isOpen={isPasscodePromptOpen}
         expectedPinHash={pendingSharePayload?.pinHash}
-        tripTitle={pendingSharePayload?.trip?.title || 'Shared Trip'}
+        tripTitle={pendingSharePayload?.trip?.title || t('sharedTrip')}
         onSuccess={() => {
           if (pendingSharePayload) {
             applySharedTrip(pendingSharePayload);

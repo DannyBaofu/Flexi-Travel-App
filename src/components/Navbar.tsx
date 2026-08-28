@@ -9,6 +9,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import type { Trip } from '../types/travel';
+import { useI18n } from '../utils/i18n';
 
 interface NavbarProps {
   trips: Trip[];
@@ -33,6 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onPrint,
   isReadOnly
 }) => {
+  const { lang, setLang, t } = useI18n();
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 transition-all no-print">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,31 +71,40 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onOpenNewTripModal}
                 className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium"
-                title="Create New Trip"
+                title={t('createNewTrip')}
               >
                 <Plus className="w-4 h-4 text-emerald-400" />
-                <span className="hidden sm:inline">New Trip</span>
+                <span className="hidden sm:inline">{t('newTrip')}</span>
               </button>
             )}
           </div>
 
           {/* Quick Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Language Toggle */}
+            <button
+              onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+              className="p-2 sm:px-3 sm:py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition"
+              title={lang === 'zh' ? 'Switch to English' : '切换为中文'}
+            >
+              {lang === 'zh' ? 'EN' : '中文'}
+            </button>
+
             {/* Show Taxi Cards Button (Super handy for Bangkok!) */}
             <button
               onClick={onOpenTaxiCardsModal}
               className="p-2 sm:px-3 sm:py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
-              title="Show Driver Taxi Cards"
+              title={t('showDriverTaxiCards')}
             >
               <Car className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">Taxi Cards</span>
+              <span className="hidden sm:inline">{t('taxiCards')}</span>
             </button>
 
             {/* Print / Save PDF Button */}
             <button
               onClick={onPrint}
               className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs transition"
-              title="Print Itinerary or Save as PDF"
+              title={t('printTitle')}
             >
               <Printer className="w-4 h-4" />
             </button>
@@ -103,7 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onOpenSettingsModal}
                 className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs transition"
-                title="Trip Settings"
+                title={t('tripSettings')}
               >
                 <Sliders className="w-4 h-4" />
               </button>
@@ -113,10 +124,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenShareModal}
               className="p-2 sm:px-3.5 sm:py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20 active:scale-95"
-              title="Share Trip"
+              title={t('shareTrip')}
             >
               <Share2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Share Trip</span>
+              <span className="hidden sm:inline">{t('shareTrip')}</span>
             </button>
           </div>
         </div>
@@ -124,7 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {isReadOnly && (
         <div className="bg-sky-950/80 border-b border-sky-800/60 px-4 py-1.5 text-center text-xs text-sky-200 font-medium">
-          👁️ Viewing Shared Itinerary in Read-Only Mode. You can browse schedule, maps, and taxi cards!
+          {t('readOnlyBanner')}
         </div>
       )}
     </header>
