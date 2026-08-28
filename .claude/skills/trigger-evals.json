@@ -1,0 +1,23 @@
+{
+  "purpose": "Trigger-accuracy eval for the TravelSync project skills. Checks that each skill fires on the messages it should and stays quiet on near-misses that share its vocabulary. Re-run after editing any skill description.",
+  "method": "Three independent judges are given only the skill names + descriptions (as Claude Code sees them) plus these messages in varying order, and asked which skill(s) they would consult. Unanimity across judges indicates the description is unambiguous.",
+  "last_run": "2026-08-28",
+  "last_result": "45/45 unanimous; 7/7 correct triggers, 8/8 correct declines, 0 false positives, 0 false negatives",
+  "evals": [
+    { "id": 1, "query": "ok the food total thing looks right now, push it up so i can show my friend tonight", "expect": ["ship"] },
+    { "id": 2, "query": "i added a new button for exporting to calendar but it says 'Export to Calendar' in the chinese view, fix that", "expect": ["i18n"] },
+    { "id": 3, "query": "my wife opened it on her iphone 12 and said the day tabs look squashed and it slides sideways when she scrolls", "expect": ["mobile-check"] },
+    { "id": 4, "query": "whats the exchange rate between MYR and THB right now", "expect": [], "note": "near-miss: currency vocabulary, but a plain lookup" },
+    { "id": 5, "query": "done with the changes, make it live", "expect": ["ship"] },
+    { "id": 6, "query": "add a new activity to day 3 for the weekend market, around 10am, budget 300 baht", "expect": [], "note": "near-miss: app edit, but data content with no new UI strings" },
+    { "id": 7, "query": "im adding a notes field to the activity form, make sure the label shows properly for both languages", "expect": ["i18n"] },
+    { "id": 8, "query": "translate this thai address into english for me", "expect": [], "note": "near-miss: translation vocabulary, but not UI dictionary work" },
+    { "id": 9, "query": "check the new phrasebook tab looks ok on a phone before we ship", "expect": ["mobile-check"], "note": "judges consistently read 'before we ship' as a precondition, not deploy approval" },
+    { "id": 10, "query": "the supabase project - did you say it pauses after 7 days?", "expect": [], "note": "recall question" },
+    { "id": 11, "query": "git log --oneline, show me what we changed today", "expect": [], "note": "near-miss: git vocabulary, but no build or deploy" },
+    { "id": 12, "query": "resize the cover photo on the banner, it's way too tall on my desktop monitor", "expect": [], "note": "near-miss: layout vocabulary, but explicitly desktop" },
+    { "id": 13, "query": "can you make the app work offline on the plane", "expect": [], "note": "open-ended feature work" },
+    { "id": 14, "query": "can you deploy what we just did", "expect": ["ship"] },
+    { "id": 15, "query": "how much did we budget for food on day 2", "expect": [], "note": "data lookup" }
+  ]
+}
