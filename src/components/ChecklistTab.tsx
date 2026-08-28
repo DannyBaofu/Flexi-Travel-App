@@ -122,29 +122,18 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Banner Progress */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="space-y-1 text-center sm:text-left">
-          <h2 className="text-xl font-bold text-white flex items-center justify-center sm:justify-start gap-2">
-            <Luggage className="w-5 h-5 text-emerald-400" /> {t('checklistTitle')}
-          </h2>
-          <p className="text-xs text-slate-400">
-            {t('checklistHint')}
-          </p>
+      {/* Slim Progress Header */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl px-4 py-3 shadow flex items-center gap-3">
+        <Luggage className="w-4 h-4 text-emerald-400 shrink-0" />
+        <span className="text-sm font-bold text-white shrink-0">{t('checklistTitle')}</span>
+        <div className="flex-1 bg-slate-800 rounded-full h-2 overflow-hidden">
+          <div
+            className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
-
-        <div className="flex items-center gap-4 shrink-0">
-          <div className="text-right">
-            <div className="text-2xl font-black text-emerald-400 font-mono">{progressPercent}%</div>
-            <div className="text-[11px] text-slate-400">{t('packedCount', { done: completedItems, total: totalItems })}</div>
-          </div>
-          <div className="w-20 bg-slate-800 rounded-full h-3 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
+        <span className="text-xs font-mono font-bold text-emerald-400 shrink-0">{progressPercent}%</span>
+        <span className="text-[11px] text-slate-400 shrink-0 hidden sm:inline">{t('packedCount', { done: completedItems, total: totalItems })}</span>
       </div>
 
       {/* Add Item Bar */}
@@ -181,7 +170,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {categories.map(cat => {
           const itemsInCat = (trip.checklist || []).filter(item => item.category === cat);
-          if (itemsInCat.length === 0 && isReadOnly) return null;
+          if (itemsInCat.length === 0) return null;
 
           const Icon = CATEGORY_ICONS[cat] || Luggage;
           const completedInCat = itemsInCat.filter(i => i.completed).length;

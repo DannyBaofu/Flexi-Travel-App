@@ -9,8 +9,8 @@ export const bangkokDefaultTrip: Trip = {
   endDate: '2026-10-10',
   coverImage: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=1600&q=80',
   currency: 'THB',
-  homeCurrency: 'USD',
-  exchangeRate: 35.5, // 1 USD = 35.5 THB
+  homeCurrency: 'MYR',
+  exchangeRate: 8.15, // 1 MYR ≈ 8.15 THB (refreshed live when online)
   travelers: [
     { id: 't1', name: 'Alex (You)', avatarColor: '#10b981', isOwner: true },
     { id: 't2', name: 'Sarah', avatarColor: '#0ea5e9' },

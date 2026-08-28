@@ -3,7 +3,7 @@ import {
   Calendar, 
   DollarSign, 
   Luggage, 
-  Car, 
+  Languages,
   Compass
 } from 'lucide-react';
 import type { Trip, ActivityItem, TripRole } from './types/travel';
@@ -22,9 +22,11 @@ import { NewTripModal } from './components/NewTripModal';
 import { TaxiCardsModal } from './components/TaxiCardsModal';
 import { PasscodePromptModal } from './components/PasscodePromptModal';
 import { PrintItineraryView } from './components/PrintItineraryView';
+import { PhrasesTab } from './components/PhrasesTab';
 import { AuthModal } from './components/AuthModal';
 import { useI18n } from './utils/i18n';
 import type { User } from '@supabase/supabase-js';
+import { fetchLiveRate } from './services/exchangeRate';
 import {
   isCloudEnabled,
   getSession,
@@ -57,8 +59,9 @@ export function App() {
   const cloudMode = isCloudEnabled && !!user;
   const pushTimerRef = useRef<number | null>(null);
 
-  // Active Tab: 'itinerary' | 'budget' | 'checklist'
-  const [activeTab, setActiveTab] = useState<'itinerary' | 'budget' | 'checklist'>('itinerary');
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<'itinerary' | 'budget' | 'checklist' | 'phrases'>('itinerary');
+  const [rateIsLive, setRateIsLive] = useState(false);
 
   // Modals
   const [isNewTripModalOpen, setIsNewTripModalOpen] = useState(false);
@@ -242,6 +245,26 @@ export function App() {
     return unsubscribe;
   }, [cloudMode, activeTripId]);
 
+  // Refresh the exchange rate from free mid-market APIs (12h cached)
+  useEffect(() => {
+    if (!activeTrip || role === 'viewer') {
+      setRateIsLive(false);
+      return;
+    }
+    let cancelled = false;
+    fetchLiveRate(activeTrip.homeCurrency, activeTrip.currency).then((liveRate) => {
+      if (cancelled || !liveRate) return;
+      setRateIsLive(true);
+      const rounded = Math.round(liveRate * 100) / 100;
+      const current = activeTrip.exchangeRate || 0;
+      if (Math.abs(current - rounded) / rounded > 0.001) {
+        handleUpdateTrip({ ...activeTrip, exchangeRate: rounded });
+      }
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTrip?.id, activeTrip?.homeCurrency, activeTrip?.currency, role]);
+
   const handleSignOut = async () => {
     if (!window.confirm(t('confirmSignOut'))) return;
     await signOut();
@@ -332,6 +355,7 @@ export function App() {
           trip={activeTrip}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           role={role}
+          rateIsLive={rateIsLive}
         />
 
         {/* Tab Navigation (Itinerary, Budget, Packing Checklist) */}
@@ -372,15 +396,19 @@ export function App() {
               <Luggage className="w-4 h-4" />
               <span>{t('tabChecklist')}</span>
             </button>
-          </div>
 
-          <button
-            onClick={() => setIsTaxiCardsModalOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-2 rounded-xl border border-amber-500/30 font-semibold transition"
-          >
-            <Car className="w-4 h-4 text-amber-400" />
-            <span>{t('showTaxiCards')}</span>
-          </button>
+            <button
+              onClick={() => setActiveTab('phrases')}
+              className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
+                activeTab === 'phrases'
+                  ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
+                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'
+              }`}
+            >
+              <Languages className="w-4 h-4" />
+              <span>{t('tabPhrases')}</span>
+            </button>
+          </div>
         </div>
 
         {/* Tab Views */}
@@ -413,6 +441,8 @@ export function App() {
             role={role}
           />
         )}
+
+        {activeTab === 'phrases' && <PhrasesTab />}
       </main>
 
       {/* Footer */}

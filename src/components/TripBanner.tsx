@@ -7,12 +7,14 @@ interface TripBannerProps {
   trip: Trip;
   onOpenSettings: () => void;
   role: TripRole;
+  rateIsLive?: boolean;
 }
 
 export const TripBanner: React.FC<TripBannerProps> = ({
   trip,
   onOpenSettings,
-  role
+  role,
+  rateIsLive
 }) => {
   const { lang, t } = useI18n();
   const isAdmin = role === 'admin';
@@ -129,7 +131,10 @@ export const TripBanner: React.FC<TripBannerProps> = ({
           <div className="bg-slate-900/80 backdrop-blur border border-slate-800 p-3 rounded-2xl">
             <div className="text-[11px] font-medium text-slate-400 flex items-center justify-between">
               <span>{t('estimatedBudget')}</span>
-              <span className="text-[10px] text-emerald-400 font-mono">1 {trip.homeCurrency} ≈ {rate} {trip.currency}</span>
+              <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                {rateIsLive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title={t('liveRate')} />}
+                1 {trip.homeCurrency} ≈ {rate} {trip.currency}
+              </span>
             </div>
             <div className="text-base font-bold text-emerald-400 mt-0.5 truncate">
               {totalEstimatedCost.toLocaleString()} {trip.currency}

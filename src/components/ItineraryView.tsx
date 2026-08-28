@@ -134,7 +134,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
   // Duplicate activity
   const handleDuplicateActivity = (dayId: string, activity: ActivityItem) => {
-    if (isReadOnly) return;
+    if (!isAdmin) return;
     const duplicated: ActivityItem = {
       ...activity,
       id: `act-${Date.now()}`,
@@ -404,7 +404,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                   <span className="text-xs font-bold text-orange-300 font-mono shrink-0">
                     {foodTotalCost.toLocaleString()} {trip.currency}
                     <span className="text-[10px] text-slate-400 font-normal ml-1">
-                      (≈ ${(foodTotalCost / rate).toFixed(1)})
+                      (≈ {trip.homeCurrency} {(foodTotalCost / rate).toFixed(1)})
                     </span>
                   </span>
                 </div>
@@ -526,7 +526,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                     {activity.cost.toLocaleString()} {trip.currency}
                                     {homeCost && (
                                       <span className="text-[10px] text-slate-400 ml-1">
-                                        (≈ ${homeCost})
+                                        (≈ {trip.homeCurrency} {homeCost})
                                       </span>
                                     )}
                                   </span>
@@ -597,7 +597,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                   >
                                     <ArrowDown className="w-3.5 h-3.5" />
                                   </button>
-                                  </>)}
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handleDuplicateActivity(day.id, activity); }}
                                     className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
@@ -605,6 +604,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                   >
                                     <Copy className="w-3.5 h-3.5" />
                                   </button>
+                                  </>)}
                                   <button
                                     onClick={(e) => { e.stopPropagation(); onOpenEditActivityModal(day.id, activity); }}
                                     className="p-1.5 text-emerald-400 hover:text-emerald-300 rounded-lg hover:bg-emerald-500/10 transition"

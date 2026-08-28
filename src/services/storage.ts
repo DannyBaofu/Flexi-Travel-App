@@ -34,6 +34,16 @@ function backfillTransportSuggestions(trips: Trip[]): Trip[] {
   });
 }
 
+// One-time migration: the bundled sample trip used to ship with USD as the
+// home currency; switch stored copies that still have the old default to MYR.
+function migrateHomeCurrency(trips: Trip[]): Trip[] {
+  return trips.map(trip =>
+    trip.id === 'bkk-2026-trip' && trip.homeCurrency === 'USD' && trip.exchangeRate === 35.5
+      ? { ...trip, homeCurrency: 'MYR', exchangeRate: 8.15 }
+      : trip
+  );
+}
+
 export const storageService = {
   getTrips(): Trip[] {
     try {
@@ -44,7 +54,7 @@ export const storageService = {
       }
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return backfillTransportSuggestions(parsed);
+        return backfillTransportSuggestions(migrateHomeCurrency(parsed));
       }
       this.saveTrips(initialTrips);
       return initialTrips;

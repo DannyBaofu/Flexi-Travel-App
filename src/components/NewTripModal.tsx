@@ -43,27 +43,15 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
     onClose();
   };
 
-  const handleSelectTemplate = (templateType: 'bangkok' | 'tokyo' | 'bali') => {
-    if (templateType === 'bangkok') {
-      const clonedBkk: Trip = {
-        ...structuredClone(bangkokDefaultTrip),
-        id: `trip-bkk-${Date.now()}`,
-        title: `Bangkok Trip (Copy ${new Date().toLocaleDateString()})`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      onCreateTrip(clonedBkk);
-    } else if (templateType === 'tokyo') {
-      const tokyo = createNewTrip('Tokyo Neon & Culture 🇯🇵', 'Tokyo', 'Japan', '2026-11-01', '2026-11-07', 'JPY');
-      tokyo.coverImage = 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1600&q=80';
-      tokyo.exchangeRate = 150;
-      onCreateTrip(tokyo);
-    } else if (templateType === 'bali') {
-      const bali = createNewTrip('Bali Tropical Villa & Beach 🌴', 'Bali', 'Indonesia', '2026-12-10', '2026-12-15', 'IDR');
-      bali.coverImage = 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1600&q=80';
-      bali.exchangeRate = 15500;
-      onCreateTrip(bali);
-    }
+  const handleSelectTemplate = () => {
+    const clonedBkk: Trip = {
+      ...structuredClone(bangkokDefaultTrip),
+      id: `trip-bkk-${Date.now()}`,
+      title: `Bangkok Trip (Copy ${new Date().toLocaleDateString()})`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    onCreateTrip(clonedBkk);
     onClose();
   };
 
@@ -208,7 +196,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
         ) : (
           <div className="p-6 space-y-3">
             <button
-              onClick={() => handleSelectTemplate('bangkok')}
+              onClick={handleSelectTemplate}
               className="w-full p-4 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-2xl text-left flex items-center justify-between group transition"
             >
               <div className="space-y-1">
@@ -220,31 +208,6 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
               <span className="text-xs text-emerald-400 font-semibold shrink-0 ml-3">{t('useTemplate')}</span>
             </button>
 
-            <button
-              onClick={() => handleSelectTemplate('tokyo')}
-              className="w-full p-4 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-2xl text-left flex items-center justify-between group transition"
-            >
-              <div className="space-y-1">
-                <div className="text-sm font-bold text-white group-hover:text-sky-400 transition flex items-center gap-1.5">
-                  <span>🇯🇵 Tokyo 7-Day Neon & Food</span>
-                </div>
-                <p className="text-xs text-slate-400">{t('tokyoTemplateDesc')}</p>
-              </div>
-              <span className="text-xs text-sky-400 font-semibold shrink-0 ml-3">{t('useTemplate')}</span>
-            </button>
-
-            <button
-              onClick={() => handleSelectTemplate('bali')}
-              className="w-full p-4 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-2xl text-left flex items-center justify-between group transition"
-            >
-              <div className="space-y-1">
-                <div className="text-sm font-bold text-white group-hover:text-amber-400 transition flex items-center gap-1.5">
-                  <span>🌴 Bali Tropical Villa & Beach</span>
-                </div>
-                <p className="text-xs text-slate-400">{t('baliTemplateDesc')}</p>
-              </div>
-              <span className="text-xs text-amber-400 font-semibold shrink-0 ml-3">{t('useTemplate')}</span>
-            </button>
           </div>
         )}
       </div>

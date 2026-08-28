@@ -164,6 +164,9 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
             {trip.travelers.length > 0 ? Math.round(totalSpent / trip.travelers.length).toLocaleString() : 0} {trip.currency}
           </div>
           <div className="text-xs text-slate-400 mt-1">
+            ≈ {trip.homeCurrency} {trip.travelers.length > 0 ? Math.round(totalSpent / trip.travelers.length / rate).toLocaleString() : 0}
+          </div>
+          <div className="text-xs text-slate-400 mt-1">
             {t('splitEvenly', { n: trip.travelers.length })}
           </div>
         </div>
@@ -248,6 +251,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
               </select>
             </div>
 
+            {isAdmin && (
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">{t('paidBy')}</label>
               <select
@@ -263,6 +267,8 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
               </select>
             </div>
 
+            )}
+
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">{t('date')}</label>
               <input
@@ -274,7 +280,8 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
             </div>
           </div>
 
-          {/* Split with checkboxes */}
+          {/* Split with checkboxes (admin only — members log simple expenses) */}
+          {isAdmin && (
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2">{t('splitWithLabel')}</label>
             <div className="flex flex-wrap gap-2">
@@ -298,6 +305,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
               })}
             </div>
           </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
             <button
@@ -319,8 +327,9 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
 
       {/* Settlements & Breakdown Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Who Owes Who Debt Simplifier (5 Cols) */}
+        {/* Left: Who Owes Who Debt Simplifier (5 Cols, admin only) */}
         <div className="lg:col-span-5 space-y-4">
+          {isAdmin && (
           <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Users className="w-4 h-4 text-emerald-400" /> {t('groupSettlement')}
@@ -375,6 +384,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
               })}
             </div>
           </div>
+          )}
 
           {/* Category Breakdown Progress */}
           <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
@@ -443,7 +453,10 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                       <div className="flex items-center gap-3">
                         <div className="text-right font-mono">
                           <div className="text-sm font-bold text-emerald-400">{exp.amount.toLocaleString()} {exp.currency}</div>
-                          <div className="text-[10px] text-slate-500">{t('splitByN', { n: exp.splitWithTravelerIds?.length || trip.travelers.length })}</div>
+                          <div className="text-[10px] text-slate-400">≈ {trip.homeCurrency} {(exp.amount / rate).toFixed(0)}</div>
+                          {isAdmin && (
+                            <div className="text-[10px] text-slate-500">{t('splitByN', { n: exp.splitWithTravelerIds?.length || trip.travelers.length })}</div>
+                          )}
                         </div>
 
                         {isAdmin && (

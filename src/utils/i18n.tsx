@@ -283,6 +283,13 @@ const dict: Record<string, Entry> = {
   joinFailed: { zh: '加入行程失败：{msg}', en: 'Failed to join trip: {msg}' },
   snapshotSection: { zh: '快照分享（离线，无需登录）', en: 'Snapshot Share (offline, no login needed)' },
 
+  // ---- Phrasebook ----
+  tabPhrases: { zh: '泰语速查', en: 'Thai Phrases' },
+  phrasesHint: { zh: '直接把泰文大字出示给当地人看也可以！小贴士：男生句尾加 "krap (ครับ)"、女生加 "ka (ค่ะ)" 更有礼貌。', en: 'You can simply show the big Thai text to locals! Tip: men end sentences with "krap (ครับ)", women with "ka (ค่ะ)" to be polite.' },
+
+  // ---- Live exchange rate ----
+  liveRate: { zh: '实时', en: 'live' },
+
   // ---- Shared trip / passcode ----
   sharedTrip: { zh: '共享行程', en: 'Shared Trip' }
 };
