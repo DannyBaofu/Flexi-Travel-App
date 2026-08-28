@@ -8,7 +8,6 @@ type Entry = { zh: string; en: string };
 
 const dict: Record<string, Entry> = {
   // ---- App shell ----
-  loading: { zh: '正在加载您的旅行计划…', en: 'Loading Your Travel Planner...' },
   appTagline: { zh: '旅行行程规划', en: 'Travel Itinerary Planner' },
   tabItinerary: { zh: '每日行程', en: 'Day-by-Day Schedule' },
   tabBudget: { zh: '预算与分账', en: 'Budget & Expense Splitter' },
@@ -150,9 +149,7 @@ const dict: Record<string, Entry> = {
   saveChanges: { zh: '保存修改', en: 'Save Changes' },
 
   // ---- New trip modal ----
-  newTripSubtitle: { zh: '创建自定义行程或从模板开始', en: 'Plan a new custom trip or start from a template' },
-  customTrip: { zh: '自定义行程', en: 'Custom Trip' },
-  tripTemplates: { zh: '行程模板', en: 'Trip Templates' },
+  newTripSubtitle: { zh: '填写基本信息，稍后再添加每天的活动', en: 'Fill in the basics — add daily activities afterwards' },
   tripNameRequired: { zh: '行程名称 *', en: 'Trip Name *' },
   tripNamePlaceholder: { zh: '例如：曼谷之旅 2026', en: 'e.g. Bangkok Getaway 2026' },
   destinationCity: { zh: '目的地城市 *', en: 'Destination City *' },
@@ -161,10 +158,6 @@ const dict: Record<string, Entry> = {
   endDate: { zh: '结束日期', en: 'End Date' },
   destCurrencyCode: { zh: '目的地货币（代码）', en: 'Destination Currency (Code)' },
   createTrip: { zh: '创建行程', en: 'Create Trip' },
-  useTemplate: { zh: '使用模板 →', en: 'Use Template →' },
-  bkkTemplateDesc: { zh: '精选大皇宫、郑王庙、恰图恰、Jodd Fairs 夜市、水上市场与天台酒吧。', en: 'Curated with Grand Palace, Wat Arun, Chatuchak, Jodd Fairs, Floating Market, and rooftop bars.' },
-  tokyoTemplateDesc: { zh: '涩谷、新宿、秋叶原、浅草、筑地市场与富士山一日游。', en: 'Shibuya, Shinjuku, Akihabara, Asakusa, Tsukiji Market, and Mount Fuji day trip.' },
-  baliTemplateDesc: { zh: '水明漾海滩俱乐部、乌布瀑布、梯田与佩尼达岛跳岛游。', en: 'Seminyak beach clubs, Ubud waterfalls, rice terraces, and Nusa Penida island hop.' },
 
   // ---- Share modal ----
   safeShare: { zh: '安全分享给朋友', en: 'Safe Share with Friends' },
@@ -289,6 +282,12 @@ const dict: Record<string, Entry> = {
 
   // ---- Live exchange rate ----
   liveRate: { zh: '实时', en: 'live' },
+
+  // ---- Empty state ----
+  emptyTitle: { zh: '还没有行程', en: 'No trips yet' },
+  emptyHint: { zh: '创建你的第一个行程，开始安排每天的活动、预算和行李清单。', en: 'Create your first trip to start planning days, budget and packing.' },
+  createFirstTrip: { zh: '创建第一个行程', en: 'Create Your First Trip' },
+  noChecklistItems: { zh: '清单还是空的，在上方添加第一项。', en: 'Your checklist is empty — add your first item above.' },
 
   // ---- Shared trip / passcode ----
   sharedTrip: { zh: '共享行程', en: 'Shared Trip' }

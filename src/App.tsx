@@ -218,7 +218,7 @@ export function App() {
   const handleDeleteTrip = (tripId: string) => {
     const remaining = storageService.deleteTrip(tripId);
     setTrips(remaining);
-    setActiveTripId(remaining[0].id);
+    setActiveTripId(remaining[0]?.id || '');
     if (cloudMode) {
       deleteTripCloud(tripId).catch(err => console.error('Cloud delete failed:', err));
     }
@@ -306,13 +306,31 @@ export function App() {
     setIsTaxiCardsModalOpen(true);
   };
 
+  // No trips at all — invite the user to create one rather than inventing data
   if (!activeTrip) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white p-4">
-        <div className="text-center space-y-4">
-          <Compass className="w-12 h-12 text-emerald-400 mx-auto animate-spin" />
-          <h2 className="text-xl font-bold">{t('loading')}</h2>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white p-6">
+        <div className="text-center space-y-5 max-w-sm">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+            <Compass className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold">{t('emptyTitle')}</h2>
+            <p className="text-sm text-slate-400 leading-relaxed">{t('emptyHint')}</p>
+          </div>
+          <button
+            onClick={() => setIsNewTripModalOpen(true)}
+            className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-sm transition shadow-lg shadow-emerald-500/20 inline-flex items-center gap-2"
+          >
+            <Calendar className="w-4 h-4" /> {t('createFirstTrip')}
+          </button>
         </div>
+
+        <NewTripModal
+          isOpen={isNewTripModalOpen}
+          onClose={() => setIsNewTripModalOpen(false)}
+          onCreateTrip={handleCreateTrip}
+        />
       </div>
     );
   }

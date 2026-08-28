@@ -166,6 +166,12 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
         </form>
       )}
 
+      {totalItems === 0 && (
+        <div className="text-center py-10 border border-dashed border-slate-800 rounded-2xl bg-slate-950/30">
+          <p className="text-sm text-slate-400 font-medium">{t('noChecklistItems')}</p>
+        </div>
+      )}
+
       {/* Categorized Lists */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {categories.map(cat => {

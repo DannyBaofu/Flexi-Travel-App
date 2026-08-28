@@ -1,66 +1,51 @@
 import type { Trip } from '../types/travel';
-import { initialTrips } from '../data/defaultTrips';
 
 const TRIPS_STORAGE_KEY = 'travelsync_trips_v1';
 const ACTIVE_TRIP_KEY = 'travelsync_active_trip_id_v1';
+const SAMPLE_PURGE_KEY = 'travelsync_sample_purged_v1';
 
-// Backfill transport suggestions from the bundled default trips into
-// stored trips that predate the transportToNext field. Only fills gaps —
-// user-edited activities keep whatever they already have.
-function backfillTransportSuggestions(trips: Trip[]): Trip[] {
-  return trips.map(trip => {
-    const defaultTrip = initialTrips.find(d => d.id === trip.id);
-    if (!defaultTrip) return trip;
+// The app used to ship with a demo Bangkok itinerary (fake travellers, fake
+// expenses) seeded into every new browser. That sample is gone, but copies of
+// it still sit in the localStorage of anyone who opened the app before now.
+// Drop those once, guarded by a flag so a trip the user genuinely creates
+// later is never touched.
+const SAMPLE_TRIP_ID = 'bkk-2026-trip';
+const SAMPLE_CLONE_PREFIX = 'trip-bkk-';
 
-    const defaults = new Map<string, NonNullable<Trip['days'][number]['activities'][number]['transportToNext']>>();
-    defaultTrip.days.forEach(day =>
-      day.activities.forEach(act => {
-        if (act.transportToNext) defaults.set(act.id, act.transportToNext);
-      })
-    );
-    if (defaults.size === 0) return trip;
+function purgeSeededSample(trips: Trip[]): Trip[] {
+  try {
+    if (localStorage.getItem(SAMPLE_PURGE_KEY)) return trips;
+  } catch {
+    return trips; // storage unavailable — leave data alone
+  }
 
-    return {
-      ...trip,
-      days: trip.days.map(day => ({
-        ...day,
-        activities: day.activities.map(act =>
-          !act.transportToNext && defaults.has(act.id)
-            ? { ...act, transportToNext: defaults.get(act.id) }
-            : act
-        )
-      }))
-    };
-  });
-}
-
-// One-time migration: the bundled sample trip used to ship with USD as the
-// home currency; switch stored copies that still have the old default to MYR.
-function migrateHomeCurrency(trips: Trip[]): Trip[] {
-  return trips.map(trip =>
-    trip.id === 'bkk-2026-trip' && trip.homeCurrency === 'USD' && trip.exchangeRate === 35.5
-      ? { ...trip, homeCurrency: 'MYR', exchangeRate: 8.15 }
-      : trip
+  const cleaned = trips.filter(
+    trip => trip.id !== SAMPLE_TRIP_ID && !trip.id.startsWith(SAMPLE_CLONE_PREFIX)
   );
+
+  try {
+    localStorage.setItem(SAMPLE_PURGE_KEY, '1');
+    if (cleaned.length !== trips.length) {
+      localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(cleaned));
+    }
+  } catch { /* ignore */ }
+
+  return cleaned;
 }
 
 export const storageService = {
+  // Returns whatever the user actually has. An empty list is a valid state —
+  // the app shows a "create your first trip" screen rather than inventing data.
   getTrips(): Trip[] {
     try {
       const stored = localStorage.getItem(TRIPS_STORAGE_KEY);
-      if (!stored) {
-        this.saveTrips(initialTrips);
-        return initialTrips;
-      }
+      if (!stored) return [];
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return backfillTransportSuggestions(migrateHomeCurrency(parsed));
-      }
-      this.saveTrips(initialTrips);
-      return initialTrips;
+      if (!Array.isArray(parsed)) return [];
+      return purgeSeededSample(parsed);
     } catch (e) {
       console.error('Error loading trips from storage:', e);
-      return initialTrips;
+      return [];
     }
   },
 
@@ -73,23 +58,29 @@ export const storageService = {
   },
 
   getActiveTripId(): string {
-    const activeId = localStorage.getItem(ACTIVE_TRIP_KEY);
-    const trips = this.getTrips();
-    if (activeId && trips.some(t => t.id === activeId)) {
-      return activeId;
+    try {
+      const activeId = localStorage.getItem(ACTIVE_TRIP_KEY);
+      const trips = this.getTrips();
+      if (activeId && trips.some(t => t.id === activeId)) {
+        return activeId;
+      }
+      return trips[0]?.id || '';
+    } catch {
+      return '';
     }
-    return trips[0]?.id || '';
   },
 
   setActiveTripId(id: string) {
-    localStorage.setItem(ACTIVE_TRIP_KEY, id);
+    try {
+      localStorage.setItem(ACTIVE_TRIP_KEY, id);
+    } catch { /* ignore */ }
   },
 
   saveTrip(updatedTrip: Trip): Trip[] {
     const trips = this.getTrips();
     const existingIndex = trips.findIndex(t => t.id === updatedTrip.id);
     let newTrips: Trip[];
-    
+
     updatedTrip.updatedAt = new Date().toISOString();
 
     if (existingIndex >= 0) {
@@ -103,14 +94,12 @@ export const storageService = {
   },
 
   deleteTrip(tripId: string): Trip[] {
-    const trips = this.getTrips();
-    const filtered = trips.filter(t => t.id !== tripId);
-    const finalTrips = filtered.length > 0 ? filtered : initialTrips;
-    this.saveTrips(finalTrips);
-    
+    const remaining = this.getTrips().filter(t => t.id !== tripId);
+    this.saveTrips(remaining);
+
     if (this.getActiveTripId() === tripId) {
-      this.setActiveTripId(finalTrips[0].id);
+      this.setActiveTripId(remaining[0]?.id || '');
     }
-    return finalTrips;
+    return remaining;
   }
 };

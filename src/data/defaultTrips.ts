@@ -1,5 +1,4 @@
 import type { Trip } from '../types/travel';
-import { bangkokDefaultTrip } from './bangkokTrip';
 
 export function createNewTrip(title: string, destination: string, country: string, startDate: string, endDate: string, currency: string = 'USD'): Trip {
   // Parse date components explicitly to avoid the UTC-midnight shift of
@@ -32,7 +31,7 @@ export function createNewTrip(title: string, destination: string, country: strin
       dayNumber: i + 1,
       dateString: `${current.getFullYear()}-${pad(current.getMonth() + 1)}-${pad(current.getDate())}`,
       dayOfWeek: `${weekday} (${dayStr})`,
-      title: i === 0 ? 'Arrival & Exploration' : i === numDays - 1 ? 'Departure' : `Day ${i + 1} Adventure`,
+      title: '',
       activities: []
     };
   });
@@ -46,7 +45,7 @@ export function createNewTrip(title: string, destination: string, country: strin
     endDate,
     coverImage: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1600&q=80',
     currency,
-    homeCurrency: 'USD',
+    homeCurrency: 'MYR',
     exchangeRate: 1,
     travelers: [
       { id: 't1', name: 'You (Organizer)', avatarColor: '#10b981', isOwner: true }
@@ -58,17 +57,12 @@ export function createNewTrip(title: string, destination: string, country: strin
     },
     days,
     expenses: [],
-    checklist: [
-      { id: 'c-1', category: 'Documents & Money', title: 'Passport (valid > 6 months)', completed: false },
-      { id: 'c-2', category: 'Documents & Money', title: 'Flight tickets & boarding passes', completed: false },
-      { id: 'c-3', category: 'Documents & Money', title: 'Hotel booking confirmations', completed: false },
-      { id: 'c-4', category: 'Electronics', title: 'Phone charger & portable power bank', completed: false },
-      { id: 'c-5', category: 'Clothes', title: 'Appropriate travel clothing & comfortable shoes', completed: false }
-    ],
+    checklist: [],
     taxiCards: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
 }
 
-export const initialTrips: Trip[] = [bangkokDefaultTrip];
+// No seeded trips: a fresh browser starts empty and the user creates the first trip.
+export const initialTrips: Trip[] = [];

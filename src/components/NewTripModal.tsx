@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { X, Plus, Sparkles, Compass } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { createNewTrip } from '../data/defaultTrips';
-import { bangkokDefaultTrip } from '../data/bangkokTrip';
 import type { Trip } from '../types/travel';
 import { useI18n } from '../utils/i18n';
 
@@ -17,13 +16,12 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
   onCreateTrip
 }) => {
   const { t } = useI18n();
-  const [activeTab, setActiveTab] = useState<'custom' | 'templates'>('custom');
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
   const [country, setCountry] = useState('');
-  const [startDate, setStartDate] = useState('2026-10-05');
-  const [endDate, setEndDate] = useState('2026-10-10');
-  const [currency, setCurrency] = useState('THB');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [currency, setCurrency] = useState('');
 
   if (!isOpen) return null;
 
@@ -40,18 +38,6 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
       currency.trim().toUpperCase() || 'USD'
     );
     onCreateTrip(trip);
-    onClose();
-  };
-
-  const handleSelectTemplate = () => {
-    const clonedBkk: Trip = {
-      ...structuredClone(bangkokDefaultTrip),
-      id: `trip-bkk-${Date.now()}`,
-      title: `Bangkok Trip (Copy ${new Date().toLocaleDateString()})`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    onCreateTrip(clonedBkk);
     onClose();
   };
 
@@ -78,34 +64,6 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
           </button>
         </div>
 
-        {/* Mode Switcher */}
-        <div className="flex p-3 bg-slate-950 border-b border-slate-800 gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab('custom')}
-            className={`flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${
-              activeTab === 'custom'
-                ? 'bg-emerald-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Compass className="w-4 h-4" /> {t('customTrip')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('templates')}
-            className={`flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${
-              activeTab === 'templates'
-                ? 'bg-emerald-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" /> {t('tripTemplates')}
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'custom' ? (
           <form onSubmit={handleCreateCustom} className="p-6 space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">{t('tripNameRequired')}</label>
@@ -193,23 +151,6 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
               </button>
             </div>
           </form>
-        ) : (
-          <div className="p-6 space-y-3">
-            <button
-              onClick={handleSelectTemplate}
-              className="w-full p-4 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-2xl text-left flex items-center justify-between group transition"
-            >
-              <div className="space-y-1">
-                <div className="text-sm font-bold text-white group-hover:text-emerald-400 transition flex items-center gap-1.5">
-                  <span>🇹🇭 Bangkok 5-Day Explorer (5th - 10th)</span>
-                </div>
-                <p className="text-xs text-slate-400">{t('bkkTemplateDesc')}</p>
-              </div>
-              <span className="text-xs text-emerald-400 font-semibold shrink-0 ml-3">{t('useTemplate')}</span>
-            </button>
-
-          </div>
-        )}
       </div>
     </div>
   );
