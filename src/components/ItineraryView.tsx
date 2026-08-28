@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  Plus, 
-  MapPin, 
-  Clock, 
-  ExternalLink, 
-  Edit3, 
-  Trash2, 
-  Copy, 
-  ArrowUp, 
-  ArrowDown, 
-  CheckCircle2, 
-  Languages, 
-  Search
+import {
+  Plus,
+  MapPin,
+  Clock,
+  ExternalLink,
+  Edit3,
+  Trash2,
+  Copy,
+  ArrowUp,
+  ArrowDown,
+  CheckCircle2,
+  Languages,
+  Search,
+  ChevronDown,
+  Utensils
 } from 'lucide-react';
 import type { Trip, DaySchedule, ActivityItem, ActivityCategory } from '../types/travel';
 import { categoryMetaMap } from '../utils/categoryHelpers';
@@ -37,8 +39,21 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   const [showAllDays, setShowAllDays] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ActivityCategory | 'all'>('all');
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const currentDay: DaySchedule | undefined = trip.days[selectedDayIndex];
+
+  const toggleExpanded = (activityId: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(activityId)) {
+        next.delete(activityId);
+      } else {
+        next.add(activityId);
+      }
+      return next;
+    });
+  };
 
   // Toggle activity booked state
   const handleToggleBooked = (dayId: string, activityId: string) => {
@@ -109,15 +124,18 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   // Filter activities
   const filterActivities = (activities: ActivityItem[]) => {
     return activities.filter((act) => {
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch = searchQuery === '' ||
         act.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         act.locationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (act.notes && act.notes.toLowerCase().includes(searchQuery.toLowerCase()));
-      
+
       const matchesCat = selectedCategory === 'all' || act.category === selectedCategory;
       return matchesSearch && matchesCat;
     });
   };
+
+  const hasActiveFilter = searchQuery !== '' || selectedCategory !== 'all';
+  const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
 
   const daysToRender = showAllDays ? trip.days : (currentDay ? [currentDay] : []);
 
@@ -197,7 +215,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
             >
               All
             </button>
-            {(Object.keys(categoryMetaMap) as ActivityCategory[]).slice(0, 6).map((catKey) => {
+            {(Object.keys(categoryMetaMap) as ActivityCategory[]).map((catKey) => {
               const meta = categoryMetaMap[catKey];
               const Icon = meta.icon;
               const isSelected = selectedCategory === catKey;
@@ -225,17 +243,21 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
         {daysToRender.map((day) => {
           const filteredActivities = filterActivities(day.activities || []);
           const dayTotalCost = (day.activities || []).reduce((sum, a) => sum + (a.cost || 0), 0);
+          const filteredTotalCost = filteredActivities.reduce((sum, a) => sum + (a.cost || 0), 0);
+
+          const foodActivities = (day.activities || []).filter(a => a.category === 'food');
+          const foodTotalCost = foodActivities.reduce((sum, a) => sum + (a.cost || 0), 0);
 
           return (
-            <div key={day.id} className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xl">
+            <div key={day.id} className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-4 sm:p-7 shadow-xl overflow-hidden">
               {/* Day Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-800">
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 font-extrabold text-xs rounded-full border border-emerald-500/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 font-extrabold text-xs rounded-full border border-emerald-500/30 shrink-0">
                       Day {day.dayNumber}
                     </span>
-                    <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                    <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
                       {day.title || day.dayOfWeek}
                     </h2>
                   </div>
@@ -246,8 +268,8 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 self-start sm:self-center">
-                  <div className="text-right hidden sm:block">
+                <div className="flex flex-wrap items-center gap-3 self-start sm:self-center shrink-0">
+                  <div className="text-left sm:text-right">
                     <div className="text-[11px] text-slate-400">Day Estimated Cost</div>
                     <div className="text-sm font-bold text-emerald-400 font-mono">
                       {dayTotalCost.toLocaleString()} {trip.currency}
@@ -265,169 +287,235 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                 </div>
               </div>
 
-              {/* Activities List */}
-              <div className="mt-6 space-y-4">
+              {/* Food Summary Strip */}
+              {foodActivities.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 bg-orange-500/5 border border-orange-500/20 rounded-xl px-3 py-2.5">
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-orange-300 shrink-0">
+                    <Utensils className="w-3.5 h-3.5" />
+                    {foodActivities.length} {foodActivities.length === 1 ? 'meal' : 'meals'}
+                  </span>
+                  <span className="text-xs text-slate-400 min-w-0 truncate flex-1">
+                    {foodActivities.map(a => a.locationName || a.title).join(' · ')}
+                  </span>
+                  <span className="text-xs font-bold text-orange-300 font-mono shrink-0">
+                    {foodTotalCost.toLocaleString()} {trip.currency}
+                    <span className="text-[10px] text-slate-400 font-normal ml-1">
+                      (≈ ${(foodTotalCost / rate).toFixed(1)})
+                    </span>
+                  </span>
+                </div>
+              )}
+
+              {/* Filtered Total Strip */}
+              {hasActiveFilter && filteredActivities.length > 0 && (
+                <div className="mt-3 flex items-center justify-between gap-2 bg-sky-500/5 border border-sky-500/20 rounded-xl px-3 py-2">
+                  <span className="text-xs text-sky-300 font-semibold">
+                    Filtered: {filteredActivities.length} {filteredActivities.length === 1 ? 'item' : 'items'}
+                  </span>
+                  <span className="text-xs font-bold text-sky-300 font-mono">
+                    {filteredTotalCost.toLocaleString()} {trip.currency}
+                  </span>
+                </div>
+              )}
+
+              {/* Activities List — compact rows, tap to expand */}
+              <div className="mt-4 space-y-2.5">
                 {filteredActivities.length > 0 ? (
                   filteredActivities.map((activity, actIdx) => {
                     const meta = categoryMetaMap[activity.category] || categoryMetaMap.other;
                     const Icon = meta.icon;
-                    const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
                     const homeCost = activity.cost ? (activity.cost / rate).toFixed(1) : null;
+                    const isExpanded = expandedIds.has(activity.id);
 
                     return (
                       <div
                         key={activity.id}
-                        className={`group relative rounded-2xl p-4 sm:p-5 border transition-all duration-200 ${
+                        className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
                           activity.booked
-                            ? 'bg-slate-900/90 border-emerald-500/30 shadow-md'
+                            ? 'bg-slate-900/90 border-emerald-500/30'
                             : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
                         }`}
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                          {/* Left Column: Time & Category */}
-                          <div className="flex items-start gap-3.5">
-                            {/* Checkbox for Booked / Completed */}
-                            <button
-                              type="button"
-                              onClick={() => handleToggleBooked(day.id, activity.id)}
-                              disabled={isReadOnly}
-                              className={`w-6 h-6 rounded-lg border mt-0.5 flex items-center justify-center shrink-0 transition ${
-                                activity.booked
-                                  ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-sm'
-                                  : 'bg-slate-800/80 border-slate-700 text-transparent hover:border-slate-500'
-                              }`}
-                              title={activity.booked ? 'Mark as pending' : 'Mark as booked/completed'}
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </button>
+                        {/* Compact Row Header */}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => toggleExpanded(activity.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleExpanded(activity.id);
+                            }
+                          }}
+                          className="flex items-center gap-2.5 px-3 py-2.5 sm:px-4 sm:py-3 cursor-pointer select-none"
+                        >
+                          {/* Booked Checkbox */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleBooked(day.id, activity.id);
+                            }}
+                            disabled={isReadOnly}
+                            className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition ${
+                              activity.booked
+                                ? 'bg-emerald-500 border-emerald-400 text-slate-950'
+                                : 'bg-slate-800/80 border-slate-700 text-transparent hover:border-slate-500'
+                            }`}
+                            title={activity.booked ? 'Mark as pending' : 'Mark as booked/completed'}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          </button>
 
-                            {/* Category Icon */}
-                            <div className={`w-10 h-10 rounded-2xl ${meta.bgColor} ${meta.borderColor} border flex items-center justify-center ${meta.textColor} shrink-0`}>
-                              <Icon className="w-5 h-5" />
-                            </div>
-
-                            {/* Activity Info */}
-                            <div className="space-y-1.5">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded-md">
-                                  <Clock className="w-3 h-3 text-emerald-400" />
-                                  {activity.time}
-                                </span>
-
-                                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${meta.badgeBg} ${meta.textColor}`}>
-                                  {meta.label}
-                                </span>
-
-                                {activity.cost !== undefined && activity.cost > 0 && (
-                                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 font-mono">
-                                    {activity.cost.toLocaleString()} {trip.currency}
-                                    {homeCost && (
-                                      <span className="text-[10px] text-slate-400 ml-1">
-                                        (≈ ${homeCost})
-                                      </span>
-                                    )}
-                                  </span>
-                                )}
-                              </div>
-
-                              <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-300 transition">
-                                {activity.title}
-                              </h3>
-
-                              {/* Location & Taxi Driver helper */}
-                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-400 pt-0.5">
-                                {activity.locationName && (
-                                  <span className="flex items-center gap-1 text-slate-300 font-medium">
-                                    <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                                    {activity.locationName}
-                                  </span>
-                                )}
-
-                                {activity.thaiAddress && (
-                                  <button
-                                    onClick={() => onShowTaxiAddress(activity.thaiAddress!, activity.title)}
-                                    className="inline-flex items-center gap-1 text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30 font-medium transition"
-                                    title="Show Thai destination card to taxi driver"
-                                  >
-                                    <Languages className="w-3 h-3 text-amber-400" />
-                                    <span>Thai Taxi Card</span>
-                                  </button>
-                                )}
-
-                                {activity.googleMapsUrl && (
-                                  <a
-                                    href={activity.googleMapsUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 hover:underline transition"
-                                  >
-                                    <ExternalLink className="w-3 h-3" />
-                                    <span>Google Maps</span>
-                                  </a>
-                                )}
-                              </div>
-
-                              {/* Notes & Tips */}
-                              {activity.notes && (
-                                <div className="mt-2 text-xs text-slate-300 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/80 leading-relaxed">
-                                  💡 <span className="font-semibold text-slate-200">Tips:</span> {activity.notes}
-                                </div>
-                              )}
-                            </div>
+                          {/* Category Icon */}
+                          <div className={`w-7 h-7 rounded-lg ${meta.bgColor} ${meta.borderColor} border flex items-center justify-center ${meta.textColor} shrink-0`}>
+                            <Icon className="w-3.5 h-3.5" />
                           </div>
 
-                          {/* Right Column: Actions (Reorder, Edit, Duplicate, Delete) */}
-                          {!isReadOnly && (
-                            <div className="flex items-center gap-1 sm:self-center bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 shrink-0">
-                              {/* Move Up */}
-                              <button
-                                onClick={() => handleMoveActivity(day.id, actIdx, 'up')}
-                                disabled={actIdx === 0}
-                                className="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg hover:bg-slate-800 transition"
-                                title="Move Earlier"
-                              >
-                                <ArrowUp className="w-3.5 h-3.5" />
-                              </button>
+                          {/* Time */}
+                          <span className="text-[11px] font-mono font-bold text-slate-400 shrink-0 w-14 sm:w-16">
+                            {activity.time}
+                          </span>
 
-                              {/* Move Down */}
-                              <button
-                                onClick={() => handleMoveActivity(day.id, actIdx, 'down')}
-                                disabled={actIdx === (day.activities.length - 1)}
-                                className="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg hover:bg-slate-800 transition"
-                                title="Move Later"
-                              >
-                                <ArrowDown className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* Duplicate */}
-                              <button
-                                onClick={() => handleDuplicateActivity(day.id, activity)}
-                                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
-                                title="Duplicate Activity"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* Edit */}
-                              <button
-                                onClick={() => onOpenEditActivityModal(day.id, activity)}
-                                className="p-1.5 text-emerald-400 hover:text-emerald-300 rounded-lg hover:bg-emerald-500/10 transition"
-                                title="Edit Details"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* Delete */}
-                              <button
-                                onClick={() => handleDeleteActivity(day.id, activity.id)}
-                                className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition"
-                                title="Delete Activity"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                          {/* Title + location (one line each, truncated) */}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-semibold text-white line-clamp-2">
+                              {activity.title}
                             </div>
+                            {activity.locationName && (
+                              <div className="text-[11px] text-slate-500 truncate flex items-center gap-1">
+                                <MapPin className="w-3 h-3 shrink-0 text-rose-400/70" />
+                                {activity.locationName}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Price */}
+                          {activity.cost !== undefined && activity.cost > 0 && (
+                            <span className="text-[11px] font-bold text-emerald-400 font-mono shrink-0">
+                              {activity.cost.toLocaleString()}
+                              <span className="text-slate-500 font-normal ml-0.5">{trip.currency}</span>
+                            </span>
                           )}
+
+                          {/* Expand Chevron */}
+                          <ChevronDown
+                            className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                          />
                         </div>
+
+                        {/* Expanded Details */}
+                        {isExpanded && (
+                          <div className="px-3 pb-3 sm:px-4 sm:pb-4 pt-1 border-t border-slate-800/70 space-y-3">
+                            {/* Badges Row */}
+                            <div className="flex flex-wrap items-center gap-2 pt-2.5">
+                              <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded-md">
+                                <Clock className="w-3 h-3 text-emerald-400" />
+                                {activity.time}
+                              </span>
+                              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${meta.badgeBg} ${meta.textColor}`}>
+                                {meta.label}
+                              </span>
+                              {activity.cost !== undefined && activity.cost > 0 && (
+                                <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 font-mono">
+                                  {activity.cost.toLocaleString()} {trip.currency}
+                                  {homeCost && (
+                                    <span className="text-[10px] text-slate-400 ml-1">
+                                      (≈ ${homeCost})
+                                    </span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Location & Links */}
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-400">
+                              {activity.locationName && (
+                                <span className="flex items-center gap-1 text-slate-300 font-medium">
+                                  <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                                  {activity.locationName}
+                                </span>
+                              )}
+
+                              {activity.thaiAddress && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onShowTaxiAddress(activity.thaiAddress!, activity.title);
+                                  }}
+                                  className="inline-flex items-center gap-1 text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30 font-medium transition"
+                                  title="Show Thai destination card to taxi driver"
+                                >
+                                  <Languages className="w-3 h-3 text-amber-400" />
+                                  <span>Thai Taxi Card</span>
+                                </button>
+                              )}
+
+                              {activity.googleMapsUrl && (
+                                <a
+                                  href={activity.googleMapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 hover:underline transition"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  <span>Google Maps</span>
+                                </a>
+                              )}
+                            </div>
+
+                            {/* Notes & Tips */}
+                            {activity.notes && (
+                              <div className="text-xs text-slate-300 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/80 leading-relaxed">
+                                💡 <span className="font-semibold text-slate-200">Tips:</span> {activity.notes}
+                              </div>
+                            )}
+
+                            {/* Actions */}
+                            {!isReadOnly && (
+                              <div className="flex items-center gap-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 w-fit">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleMoveActivity(day.id, actIdx, 'up'); }}
+                                  disabled={actIdx === 0}
+                                  className="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg hover:bg-slate-800 transition"
+                                  title="Move Earlier"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleMoveActivity(day.id, actIdx, 'down'); }}
+                                  disabled={actIdx === (day.activities.length - 1)}
+                                  className="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg hover:bg-slate-800 transition"
+                                  title="Move Later"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDuplicateActivity(day.id, activity); }}
+                                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                                  title="Duplicate Activity"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onOpenEditActivityModal(day.id, activity); }}
+                                  className="p-1.5 text-emerald-400 hover:text-emerald-300 rounded-lg hover:bg-emerald-500/10 transition"
+                                  title="Edit Details"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteActivity(day.id, activity.id); }}
+                                  className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition"
+                                  title="Delete Activity"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })

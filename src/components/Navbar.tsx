@@ -38,7 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo & Trip Dropdown */}
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/20">
                 <Compass className="w-5 h-5 font-bold" />
@@ -53,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <select
                 value={activeTrip.id}
                 onChange={(e) => onSelectTrip(e.target.value)}
-                className="appearance-none bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-white text-xs sm:text-sm font-semibold rounded-xl pl-3.5 pr-8 py-2 focus:outline-none focus:border-emerald-500 cursor-pointer max-w-[200px] sm:max-w-[260px] truncate"
+                className="appearance-none bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-white text-xs sm:text-sm font-semibold rounded-xl pl-3.5 pr-8 py-2 focus:outline-none focus:border-emerald-500 cursor-pointer max-w-[140px] sm:max-w-[260px] truncate"
               >
                 {trips.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -112,10 +112,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Share with Friends Button */}
             <button
               onClick={onOpenShareModal}
-              className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20 active:scale-95"
+              className="p-2 sm:px-3.5 sm:py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20 active:scale-95"
+              title="Share Trip"
             >
               <Share2 className="w-4 h-4" />
-              <span>Share Trip</span>
+              <span className="hidden sm:inline">Share Trip</span>
             </button>
           </div>
         </div>
