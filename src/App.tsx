@@ -230,6 +230,7 @@ export function App() {
         {/* Tab Views */}
         {activeTab === 'itinerary' && (
           <ItineraryView
+            key={activeTrip.id}
             trip={activeTrip}
             onUpdateTrip={handleUpdateTrip}
             onOpenAddActivityModal={handleOpenAddActivity}
@@ -241,6 +242,7 @@ export function App() {
 
         {activeTab === 'budget' && (
           <BudgetTracker
+            key={activeTrip.id}
             trip={activeTrip}
             onUpdateTrip={handleUpdateTrip}
             isReadOnly={isReadOnly}
@@ -249,6 +251,7 @@ export function App() {
 
         {activeTab === 'checklist' && (
           <ChecklistTab
+            key={activeTrip.id}
             trip={activeTrip}
             onUpdateTrip={handleUpdateTrip}
             isReadOnly={isReadOnly}
@@ -298,6 +301,7 @@ export function App() {
       />
 
       <TaxiCardsModal
+        key={activeTrip.id}
         isOpen={isTaxiCardsModalOpen}
         onClose={() => setIsTaxiCardsModalOpen(false)}
         trip={activeTrip}

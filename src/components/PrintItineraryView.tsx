@@ -1,11 +1,24 @@
 import React from 'react';
-import type { Trip } from '../types/travel';
+import type { Trip, TransportMode } from '../types/travel';
+import { useI18n, translateWeekday } from '../utils/i18n';
+
+const MODE_T_KEYS: Record<TransportMode, string> = {
+  bts: 'mode_bts',
+  mrt: 'mode_mrt',
+  boat: 'mode_boat',
+  taxi: 'mode_taxi',
+  walk: 'mode_walk',
+  bus: 'mode_bus',
+  train: 'mode_train',
+  airportRail: 'mode_airportRail'
+};
 
 interface PrintItineraryViewProps {
   trip: Trip;
 }
 
 export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) => {
+  const { lang, t } = useI18n();
   return (
     <div className="hidden print:block text-black bg-white p-8 space-y-6 font-sans">
       <div className="border-b-2 border-black pb-4 flex justify-between items-end">
@@ -16,8 +29,8 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
           </p>
         </div>
         <div className="text-right text-xs text-gray-600">
-          <div>Travelers: {trip.travelers.map(t => t.name).join(', ')}</div>
-          <div>Currency: {trip.currency} (1 {trip.homeCurrency} = {trip.exchangeRate} {trip.currency})</div>
+          <div>{t('printTravelers')}: {trip.travelers.map(tv => tv.name).join(', ')}</div>
+          <div>{t('printCurrency')}: {trip.currency} (1 {trip.homeCurrency} = {trip.exchangeRate} {trip.currency})</div>
         </div>
       </div>
 
@@ -27,7 +40,7 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
           <div key={day.id} className="border border-gray-300 rounded-lg p-4 break-inside-avoid">
             <div className="flex justify-between items-center border-b border-gray-200 pb-2 mb-3">
               <h2 className="text-lg font-bold">
-                Day {day.dayNumber}: {day.dayOfWeek} – {day.title}
+                {t('dayN', { n: day.dayNumber })}: {translateWeekday(day.dayOfWeek, lang)} – {day.title}
               </h2>
             </div>
             {day.summary && (
@@ -52,6 +65,13 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
                     {act.notes && (
                       <div className="text-gray-500 mt-0.5">💡 {act.notes}</div>
                     )}
+                    {act.transportToNext && (
+                      <div className="text-gray-600 mt-0.5 font-medium">
+                        → {t(MODE_T_KEYS[act.transportToNext.mode])} · {t('approxMinutes', { n: act.transportToNext.durationMin })}
+                        {act.transportToNext.costHint ? ` · ${act.transportToNext.costHint}` : ''}
+                        {' · '}{lang === 'zh' ? (act.transportToNext.noteZh || act.transportToNext.note) : act.transportToNext.note}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -63,7 +83,7 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
       {/* Taxi Flashcards in Thai */}
       {trip.taxiCards && trip.taxiCards.length > 0 && (
         <div className="border-t-2 border-black pt-4 break-before-page">
-          <h2 className="text-xl font-bold mb-3">🚕 Bangkok Taxi Flashcards for Drivers</h2>
+          <h2 className="text-xl font-bold mb-3">{t('printTaxiCards')}</h2>
           <div className="grid grid-cols-2 gap-3">
             {trip.taxiCards.map((card) => (
               <div key={card.id} className="border border-gray-300 p-3 rounded">
@@ -71,7 +91,7 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
                 <div className="text-base font-bold text-black my-1">{card.nameThai}</div>
                 <div className="text-xs text-gray-700">{card.thaiAddress}</div>
                 {card.nearestStation && (
-                  <div className="text-[11px] text-gray-500 mt-1">Station: {card.nearestStation}</div>
+                  <div className="text-[11px] text-gray-500 mt-1">{t('printStation')}: {card.nearestStation}</div>
                 )}
               </div>
             ))}

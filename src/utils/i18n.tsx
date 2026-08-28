@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type Lang = 'zh' | 'en';
 
@@ -122,6 +122,126 @@ const dict: Record<string, Entry> = {
   cat_bangkok: { zh: '曼谷专属', en: 'Bangkok Specific' },
   cat_essentials: { zh: '必需品', en: 'Essentials' },
 
+  // ---- Expand/collapse ----
+  expandAll: { zh: '全部展开', en: 'Expand All' },
+  collapseAll: { zh: '全部收起', en: 'Collapse All' },
+
+  // ---- Document ----
+  docTitle: { zh: 'TravelSync - 行程规划与分享', en: 'TravelSync - Customizable Trip Planner & Sharing' },
+
+  // ---- Activity modal ----
+  editActivity: { zh: '编辑活动', en: 'Edit Activity' },
+  addNewActivity: { zh: '添加新活动', en: 'Add New Activity' },
+  activityModalSubtitle: { zh: '自定义详情、地图与当地地址', en: 'Customize details, maps, and local addresses' },
+  daySchedule: { zh: '所属日程', en: 'Day Schedule' },
+  time: { zh: '时间', en: 'Time' },
+  timePlaceholder: { zh: '例如 09:30 AM', en: 'e.g. 09:30 AM' },
+  activityTitleLabel: { zh: '活动名称 *', en: 'Activity Title *' },
+  activityTitlePlaceholder: { zh: '例如：郑王庙（黎明寺）参观', en: 'e.g. Wat Arun (Temple of Dawn) Visit' },
+  locationVenue: { zh: '地点 / 场所名称', en: 'Location / Venue Name' },
+  locationPlaceholder: { zh: '例如：Wat Arun Ratchawararam', en: 'e.g. Wat Arun Ratchawararam' },
+  thaiAddressLabel: { zh: '泰文地址 / 司机提示', en: 'Thai Address / Show Driver Note' },
+  thaiAddressHint: { zh: '方便向曼谷出租车 / Grab 司机出示', en: 'Useful to show Bangkok taxi/Grab drivers' },
+  gmapsLinkLabel: { zh: '谷歌地图链接（可选）', en: 'Google Maps Link (Optional)' },
+  estCostLabel: { zh: '预计花费（{cur}）', en: 'Estimated Cost ({cur})' },
+  alreadyBooked: { zh: '已预订 / 已确认', en: 'Already Booked / Reserved' },
+  notesTips: { zh: '备注、小贴士与提醒', en: 'Notes, Tips & Reminders' },
+  notesPlaceholder: { zh: '例如：着装要求需遮盖肩膀和膝盖。下午阳光强，记得带伞。', en: 'e.g. Dress code: covered shoulders and knees. Bring umbrella for afternoon sun.' },
+  saveChanges: { zh: '保存修改', en: 'Save Changes' },
+
+  // ---- New trip modal ----
+  newTripSubtitle: { zh: '创建自定义行程或从模板开始', en: 'Plan a new custom trip or start from a template' },
+  customTrip: { zh: '自定义行程', en: 'Custom Trip' },
+  tripTemplates: { zh: '行程模板', en: 'Trip Templates' },
+  tripNameRequired: { zh: '行程名称 *', en: 'Trip Name *' },
+  tripNamePlaceholder: { zh: '例如：曼谷之旅 2026', en: 'e.g. Bangkok Getaway 2026' },
+  destinationCity: { zh: '目的地城市 *', en: 'Destination City *' },
+  country: { zh: '国家', en: 'Country' },
+  startDate: { zh: '开始日期', en: 'Start Date' },
+  endDate: { zh: '结束日期', en: 'End Date' },
+  destCurrencyCode: { zh: '目的地货币（代码）', en: 'Destination Currency (Code)' },
+  createTrip: { zh: '创建行程', en: 'Create Trip' },
+  useTemplate: { zh: '使用模板 →', en: 'Use Template →' },
+  bkkTemplateDesc: { zh: '精选大皇宫、郑王庙、恰图恰、Jodd Fairs 夜市、水上市场与天台酒吧。', en: 'Curated with Grand Palace, Wat Arun, Chatuchak, Jodd Fairs, Floating Market, and rooftop bars.' },
+  tokyoTemplateDesc: { zh: '涩谷、新宿、秋叶原、浅草、筑地市场与富士山一日游。', en: 'Shibuya, Shinjuku, Akihabara, Asakusa, Tsukiji Market, and Mount Fuji day trip.' },
+  baliTemplateDesc: { zh: '水明漾海滩俱乐部、乌布瀑布、梯田与佩尼达岛跳岛游。', en: 'Seminyak beach clubs, Ubud waterfalls, rice terraces, and Nusa Penida island hop.' },
+
+  // ---- Share modal ----
+  safeShare: { zh: '安全分享给朋友', en: 'Safe Share with Friends' },
+  shareSubtitle: { zh: '即时分享链接，支持 PIN 密码锁与离线二维码', en: 'Instant share link with PIN lock & offline QR code' },
+  sharingPermissions: { zh: '分享权限与安全', en: 'Sharing Permissions & Security' },
+  collabEdit: { zh: '协作编辑', en: 'Collaborative Edit' },
+  collabEditDesc: { zh: '朋友可以自定义和添加活动', en: 'Friends can customize & add activities' },
+  viewerReadOnly: { zh: '仅查看（只读）', en: 'Viewer (Read-Only)' },
+  viewerDesc: { zh: '朋友只能查看行程和地图', en: 'Friends can only view schedule & maps' },
+  requirePin: { zh: '需要 PIN 密码', en: 'Require PIN / Passcode' },
+  setPasscode: { zh: '设置 4 位密码（例如 2026）', en: 'Set a 4-digit Passcode (e.g. 2026)' },
+  pinPlaceholder: { zh: '输入给朋友的 PIN 码', en: 'Enter PIN code for friends' },
+  pinHint: { zh: '朋友需要输入此密码才能解锁行程。', en: 'Friends will be prompted for this code to unlock the itinerary.' },
+  shareableLink: { zh: '可分享的网页链接', en: 'Shareable Web Link' },
+  copied: { zh: '已复制！', en: 'Copied!' },
+  copyLink: { zh: '复制链接', en: 'Copy Link' },
+  scanWithPhone: { zh: '用手机相机扫码', en: 'Scan with Mobile Phone Camera' },
+  qrHint: { zh: '朋友用 iPhone 或安卓手机相机对准此二维码，即可在手机浏览器中直接打开这份行程！', en: 'Friends can point their iPhone or Android camera at this QR code to instantly load this trip itinerary directly into their mobile browser!' },
+  worksOffline: { zh: '打开后可离线使用', en: 'Works offline once opened' },
+  backupImport: { zh: '备份与导入行程', en: 'Backup & Import Itinerary' },
+  exportJson: { zh: '导出行程 (.json)', en: 'Export Itinerary (.json)' },
+  importJson: { zh: '导入行程 (.json)', en: 'Import Itinerary (.json)' },
+  importSuccess: { zh: '行程导入成功！', en: 'Trip imported successfully!' },
+  done: { zh: '完成', en: 'Done' },
+
+  // ---- Taxi cards modal ----
+  taxiModalTitle: { zh: '出租车司机卡片', en: 'Show Taxi Driver Cards' },
+  bangkokTool: { zh: '曼谷旅行工具', en: 'Bangkok Travel Tool' },
+  taxiModalSubtitle: { zh: '大字泰文卡片，轻松向司机展示目的地', en: 'Large Thai text flashcards to easily communicate destinations to drivers' },
+  destCards: { zh: '目的地卡片', en: 'Destination Cards' },
+  addPlace: { zh: '添加地点', en: 'Add Place' },
+  noTaxiCards: { zh: '暂无打车卡。', en: 'No taxi cards yet.' },
+  handyPhrases: { zh: '常用打车泰语', en: 'Handy Taxi Phrases' },
+  addCustomCard: { zh: '添加自定义打车卡', en: 'Add Custom Taxi Card' },
+  placeNameEn: { zh: '地点名称（英文）', en: 'Place Name (English)' },
+  placeNameTh: { zh: '地点名称（泰文）', en: 'Place Name (Thai Script)' },
+  fullThaiAddress: { zh: '完整泰文地址 / 地标', en: 'Full Thai Address / Landmark' },
+  nearestStationLabel: { zh: '最近的 BTS / MRT 站', en: 'Nearest BTS / MRT Station' },
+  noteForDriverLabel: { zh: '给司机的提示', en: 'Note for Driver' },
+  saveCard: { zh: '保存卡片', en: 'Save Card' },
+  tapFullscreen: { zh: '在手机上全屏展示', en: 'Tap or show full-screen on mobile phone' },
+  taxiTip: { zh: '提示：可直接向曼谷的 Grab、Bolt、嘟嘟车或计价出租车司机出示此卡。', en: 'Tip: Show this card directly to Grab, Bolt, Tuk-tuk or Metered Taxi drivers in Bangkok.' },
+  deleteCard: { zh: '删除卡片', en: 'Delete Card' },
+  selectOrAdd: { zh: '在左侧选择目的地，或添加新的打车卡。', en: 'Select a destination on the left or add a new taxi card.' },
+
+  // ---- Trip settings modal ----
+  tripSettingsTitle: { zh: '行程设置与自定义', en: 'Trip Settings & Customization' },
+  tripSettingsSubtitle: { zh: '管理目的地、日期、货币与旅伴', en: 'Manage trip destination, dates, currency, and travelers' },
+  generalInfo: { zh: '基本信息', en: 'General Information' },
+  tripNameLabel: { zh: '行程名称', en: 'Trip Name' },
+  destinationCityLabel: { zh: '目的地城市', en: 'Destination City' },
+  travelDates: { zh: '出行日期', en: 'Travel Dates' },
+  currenciesRate: { zh: '货币与汇率', en: 'Currencies & Exchange Rate' },
+  destCurrencyLabel: { zh: '目的地货币', en: 'Destination Currency' },
+  homeCurrencyLabel: { zh: '本国货币', en: 'Home Currency' },
+  travelersCompanions: { zh: '旅伴', en: 'Travelers & Companions' },
+  addFriendPlaceholder: { zh: '添加朋友姓名（例如 David）', en: 'Add friend name (e.g. David)' },
+  add: { zh: '添加', en: 'Add' },
+  coverPhoto: { zh: '封面图片', en: 'Cover Photo Banner' },
+  deleteTrip: { zh: '删除行程', en: 'Delete Trip' },
+  confirmDeleteTrip: { zh: '确定要删除「{title}」吗？', en: 'Are you sure you want to delete "{title}"?' },
+  saveSettings: { zh: '保存设置', en: 'Save Settings' },
+
+  // ---- Passcode modal ----
+  passcodeTitle: { zh: '受密码保护的行程', en: 'Passcode Protected Itinerary' },
+  passcodeDescPrefix: { zh: '组织者已为', en: 'The organizer has protected' },
+  passcodeDescSuffix: { zh: '设置了安全 PIN 码。', en: 'with a security PIN.' },
+  enterPin: { zh: '输入 PIN 密码', en: 'Enter PIN Passcode' },
+  wrongPin: { zh: 'PIN 码不正确，请询问行程组织者。', en: 'Incorrect PIN code. Please ask the trip organizer.' },
+  unlock: { zh: '解锁行程', en: 'Unlock Itinerary' },
+
+  // ---- Print view ----
+  printTravelers: { zh: '旅伴', en: 'Travelers' },
+  printCurrency: { zh: '货币', en: 'Currency' },
+  printTaxiCards: { zh: '🚕 曼谷出租车卡片（出示给司机）', en: '🚕 Bangkok Taxi Flashcards for Drivers' },
+  printStation: { zh: '车站', en: 'Station' },
+
   // ---- Shared trip / passcode ----
   sharedTrip: { zh: '共享行程', en: 'Shared Trip' }
 };
@@ -178,6 +298,12 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(LANG_STORAGE_KEY, next);
     } catch { /* storage unavailable */ }
   };
+
+  // Keep the browser tab title and <html lang> in sync with the UI language
+  useEffect(() => {
+    document.title = dict.docTitle[lang];
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  }, [lang]);
 
   const t = (key: string, params?: Record<string, string | number>) => {
     const entry = dict[key];

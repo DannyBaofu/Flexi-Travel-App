@@ -136,7 +136,10 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
     const duplicated: ActivityItem = {
       ...activity,
       id: `act-${Date.now()}`,
-      title: `${activity.title} (Copy)`
+      title: `${activity.title} (Copy)`,
+      // The copy lands at the end of the day, so the original's
+      // transport-to-next suggestion no longer applies to it.
+      transportToNext: undefined
     };
     const updatedDays = trip.days.map(day => {
       if (day.id !== dayId) return day;
@@ -351,6 +354,29 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                       {dayTotalCost.toLocaleString()} {trip.currency}
                     </div>
                   </div>
+
+                  {filteredActivities.length > 0 && (() => {
+                    const dayIds = filteredActivities.map(a => a.id);
+                    const allExpanded = dayIds.every(id => expandedIds.has(id));
+                    return (
+                      <button
+                        onClick={() => {
+                          setExpandedIds((prev) => {
+                            const next = new Set(prev);
+                            if (allExpanded) {
+                              dayIds.forEach(id => next.delete(id));
+                            } else {
+                              dayIds.forEach(id => next.add(id));
+                            }
+                            return next;
+                          });
+                        }}
+                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition"
+                      >
+                        {allExpanded ? t('collapseAll') : t('expandAll')}
+                      </button>
+                    );
+                  })()}
 
                   {!isReadOnly && (
                     <button

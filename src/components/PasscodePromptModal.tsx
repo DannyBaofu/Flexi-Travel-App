@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { hashPin } from '../services/sharing';
+import { useI18n } from '../utils/i18n';
 
 interface PasscodePromptModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const PasscodePromptModal: React.FC<PasscodePromptModalProps> = ({
   onSuccess,
   onCancel
 }) => {
+  const { t } = useI18n();
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
 
@@ -46,9 +48,9 @@ export const PasscodePromptModal: React.FC<PasscodePromptModalProps> = ({
         </div>
 
         <div>
-          <h2 className="text-xl font-bold text-white">Passcode Protected Itinerary</h2>
+          <h2 className="text-xl font-bold text-white">{t('passcodeTitle')}</h2>
           <p className="text-xs text-slate-400 mt-1">
-            The organizer has protected <span className="text-emerald-400 font-semibold">"{tripTitle}"</span> with a security PIN.
+            {t('passcodeDescPrefix')} <span className="text-emerald-400 font-semibold">"{tripTitle}"</span> {t('passcodeDescSuffix')}
           </p>
         </div>
 
@@ -63,7 +65,7 @@ export const PasscodePromptModal: React.FC<PasscodePromptModalProps> = ({
                 setPin(e.target.value);
                 setError(false);
               }}
-              placeholder="Enter PIN Passcode"
+              placeholder={t('enterPin')}
               className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-center text-white text-lg tracking-widest font-mono focus:outline-none focus:border-amber-500 transition"
             />
           </div>
@@ -71,7 +73,7 @@ export const PasscodePromptModal: React.FC<PasscodePromptModalProps> = ({
           {error && (
             <div className="text-xs text-red-400 flex items-center justify-center gap-1.5 bg-red-500/10 p-2.5 rounded-xl border border-red-500/20">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Incorrect PIN code. Please ask the trip organizer.</span>
+              <span>{t('wrongPin')}</span>
             </div>
           )}
 
@@ -81,13 +83,13 @@ export const PasscodePromptModal: React.FC<PasscodePromptModalProps> = ({
               onClick={onCancel}
               className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
               className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20"
             >
-              Unlock Itinerary <ArrowRight className="w-4 h-4" />
+              {t('unlock')} <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </form>

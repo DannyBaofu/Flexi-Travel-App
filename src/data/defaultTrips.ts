@@ -2,22 +2,30 @@ import type { Trip } from '../types/travel';
 import { bangkokDefaultTrip } from './bangkokTrip';
 
 export function createNewTrip(title: string, destination: string, country: string, startDate: string, endDate: string, currency: string = 'USD'): Trip {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  // Parse date components explicitly to avoid the UTC-midnight shift of
+  // new Date('YYYY-MM-DD') pushing dates a day off in some timezones.
+  const parseLocalDate = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y || 2026, (m || 1) - 1, d || 1);
+  };
+  const start = parseLocalDate(startDate);
+  const end = parseLocalDate(endDate);
   const diffTime = Math.abs(end.getTime() - start.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   const numDays = isNaN(diffDays) || diffDays < 1 ? 3 : Math.min(diffDays, 30);
+
+  const pad = (n: number) => String(n).padStart(2, '0');
 
   const days = Array.from({ length: numDays }, (_, i) => {
     const current = new Date(start);
     current.setDate(start.getDate() + i);
     const dayStr = current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const weekday = current.toLocaleDateString('en-US', { weekday: 'long' });
-    
+
     return {
       id: `day-${i + 1}-${Date.now()}`,
       dayNumber: i + 1,
-      dateString: current.toISOString().split('T')[0],
+      dateString: `${current.getFullYear()}-${pad(current.getMonth() + 1)}-${pad(current.getDate())}`,
       dayOfWeek: `${weekday} (${dayStr})`,
       title: i === 0 ? 'Arrival & Exploration' : i === numDays - 1 ? 'Departure' : `Day ${i + 1} Adventure`,
       activities: []

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { Trip } from '../types/travel';
 import { sharingService } from '../services/sharing';
+import { useI18n } from '../utils/i18n';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   trip,
   onImportTrip
 }) => {
+  const { t } = useI18n();
   const [readOnly, setReadOnly] = useState(false);
   const [usePin, setUsePin] = useState(false);
   const [pinCode, setPinCode] = useState('');
@@ -92,8 +94,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               <Share2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Safe Share with Friends</h2>
-              <p className="text-xs text-slate-400">Instant share link with PIN lock & offline QR code</p>
+              <h2 className="text-xl font-bold text-white">{t('safeShare')}</h2>
+              <p className="text-xs text-slate-400">{t('shareSubtitle')}</p>
             </div>
           </div>
 
@@ -110,7 +112,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           {/* Security & Access Controls */}
           <div className="bg-slate-800/60 border border-slate-800 rounded-2xl p-4 space-y-4">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" /> Sharing Permissions & Security
+              <ShieldCheck className="w-4 h-4 text-emerald-400" /> {t('sharingPermissions')}
             </h3>
 
             {/* Permission Mode (Edit vs View-only) */}
@@ -126,8 +128,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               >
                 <Edit3 className={`w-5 h-5 mt-0.5 ${!readOnly ? 'text-emerald-400' : 'text-slate-500'}`} />
                 <div>
-                  <div className="text-sm font-semibold">Collaborative Edit</div>
-                  <div className="text-xs text-slate-400 mt-0.5">Friends can customize & add activities</div>
+                  <div className="text-sm font-semibold">{t('collabEdit')}</div>
+                  <div className="text-xs text-slate-400 mt-0.5">{t('collabEditDesc')}</div>
                 </div>
               </button>
 
@@ -142,8 +144,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               >
                 <Eye className={`w-5 h-5 mt-0.5 ${readOnly ? 'text-sky-400' : 'text-slate-500'}`} />
                 <div>
-                  <div className="text-sm font-semibold">Viewer (Read-Only)</div>
-                  <div className="text-xs text-slate-400 mt-0.5">Friends can only view schedule & maps</div>
+                  <div className="text-sm font-semibold">{t('viewerReadOnly')}</div>
+                  <div className="text-xs text-slate-400 mt-0.5">{t('viewerDesc')}</div>
                 </div>
               </button>
             </div>
@@ -153,7 +155,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {usePin ? <Lock className="w-4 h-4 text-amber-400" /> : <Unlock className="w-4 h-4 text-slate-400" />}
-                  <span className="text-sm font-medium text-slate-200">Require PIN / Passcode</span>
+                  <span className="text-sm font-medium text-slate-200">{t('requirePin')}</span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -168,16 +170,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
               {usePin && (
                 <div className="mt-3">
-                  <label className="block text-xs text-slate-400 mb-1">Set a 4-digit Passcode (e.g. 2026)</label>
+                  <label className="block text-xs text-slate-400 mb-1">{t('setPasscode')}</label>
                   <input
                     type="password"
                     maxLength={8}
                     value={pinCode}
                     onChange={(e) => setPinCode(e.target.value)}
-                    placeholder="Enter PIN code for friends"
+                    placeholder={t('pinPlaceholder')}
                     className="bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white text-sm focus:outline-none focus:border-amber-500 w-full sm:w-64 tracking-widest font-mono"
                   />
-                  <p className="text-[11px] text-amber-400/80 mt-1">Friends will be prompted for this code to unlock the itinerary.</p>
+                  <p className="text-[11px] text-amber-400/80 mt-1">{t('pinHint')}</p>
                 </div>
               )}
             </div>
@@ -185,7 +187,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
           {/* Share Link & QR Code Box */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Shareable Web Link</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('shareableLink')}</h3>
             
             <div className="flex items-center gap-2">
               <input
@@ -203,7 +205,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                 }`}
               >
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copied ? 'Copied!' : 'Copy Link'}
+                {copied ? t('copied') : t('copyLink')}
               </button>
             </div>
 
@@ -214,14 +216,14 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               </div>
               <div className="space-y-1 text-center sm:text-left">
                 <div className="text-sm font-semibold text-white flex items-center justify-center sm:justify-start gap-1.5">
-                  <Smartphone className="w-4 h-4 text-emerald-400" /> Scan with Mobile Phone Camera
+                  <Smartphone className="w-4 h-4 text-emerald-400" /> {t('scanWithPhone')}
                 </div>
                 <p className="text-xs text-slate-400">
-                  Friends can point their iPhone or Android camera at this QR code to instantly load this Bangkok trip itinerary directly into their mobile browser!
+                  {t('qrHint')}
                 </p>
                 <div className="pt-1">
                   <span className="text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                    Works offline once opened
+                    {t('worksOffline')}
                   </span>
                 </div>
               </div>
@@ -230,17 +232,17 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
           {/* Backup, Export & Import */}
           <div className="pt-2 border-t border-slate-800 space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Backup & Import Itinerary</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('backupImport')}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 onClick={() => sharingService.exportToJsonFile(trip)}
                 className="flex items-center justify-center gap-2 p-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-semibold text-slate-200 transition"
               >
-                <Download className="w-4 h-4 text-sky-400" /> Export Itinerary (.json)
+                <Download className="w-4 h-4 text-sky-400" /> {t('exportJson')}
               </button>
 
               <label className="flex items-center justify-center gap-2 p-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-semibold text-slate-200 transition cursor-pointer">
-                <Upload className="w-4 h-4 text-emerald-400" /> Import Itinerary (.json)
+                <Upload className="w-4 h-4 text-emerald-400" /> {t('importJson')}
                 <input
                   type="file"
                   accept=".json"
@@ -252,7 +254,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
             {importSuccess && (
               <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
-                <Check className="w-4 h-4" /> Trip imported successfully!
+                <Check className="w-4 h-4" /> {t('importSuccess')}
               </div>
             )}
             {importError && (
@@ -269,7 +271,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             onClick={onClose}
             className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition"
           >
-            Done
+            {t('done')}
           </button>
         </div>
       </div>

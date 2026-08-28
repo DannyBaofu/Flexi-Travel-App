@@ -3,6 +3,7 @@ import { X, Plus, Sparkles, Compass } from 'lucide-react';
 import { createNewTrip } from '../data/defaultTrips';
 import { bangkokDefaultTrip } from '../data/bangkokTrip';
 import type { Trip } from '../types/travel';
+import { useI18n } from '../utils/i18n';
 
 interface NewTripModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
   onClose,
   onCreateTrip
 }) => {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<'custom' | 'templates'>('custom');
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
@@ -44,7 +46,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
   const handleSelectTemplate = (templateType: 'bangkok' | 'tokyo' | 'bali') => {
     if (templateType === 'bangkok') {
       const clonedBkk: Trip = {
-        ...bangkokDefaultTrip,
+        ...structuredClone(bangkokDefaultTrip),
         id: `trip-bkk-${Date.now()}`,
         title: `Bangkok Trip (Copy ${new Date().toLocaleDateString()})`,
         createdAt: new Date().toISOString(),
@@ -75,8 +77,8 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
               <Plus className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Create New Trip</h2>
-              <p className="text-xs text-slate-400">Plan a new custom trip or start from a template</p>
+              <h2 className="text-xl font-bold text-white">{t('createNewTrip')}</h2>
+              <p className="text-xs text-slate-400">{t('newTripSubtitle')}</p>
             </div>
           </div>
 
@@ -99,7 +101,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Compass className="w-4 h-4" /> Custom Trip
+            <Compass className="w-4 h-4" /> {t('customTrip')}
           </button>
           <button
             type="button"
@@ -110,7 +112,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Sparkles className="w-4 h-4" /> Trip Templates
+            <Sparkles className="w-4 h-4" /> {t('tripTemplates')}
           </button>
         </div>
 
@@ -118,12 +120,12 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
         {activeTab === 'custom' ? (
           <form onSubmit={handleCreateCustom} className="p-6 space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Trip Name *</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('tripNameRequired')}</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Bangkok Getaway 2026"
+                placeholder={t('tripNamePlaceholder')}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
                 required
               />
@@ -131,7 +133,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Destination City *</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{t('destinationCity')}</label>
                 <input
                   type="text"
                   value={destination}
@@ -142,7 +144,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Country</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{t('country')}</label>
                 <input
                   type="text"
                   value={country}
@@ -155,7 +157,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Start Date</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{t('startDate')}</label>
                 <input
                   type="date"
                   value={startDate}
@@ -165,7 +167,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">End Date</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{t('endDate')}</label>
                 <input
                   type="date"
                   value={endDate}
@@ -177,7 +179,7 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Destination Currency (Code)</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('destCurrencyCode')}</label>
               <input
                 type="text"
                 value={currency}
@@ -193,13 +195,13 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
                 onClick={onClose}
                 className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="submit"
                 className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-500/20"
               >
-                Create Trip
+                {t('createTrip')}
               </button>
             </div>
           </form>
@@ -213,9 +215,9 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
                 <div className="text-sm font-bold text-white group-hover:text-emerald-400 transition flex items-center gap-1.5">
                   <span>🇹🇭 Bangkok 5-Day Explorer (5th - 10th)</span>
                 </div>
-                <p className="text-xs text-slate-400">Curated with Grand Palace, Wat Arun, Chatuchak, Jodd Fairs, Floating Market, and rooftop bars.</p>
+                <p className="text-xs text-slate-400">{t('bkkTemplateDesc')}</p>
               </div>
-              <span className="text-xs text-emerald-400 font-semibold shrink-0 ml-3">Use Template →</span>
+              <span className="text-xs text-emerald-400 font-semibold shrink-0 ml-3">{t('useTemplate')}</span>
             </button>
 
             <button
@@ -226,9 +228,9 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
                 <div className="text-sm font-bold text-white group-hover:text-sky-400 transition flex items-center gap-1.5">
                   <span>🇯🇵 Tokyo 7-Day Neon & Food</span>
                 </div>
-                <p className="text-xs text-slate-400">Shibuya, Shinjuku, Akihabara, Asakusa, Tsukiji Market, and Mount Fuji day trip.</p>
+                <p className="text-xs text-slate-400">{t('tokyoTemplateDesc')}</p>
               </div>
-              <span className="text-xs text-sky-400 font-semibold shrink-0 ml-3">Use Template →</span>
+              <span className="text-xs text-sky-400 font-semibold shrink-0 ml-3">{t('useTemplate')}</span>
             </button>
 
             <button
@@ -239,9 +241,9 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
                 <div className="text-sm font-bold text-white group-hover:text-amber-400 transition flex items-center gap-1.5">
                   <span>🌴 Bali Tropical Villa & Beach</span>
                 </div>
-                <p className="text-xs text-slate-400">Seminyak beach clubs, Ubud waterfalls, rice terraces, and Nusa Penida island hop.</p>
+                <p className="text-xs text-slate-400">{t('baliTemplateDesc')}</p>
               </div>
-              <span className="text-xs text-amber-400 font-semibold shrink-0 ml-3">Use Template →</span>
+              <span className="text-xs text-amber-400 font-semibold shrink-0 ml-3">{t('useTemplate')}</span>
             </button>
           </div>
         )}

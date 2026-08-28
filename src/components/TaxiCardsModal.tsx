@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Car, Plus, Trash2, Sparkles, Navigation } from 'lucide-react';
 import type { TaxiCard, Trip } from '../types/travel';
+import { useI18n } from '../utils/i18n';
 
 interface TaxiCardsModalProps {
   isOpen: boolean;
@@ -10,12 +11,12 @@ interface TaxiCardsModalProps {
 }
 
 const COMMON_THAI_PHRASES = [
-  { th: 'กรุณาเปิดมิเตอร์ด้วยครับ / ค่ะ', en: 'Please turn on the taxi meter', pronunciation: 'Ka-ru-na perd meter duay khrup/kha' },
-  { th: 'จอดตรงนี้ครับ / ค่ะ', en: 'Please stop here / Drop off here', pronunciation: 'Jord dtrong-nee khrup/kha' },
-  { th: 'เลี้ยวซ้าย / เลี้ยวขวา', en: 'Turn Left / Turn Right', pronunciation: 'Liao sai / Liao khwa' },
-  { th: 'ตรงไป', en: 'Go straight', pronunciation: 'Dtrong bpai' },
-  { th: 'ขึ้นทางด่วนครับ / ค่ะ', en: 'Take the highway / Expressway', pronunciation: 'Khuen thang-duan khrup/kha' },
-  { th: 'ขอบคุณครับ / ค่ะ', en: 'Thank you very much', pronunciation: 'Khawp khun khrup/kha' }
+  { th: 'กรุณาเปิดมิเตอร์ด้วยครับ / ค่ะ', en: 'Please turn on the taxi meter', zh: '请打表（按计价器收费）', pronunciation: 'Ka-ru-na perd meter duay khrup/kha' },
+  { th: 'จอดตรงนี้ครับ / ค่ะ', en: 'Please stop here / Drop off here', zh: '请在这里停车 / 下车', pronunciation: 'Jord dtrong-nee khrup/kha' },
+  { th: 'เลี้ยวซ้าย / เลี้ยวขวา', en: 'Turn Left / Turn Right', zh: '左转 / 右转', pronunciation: 'Liao sai / Liao khwa' },
+  { th: 'ตรงไป', en: 'Go straight', zh: '直走', pronunciation: 'Dtrong bpai' },
+  { th: 'ขึ้นทางด่วนครับ / ค่ะ', en: 'Take the highway / Expressway', zh: '请走高速 / 快速路', pronunciation: 'Khuen thang-duan khrup/kha' },
+  { th: 'ขอบคุณครับ / ค่ะ', en: 'Thank you very much', zh: '非常感谢', pronunciation: 'Khawp khun khrup/kha' }
 ];
 
 export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
@@ -24,6 +25,7 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
   trip,
   onUpdateTrip
 }) => {
+  const { lang, t } = useI18n();
   const [selectedCard, setSelectedCard] = useState<TaxiCard | null>(
     trip.taxiCards && trip.taxiCards.length > 0 ? trip.taxiCards[0] : null
   );
@@ -85,9 +87,9 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                Show Taxi Driver Cards <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Bangkok Travel Tool</span>
+                {t('taxiModalTitle')} <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">{t('bangkokTool')}</span>
               </h2>
-              <p className="text-xs text-slate-400">Large Thai text flashcards to easily communicate destinations to drivers</p>
+              <p className="text-xs text-slate-400">{t('taxiModalSubtitle')}</p>
             </div>
           </div>
 
@@ -104,12 +106,12 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
           {/* Left: Card Selection List & Quick Phrases */}
           <div className="md:col-span-4 p-4 space-y-4 overflow-y-auto max-h-[70vh]">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Destination Cards</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('destCards')}</h3>
               <button
                 onClick={() => setIsAddingNew(true)}
                 className="text-xs flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-medium"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Place
+                <Plus className="w-3.5 h-3.5" /> {t('addPlace')}
               </button>
             </div>
 
@@ -136,20 +138,20 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
                   );
                 })
               ) : (
-                <div className="text-xs text-slate-500 py-4 text-center">No taxi cards yet.</div>
+                <div className="text-xs text-slate-500 py-4 text-center">{t('noTaxiCards')}</div>
               )}
             </div>
 
             {/* Quick Thai Phrases */}
             <div className="pt-4 border-t border-slate-800">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Handy Taxi Phrases
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" /> {t('handyPhrases')}
               </h3>
               <div className="space-y-2">
                 {COMMON_THAI_PHRASES.map((phrase, idx) => (
                   <div key={idx} className="p-2.5 bg-slate-800/50 rounded-xl border border-slate-800/80 text-xs">
                     <div className="font-bold text-amber-300 text-sm">{phrase.th}</div>
-                    <div className="text-slate-200 mt-0.5">{phrase.en}</div>
+                    <div className="text-slate-200 mt-0.5">{lang === 'zh' ? phrase.zh : phrase.en}</div>
                     <div className="text-[11px] text-slate-400 italic font-mono mt-0.5">{phrase.pronunciation}</div>
                   </div>
                 ))}
@@ -161,9 +163,9 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
           <div className="md:col-span-8 p-6 flex flex-col justify-between bg-slate-950/50 min-h-[420px]">
             {isAddingNew ? (
               <form onSubmit={handleAddCard} className="space-y-4">
-                <h3 className="text-lg font-bold text-white">Add Custom Taxi Card</h3>
+                <h3 className="text-lg font-bold text-white">{t('addCustomCard')}</h3>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Place Name (English)</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">{t('placeNameEn')}</label>
                   <input
                     type="text"
                     value={nameEn}
@@ -175,7 +177,7 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Place Name (Thai Script)</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">{t('placeNameTh')}</label>
                   <input
                     type="text"
                     value={nameTh}
@@ -187,7 +189,7 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Full Thai Address / Landmark</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">{t('fullThaiAddress')}</label>
                   <textarea
                     rows={2}
                     value={addressTh}
@@ -199,7 +201,7 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Nearest BTS / MRT Station</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">{t('nearestStationLabel')}</label>
                     <input
                       type="text"
                       value={station}
@@ -209,7 +211,7 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Note for Driver</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">{t('noteForDriverLabel')}</label>
                     <input
                       type="text"
                       value={driverNote}
@@ -226,13 +228,13 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
                     onClick={() => setIsAddingNew(false)}
                     className="px-4 py-2 rounded-xl text-sm text-slate-400 hover:bg-slate-800"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button
                     type="submit"
                     className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition"
                   >
-                    Save Card
+                    {t('saveCard')}
                   </button>
                 </div>
               </form>
@@ -270,24 +272,24 @@ export const TaxiCardsModal: React.FC<TaxiCardsModalProps> = ({
 
                   <div className="mt-4 pt-3 border-t border-slate-700/50 flex items-center justify-between text-xs text-slate-400">
                     <span className="font-medium text-slate-300">{selectedCard.nameEnglish}</span>
-                    <span>Tap or show full-screen on mobile phone</span>
+                    <span>{t('tapFullscreen')}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span>Tip: Show this card directly to Grab, Bolt, Tuk-tuk or Metered Taxi drivers in Bangkok.</span>
+                  <span>{t('taxiTip')}</span>
                   <button
                     onClick={() => handleDeleteCard(selectedCard.id)}
                     className="text-red-400 hover:text-red-300 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-red-500/10 transition"
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete Card
+                    <Trash2 className="w-3.5 h-3.5" /> {t('deleteCard')}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-500 space-y-2">
                 <Car className="w-12 h-12 text-slate-700" />
-                <p>Select a destination on the left or add a new taxi card.</p>
+                <p>{t('selectOrAdd')}</p>
               </div>
             )}
           </div>

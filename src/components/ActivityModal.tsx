@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, MapPin, DollarSign, Clock, FileText, CheckCircle2, Languages, Globe } from 'lucide-react';
 import type { ActivityItem, ActivityCategory, DaySchedule, Trip } from '../types/travel';
 import { categoryMetaMap } from '../utils/categoryHelpers';
+import { useI18n, translateWeekday } from '../utils/i18n';
 
 interface ActivityModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   currentDayId,
   trip
 }) => {
+  const { lang, t } = useI18n();
   const [selectedDayId, setSelectedDayId] = useState(currentDayId);
   const [time, setTime] = useState('10:00 AM');
   const [title, setTitle] = useState('');
@@ -96,9 +98,9 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
         <div className="flex items-center justify-between p-5 border-b border-slate-800 sticky top-0 bg-slate-900/95 backdrop-blur z-10">
           <div>
             <h3 className="text-xl font-bold text-white">
-              {activityToEdit ? 'Edit Activity' : 'Add New Activity'}
+              {activityToEdit ? t('editActivity') : t('addNewActivity')}
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Customize details, maps, and local addresses</p>
+            <p className="text-xs text-slate-400 mt-0.5">{t('activityModalSubtitle')}</p>
           </div>
           <button
             onClick={onClose}
@@ -114,7 +116,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                Day Schedule
+                {t('daySchedule')}
               </label>
               <select
                 value={selectedDayId}
@@ -123,7 +125,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
               >
                 {trip.days.map((day: DaySchedule) => (
                   <option key={day.id} value={day.id}>
-                    Day {day.dayNumber}: {day.dayOfWeek}
+                    {t('dayN', { n: day.dayNumber })}: {translateWeekday(day.dayOfWeek, lang)}
                   </option>
                 ))}
               </select>
@@ -131,13 +133,13 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-emerald-400" /> Time
+                <Clock className="w-3.5 h-3.5 text-emerald-400" /> {t('time')}
               </label>
               <input
                 type="text"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                placeholder="e.g. 09:30 AM"
+                placeholder={t('timePlaceholder')}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 transition"
                 required
               />
@@ -147,13 +149,13 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           {/* Activity Title */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-              Activity Title *
+              {t('activityTitleLabel')}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Wat Arun (Temple of Dawn) Visit"
+              placeholder={t('activityTitlePlaceholder')}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 transition"
               required
             />
@@ -162,7 +164,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           {/* Category Selector */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Category
+              {t('category')}
             </label>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {(Object.keys(categoryMetaMap) as ActivityCategory[]).map((catKey) => {
@@ -181,7 +183,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{meta.label.split(' ')[0]}</span>
+                    <span className="truncate">{lang === 'zh' ? meta.labelZh : meta.label.split(' ')[0]}</span>
                   </button>
                 );
               })}
@@ -192,20 +194,20 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           <div className="space-y-3 pt-1">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400" /> Location / Venue Name
+                <MapPin className="w-3.5 h-3.5 text-emerald-400" /> {t('locationVenue')}
               </label>
               <input
                 type="text"
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
-                placeholder="e.g. Wat Arun Ratchawararam"
+                placeholder={t('locationPlaceholder')}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 transition"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <Languages className="w-3.5 h-3.5 text-amber-400" /> Thai Address / Show Driver Note
+                <Languages className="w-3.5 h-3.5 text-amber-400" /> {t('thaiAddressLabel')}
               </label>
               <input
                 type="text"
@@ -214,12 +216,12 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                 placeholder="e.g. วัดอรุณราชวราราม (ถนนวังเดิม)"
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-amber-200 text-sm focus:outline-none focus:border-amber-500 transition"
               />
-              <p className="text-[11px] text-slate-400 mt-1">Useful to show Bangkok taxi/Grab drivers</p>
+              <p className="text-[11px] text-slate-400 mt-1">{t('thaiAddressHint')}</p>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 text-sky-400" /> Google Maps Link (Optional)
+                <Globe className="w-3.5 h-3.5 text-sky-400" /> {t('gmapsLinkLabel')}
               </label>
               <input
                 type="url"
@@ -235,7 +237,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> Estimated Cost ({trip.currency})
+                <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> {t('estCostLabel', { cur: trip.currency })}
               </label>
               <input
                 type="number"
@@ -261,7 +263,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                 }`}>
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
-                <span className="text-sm font-medium text-slate-200">Already Booked / Reserved</span>
+                <span className="text-sm font-medium text-slate-200">{t('alreadyBooked')}</span>
               </label>
             </div>
           </div>
@@ -269,13 +271,13 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           {/* Notes & Tips */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-slate-400" /> Notes, Tips & Reminders
+              <FileText className="w-3.5 h-3.5 text-slate-400" /> {t('notesTips')}
             </label>
             <textarea
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Dress code: covered shoulders and knees. Bring umbrella for afternoon sun."
+              placeholder={t('notesPlaceholder')}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 transition resize-none"
             />
           </div>
@@ -287,13 +289,13 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
               onClick={onClose}
               className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
               className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold rounded-xl text-sm transition shadow-lg shadow-emerald-500/20"
             >
-              {activityToEdit ? 'Save Changes' : 'Add Activity'}
+              {activityToEdit ? t('saveChanges') : t('addActivity')}
             </button>
           </div>
         </form>

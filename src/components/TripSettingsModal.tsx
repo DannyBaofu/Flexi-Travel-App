@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sliders, Calendar, DollarSign, Image, Users, Plus, Trash2 } from 'lucide-react';
 import type { Trip, Traveler } from '../types/travel';
+import { useI18n } from '../utils/i18n';
 
 interface TripSettingsModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
   onSave,
   onDeleteTrip
 }) => {
+  const { t } = useI18n();
   const [title, setTitle] = useState(trip.title);
   const [destination, setDestination] = useState(trip.destination);
   const [country, setCountry] = useState(trip.country);
@@ -101,8 +103,8 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
               <Sliders className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Trip Settings & Customization</h2>
-              <p className="text-xs text-slate-400">Manage trip destination, dates, currency, and travelers</p>
+              <h2 className="text-xl font-bold text-white">{t('tripSettingsTitle')}</h2>
+              <p className="text-xs text-slate-400">{t('tripSettingsSubtitle')}</p>
             </div>
           </div>
 
@@ -118,9 +120,9 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Trip Title & Destination */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">General Information</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('generalInfo')}</h3>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Trip Name</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('tripNameLabel')}</label>
               <input
                 type="text"
                 value={title}
@@ -133,7 +135,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Destination City</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{t('destinationCityLabel')}</label>
                 <input
                   type="text"
                   value={destination}
@@ -144,7 +146,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Country</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{t('country')}</label>
                 <input
                   type="text"
                   value={country}
@@ -160,11 +162,11 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
           {/* Dates */}
           <div className="space-y-3 pt-2 border-t border-slate-800">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-emerald-400" /> Travel Dates
+              <Calendar className="w-4 h-4 text-emerald-400" /> {t('travelDates')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Start Date</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{t('startDate')}</label>
                 <input
                   type="date"
                   value={startDate}
@@ -174,7 +176,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">End Date</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{t('endDate')}</label>
                 <input
                   type="date"
                   value={endDate}
@@ -189,11 +191,11 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
           {/* Currencies & Exchange Rate */}
           <div className="space-y-3 pt-2 border-t border-slate-800">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-emerald-400" /> Currencies & Exchange Rate
+              <DollarSign className="w-4 h-4 text-emerald-400" /> {t('currenciesRate')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Destination Currency</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{t('destCurrencyLabel')}</label>
                 <input
                   type="text"
                   value={currency}
@@ -204,7 +206,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Home Currency</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{t('homeCurrencyLabel')}</label>
                 <input
                   type="text"
                   value={homeCurrency}
@@ -232,7 +234,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
           {/* Travelers List */}
           <div className="space-y-3 pt-2 border-t border-slate-800">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-emerald-400" /> Travelers & Companions
+              <Users className="w-4 h-4 text-emerald-400" /> {t('travelersCompanions')}
             </h3>
 
             <div className="flex flex-wrap gap-2 mb-2">
@@ -264,7 +266,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 type="text"
                 value={newTravelerName}
                 onChange={(e) => setNewTravelerName(e.target.value)}
-                placeholder="Add friend name (e.g. David)"
+                placeholder={t('addFriendPlaceholder')}
                 className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-white text-xs focus:outline-none focus:border-emerald-500"
               />
               <button
@@ -272,7 +274,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 onClick={handleAddTraveler}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-1"
               >
-                <Plus className="w-3.5 h-3.5" /> Add
+                <Plus className="w-3.5 h-3.5" /> {t('add')}
               </button>
             </div>
           </div>
@@ -280,7 +282,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
           {/* Cover Photo */}
           <div className="space-y-3 pt-2 border-t border-slate-800">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Image className="w-4 h-4 text-emerald-400" /> Cover Photo Banner
+              <Image className="w-4 h-4 text-emerald-400" /> {t('coverPhoto')}
             </h3>
 
             <div>
@@ -317,14 +319,14 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
             <button
               type="button"
               onClick={() => {
-                if (window.confirm(`Are you sure you want to delete "${trip.title}"?`)) {
+                if (window.confirm(t('confirmDeleteTrip', { title: trip.title }))) {
                   onDeleteTrip(trip.id);
                   onClose();
                 }
               }}
               className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-red-500/10 transition"
             >
-              <Trash2 className="w-4 h-4" /> Delete Trip
+              <Trash2 className="w-4 h-4" /> {t('deleteTrip')}
             </button>
 
             <div className="flex items-center gap-3">
@@ -333,13 +335,13 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 onClick={onClose}
                 className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="submit"
                 className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-500/20"
               >
-                Save Settings
+                {t('saveSettings')}
               </button>
             </div>
           </div>
