@@ -4,15 +4,20 @@ import { bangkokDefaultTrip } from './bangkokTrip';
 export function createNewTrip(title: string, destination: string, country: string, startDate: string, endDate: string, currency: string = 'USD'): Trip {
   // Parse date components explicitly to avoid the UTC-midnight shift of
   // new Date('YYYY-MM-DD') pushing dates a day off in some timezones.
-  const parseLocalDate = (iso: string) => {
-    const [y, m, d] = iso.split('-').map(Number);
-    return new Date(y || 2026, (m || 1) - 1, d || 1);
+  const parseLocalDate = (iso: string): Date | null => {
+    const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(iso);
+    if (!match) return null;
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   };
-  const start = parseLocalDate(startDate);
-  const end = parseLocalDate(endDate);
-  const diffTime = Math.abs(end.getTime() - start.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  const numDays = isNaN(diffDays) || diffDays < 1 ? 3 : Math.min(diffDays, 30);
+  const validStart = parseLocalDate(startDate);
+  const validEnd = parseLocalDate(endDate);
+  const start = validStart || new Date();
+  let numDays = 3;
+  if (validStart && validEnd) {
+    const diffTime = Math.abs(validEnd.getTime() - validStart.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    numDays = diffDays < 1 ? 3 : Math.min(diffDays, 30);
+  }
 
   const pad = (n: number) => String(n).padStart(2, '0');
 
