@@ -1,38 +1,150 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Daylight — the app's semantic colour tokens.
+
+   Nothing in a component names a raw Tailwind shade. Every colour
+   goes through one of these, which is what makes a second theme a
+   change to this block rather than a second rewrite.
+
+   Contrast against Paper (#FFF): ink 18.0, muted 6.3, faint 4.9,
+   brand 8.0, gilt 5.8, clay 6.6 — all clear WCAG AA for body text.
+   ============================================================ */
+@theme {
+  /* Neutrals — cool-biased so they sit under the brand instead of
+     going muddy beside it */
+  --color-paper:      #FFFFFF;  /* cards, modals, the page itself */
+  --color-mist:       #F5F6FA;  /* recessed ground, inputs at rest */
+  --color-hairline:   #E4E6EF;  /* every border, one weight */
+  --color-ink:        #14161F;  /* primary text */
+  --color-muted:      #5B6072;  /* secondary text, icons */
+  --color-faint:      #6A7086;  /* hints, disabled, read-only */
+
+  /* Brand — scarce on purpose: one primary action per screen */
+  --color-brand:      #3930DB;
+  --color-brand-deep: #2A23A5;  /* hover / pressed only */
+  --color-brand-tint: #EDECFD;  /* active tab, selected chip */
+
+  /* Gilt says confirmed; clay says careful. No other hues. */
+  --color-gilt:       #8A5D0B;
+  --color-gilt-tint:  #FBF3E3;
+  --color-clay:       #B42318;
+  --color-clay-tint:  #FDF0EE;
+
+  /* Category spines run tonally through the brand — the icon
+     carries the identity, so nine categories need no nine hues */
+  --color-spine-1:    #3930DB;
+  --color-spine-2:    #8A5D0B;
+  --color-spine-3:    #8B85EC;
+  --color-spine-4:    #C3C7D6;
+
+  --font-sans: "IBM Plex Sans", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Down from the old 16–24px, which read as toy-like once the
+     drama of the dark ground was gone */
+  --radius-control: 10px;
+  --radius-card:    12px;
+  --radius-modal:   16px;
+
+  /* Exactly two elevations: flat (hairline only) and lifted */
+  --shadow-lift: 0 1px 2px rgb(20 22 31 / 0.06), 0 6px 16px -10px rgb(20 22 31 / 0.18);
+}
+
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
-    background-color: #020617; /* slate-950 */
-    color: #f1f5f9; /* slate-100 */
+    background-color: var(--color-mist);
+    color: var(--color-ink);
     min-height: 100vh;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* On white the browser's default focus ring is nearly invisible;
+     at 8:1 this one is impossible to miss. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  ::selection {
+    background: var(--color-brand-tint);
+    color: var(--color-brand-deep);
   }
 }
 
-/* Custom smooth scrollbar */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Thai shown to a stranger at arm's length — never shrink it */
+@utility thai-display {
+  font-family: "Noto Sans Thai", "IBM Plex Sans Thai", var(--font-sans);
+  line-height: 1.5;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.4);
+  background: #D3D7E4;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.7);
+  background: #BFC4D6;
 }
 
-/* Print optimizations for printing or saving PDF */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.14s ease-out;
+}
+
+.animate-riseIn {
+  animation: riseIn 0.18s ease-out;
+}
+
+/* Celebration should not be mandatory. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print: the app is light now, so paper needs far less overriding
+   than it did when the screen was near-black. */
 @media print {
   body {
-    background: white !important;
-    color: black !important;
+    background: #fff !important;
+    color: #000 !important;
   }
   .no-print {
     display: none !important;

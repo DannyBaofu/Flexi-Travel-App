@@ -1,22 +1,62 @@
 import React, { useState } from 'react';
-import { 
-  Plus, 
-  Trash2, 
-  PieChart, 
-  ArrowRight, 
-  Users, 
-  Calculator, 
-  Receipt
+import {
+  Plus,
+  Trash2,
+  PieChart,
+  Users,
+  Receipt,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Check
 } from 'lucide-react';
 import type { Trip, ExpenseItem, ActivityCategory, TripRole } from '../types/travel';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { useI18n } from '../utils/i18n';
+import {
+  card,
+  cardFlat,
+  btnPrimary,
+  btnPrimarySm,
+  btnGhost,
+  input,
+  inputMono,
+  select,
+  label,
+  money
+} from './ui';
 
 interface BudgetTrackerProps {
   trip: Trip;
   onUpdateTrip: (updatedTrip: Trip) => void;
   role: TripRole;
 }
+
+/**
+ * Which traveler is *this* browser's owner. Local-only, like `myRole` —
+ * it describes the device, not the trip, so it never touches the Trip
+ * shape and needs no storage migration.
+ */
+const ME_KEY = 'travelsync-me';
+
+const readMe = (tripId: string): string => {
+  try {
+    const raw = localStorage.getItem(ME_KEY);
+    return raw ? (JSON.parse(raw)[tripId] ?? '') : '';
+  } catch {
+    return '';
+  }
+};
+
+const writeMe = (tripId: string, travelerId: string) => {
+  try {
+    const raw = localStorage.getItem(ME_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    map[tripId] = travelerId;
+    localStorage.setItem(ME_KEY, JSON.stringify(map));
+  } catch {
+    /* storage unavailable — the picker just won't stick */
+  }
+};
 
 export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   trip,
@@ -31,43 +71,38 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   const [amount, setAmount] = useState<number | ''>('');
   const [category, setCategory] = useState<ActivityCategory>('food');
   const [paidBy, setPaidBy] = useState<string>(trip.travelers[0]?.id || '');
-  const [splitWith, setSplitWith] = useState<string[]>(trip.travelers.map(t => t.id));
+  const [splitWith, setSplitWith] = useState<string[]>(trip.travelers.map(tv => tv.id));
   const [date, setDate] = useState<string>(trip.startDate);
+  const [meId, setMeId] = useState<string>(() => readMe(trip.id));
 
   const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
+  const toHome = (n: number) => Math.round(n / rate).toLocaleString();
 
-  // Calculate total spent
   const totalSpent = (trip.expenses || []).reduce((sum, exp) => sum + (exp.amount || 0), 0);
-  const totalSpentHome = (totalSpent / rate).toFixed(0);
 
-  // Calculate spending by category
   const categoryTotals = (trip.expenses || []).reduce((acc, exp) => {
     acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
     return acc;
   }, {} as Record<ActivityCategory, number>);
 
-  // Calculate settlement balances: who paid vs who consumed
+  // Who paid vs who consumed
   const balances: Record<string, number> = {};
-  trip.travelers.forEach(t => { balances[t.id] = 0; });
+  trip.travelers.forEach(tv => { balances[tv.id] = 0; });
 
   (trip.expenses || []).forEach(exp => {
     const payer = exp.paidByTravelerId;
-    const splitters = exp.splitWithTravelerIds && exp.splitWithTravelerIds.length > 0 
-      ? exp.splitWithTravelerIds 
-      : trip.travelers.map(t => t.id);
+    const splitters = exp.splitWithTravelerIds && exp.splitWithTravelerIds.length > 0
+      ? exp.splitWithTravelerIds
+      : trip.travelers.map(tv => tv.id);
 
     const share = exp.amount / splitters.length;
-
-    // Payer is credited the full amount
     balances[payer] = (balances[payer] || 0) + exp.amount;
-
-    // Each splitter is debited their share
     splitters.forEach(splitterId => {
       balances[splitterId] = (balances[splitterId] || 0) - share;
     });
   });
 
-  // Simplified debts calculation: debtors pay creditors
+  // Simplified debts: debtors pay creditors
   const settlements: { from: string; to: string; amount: number }[] = [];
   const debtors = Object.keys(balances).filter(id => balances[id] < -0.01).map(id => ({ id, balance: -balances[id] }));
   const creditors = Object.keys(balances).filter(id => balances[id] > 0.01).map(id => ({ id, balance: balances[id] }));
@@ -78,11 +113,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
     const creditor = creditors[j];
     const payment = Math.min(debtor.balance, creditor.balance);
 
-    settlements.push({
-      from: debtor.id,
-      to: creditor.id,
-      amount: Math.round(payment)
-    });
+    settlements.push({ from: debtor.id, to: creditor.id, amount: Math.round(payment) });
 
     debtor.balance -= payment;
     creditor.balance -= payment;
@@ -91,9 +122,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
     if (creditor.balance < 0.01) j++;
   }
 
-  const getTravelerName = (id: string) => {
-    return trip.travelers.find(t => t.id === id)?.name || 'Unknown';
-  };
+  const getTravelerName = (id: string) => trip.travelers.find(tv => tv.id === id)?.name || 'Unknown';
 
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,13 +136,10 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
       category,
       date,
       paidByTravelerId: paidBy,
-      splitWithTravelerIds: splitWith.length > 0 ? splitWith : trip.travelers.map(t => t.id)
+      splitWithTravelerIds: splitWith.length > 0 ? splitWith : trip.travelers.map(tv => tv.id)
     };
 
-    onUpdateTrip({
-      ...trip,
-      expenses: [newExpense, ...(trip.expenses || [])]
-    });
+    onUpdateTrip({ ...trip, expenses: [newExpense, ...(trip.expenses || [])] });
 
     setIsAdding(false);
     setTitle('');
@@ -122,106 +148,168 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
 
   const handleDeleteExpense = (expId: string) => {
     if (!isAdmin) return;
-    onUpdateTrip({
-      ...trip,
-      expenses: (trip.expenses || []).filter(e => e.id !== expId)
-    });
+    onUpdateTrip({ ...trip, expenses: (trip.expenses || []).filter(e => e.id !== expId) });
   };
 
   const toggleSplitter = (travelerId: string) => {
     if (splitWith.includes(travelerId)) {
-      if (splitWith.length > 1) {
-        setSplitWith(splitWith.filter(id => id !== travelerId));
-      }
+      if (splitWith.length > 1) setSplitWith(splitWith.filter(id => id !== travelerId));
     } else {
       setSplitWith([...splitWith, travelerId]);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Top Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <span>{t('totalGroupSpent')}</span>
-            <Receipt className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-2 font-mono">
-            {totalSpent.toLocaleString()} {trip.currency}
-          </div>
-          <div className="text-xs text-slate-400 mt-1">
-            ≈ {trip.homeCurrency} {totalSpentHome} ({t('rateLabel')}: 1 {trip.homeCurrency} = {rate} {trip.currency})
-          </div>
-        </div>
+  const pickMe = (id: string) => {
+    setMeId(id);
+    writeMe(trip.id, id);
+  };
 
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <span>{t('perPersonAverage')}</span>
-            <Users className="w-4 h-4 text-sky-400" />
+  // The one number people open this tab for. Viewers are looking at
+  // someone else's ledger, so they get the group view only.
+  const showPersonal = !isReadOnly && trip.travelers.length > 0;
+  const myBalance = meId ? Math.round(balances[meId] || 0) : 0;
+  const mySettlements = meId ? settlements.filter(s => s.from === meId || s.to === meId) : [];
+
+  return (
+    <div className="space-y-4">
+      {/* ---- Hero: what do I owe, or what am I owed ---- */}
+      {showPersonal && (
+        <div className={`${card} p-4 sm:p-5`}>
+          {!meId ? (
+            <div className="space-y-3">
+              <div>
+                <h2 className="text-base font-semibold text-ink">{t('whoAreYou')}</h2>
+                <p className="text-xs text-muted mt-0.5 leading-relaxed">{t('pickYourselfHint')}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {trip.travelers.map(tv => (
+                  <button
+                    key={tv.id}
+                    onClick={() => pickMe(tv.id)}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-control border border-hairline bg-paper hover:bg-mist text-sm font-medium text-ink transition"
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />
+                    {tv.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[11px] text-faint">{t('yourBalance')}</div>
+
+                  {/* Direction is carried by an arrow and a sentence, never
+                      by the colour or the sign alone. */}
+                  {myBalance > 0 ? (
+                    <>
+                      <div className="flex items-center gap-1.5 text-brand mt-0.5">
+                        <ArrowDownLeft className="w-4 h-4 shrink-0" />
+                        <span className="text-sm font-semibold">{t('youAreOwed')}</span>
+                      </div>
+                      <div className={`text-2xl font-semibold text-ink mt-1 ${money}`}>
+                        {myBalance.toLocaleString()} {trip.currency}
+                      </div>
+                      <div className={`text-xs text-muted ${money}`}>
+                        ≈ {trip.homeCurrency} {toHome(myBalance)}
+                      </div>
+                    </>
+                  ) : myBalance < 0 ? (
+                    <>
+                      <div className="flex items-center gap-1.5 text-clay mt-0.5">
+                        <ArrowUpRight className="w-4 h-4 shrink-0" />
+                        <span className="text-sm font-semibold">{t('youOwe')}</span>
+                      </div>
+                      <div className={`text-2xl font-semibold text-ink mt-1 ${money}`}>
+                        {Math.abs(myBalance).toLocaleString()} {trip.currency}
+                      </div>
+                      <div className={`text-xs text-muted ${money}`}>
+                        ≈ {trip.homeCurrency} {toHome(Math.abs(myBalance))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-muted mt-1">
+                      <Check className="w-4 h-4 shrink-0" />
+                      <span className="text-sm font-semibold">{t('youAreSettled')}</span>
+                    </div>
+                  )}
+                </div>
+
+                <button onClick={() => setMeId('')} className="text-xs text-faint hover:text-ink underline shrink-0">
+                  {t('changePerson')}
+                </button>
+              </div>
+
+              {/* Settlement lines read as sentences, not a matrix */}
+              {mySettlements.length > 0 && (
+                <div className="space-y-1.5 pt-3 border-t border-hairline">
+                  {mySettlements.map((s, idx) => {
+                    const theyPayMe = s.to === meId;
+                    return (
+                      <div key={idx} className="flex items-center justify-between gap-3 text-sm">
+                        <span className="text-muted min-w-0 truncate">
+                          {theyPayMe
+                            ? t('settleTheyPayYou', { name: getTravelerName(s.from) })
+                            : t('settleYouPay', { name: getTravelerName(s.to) })}
+                        </span>
+                        <span className={`font-semibold shrink-0 ${theyPayMe ? 'text-brand' : 'text-clay'} ${money}`}>
+                          {s.amount.toLocaleString()} {trip.currency}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ---- Group total: supporting detail, plus the add button ---- */}
+      <div className={`${card} p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4`}>
+        <div className="min-w-0">
+          <div className="text-[11px] text-faint">{t('groupTotalLabel')}</div>
+          <div className={`text-lg font-semibold text-ink mt-0.5 ${money}`}>
+            {totalSpent.toLocaleString()} {trip.currency}
+            <span className="text-xs font-normal text-muted ml-1.5">
+              ≈ {trip.homeCurrency} {toHome(totalSpent)}
+            </span>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-sky-400 mt-2 font-mono">
-            {trip.travelers.length > 0 ? Math.round(totalSpent / trip.travelers.length).toLocaleString() : 0} {trip.currency}
-          </div>
-          <div className="text-xs text-slate-400 mt-1">
-            ≈ {trip.homeCurrency} {trip.travelers.length > 0 ? Math.round(totalSpent / trip.travelers.length / rate).toLocaleString() : 0}
-          </div>
-          <div className="text-xs text-slate-400 mt-1">
+          <div className="text-xs text-muted mt-0.5">
             {t('splitEvenly', { n: trip.travelers.length })}
           </div>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <span>{t('quickAction')}</span>
-            <Calculator className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="pt-2">
-            {!isReadOnly ? (
-              <button
-                onClick={() => setIsAdding(!isAdding)}
-                className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-500/20"
-              >
-                <Plus className="w-4 h-4" /> {isAdding ? t('closeForm') : t('logNewExpense')}
-              </button>
-            ) : (
-              <div className="text-xs text-slate-400">{t('viewingSharedLedger')}</div>
-            )}
-          </div>
-        </div>
+        {!isReadOnly ? (
+          <button onClick={() => setIsAdding(!isAdding)} className={`${btnPrimary} shrink-0`}>
+            <Plus className="w-4 h-4" /> {isAdding ? t('closeForm') : t('logNewExpense')}
+          </button>
+        ) : (
+          <span className="text-xs text-faint">{t('viewingSharedLedger')}</span>
+        )}
       </div>
 
-      {/* Add Expense Form (collapsible) */}
+      {/* ---- Add expense ---- */}
       {isAdding && (
-        <form onSubmit={handleAddExpense} className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-6 shadow-2xl space-y-4 animate-fadeIn">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Plus className="w-5 h-5 text-emerald-400" /> {t('addTravelExpense')}
-            </h3>
-            <button
-              type="button"
-              onClick={() => setIsAdding(false)}
-              className="text-xs text-slate-400 hover:text-white"
-            >
-              {t('cancel')}
-            </button>
-          </div>
+        <form onSubmit={handleAddExpense} className={`${card} p-4 sm:p-5 space-y-4 animate-riseIn`}>
+          <h3 className="text-base font-semibold text-ink">{t('addTravelExpense')}</h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('expenseDescription')}</label>
+              <label className={label}>{t('expenseDescription')}</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={t('expensePlaceholder')}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
+                className={input}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('amountLabel', { cur: trip.currency })}</label>
+              <label className={label}>{t('amountLabel', { cur: trip.currency })}</label>
               <input
                 type="number"
                 min="1"
@@ -229,19 +317,19 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="1500"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 font-mono"
+                className={inputMono}
                 required
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('category')}</label>
+              <label className={label}>{t('category')}</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as ActivityCategory)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
+                className={select}
               >
                 {(Object.keys(categoryMetaMap) as ActivityCategory[]).map(cat => (
                   <option key={cat} value={cat}>
@@ -252,180 +340,168 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
             </div>
 
             {isAdmin && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('paidBy')}</label>
-              <select
-                value={paidBy}
-                onChange={(e) => setPaidBy(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
-              >
-                {trip.travelers.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
+              <div>
+                <label className={label}>{t('paidBy')}</label>
+                <select value={paidBy} onChange={(e) => setPaidBy(e.target.value)} className={select}>
+                  {trip.travelers.map(tv => (
+                    <option key={tv.id} value={tv.id}>{tv.name}</option>
+                  ))}
+                </select>
+              </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('date')}</label>
+              <label className={label}>{t('date')}</label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
+                className={input}
               />
             </div>
           </div>
 
-          {/* Split with checkboxes (admin only — members log simple expenses) */}
+          {/* Split internals are the admin's business */}
           {isAdmin && (
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2">{t('splitWithLabel')}</label>
-            <div className="flex flex-wrap gap-2">
-              {trip.travelers.map(t => {
-                const isSelected = splitWith.includes(t.id);
-                return (
-                  <button
-                    type="button"
-                    key={t.id}
-                    onClick={() => toggleSplitter(t.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-2 ${
-                      isSelected
-                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
-                        : 'bg-slate-800 border-slate-700 text-slate-400'
-                    }`}
-                  >
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.avatarColor }} />
-                    {t.name}
-                  </button>
-                );
-              })}
+            <div>
+              <label className={label}>{t('splitWithLabel')}</label>
+              <div className="flex flex-wrap gap-2">
+                {trip.travelers.map(tv => {
+                  const isSelected = splitWith.includes(tv.id);
+                  return (
+                    <button
+                      type="button"
+                      key={tv.id}
+                      onClick={() => toggleSplitter(tv.id)}
+                      className={`px-3 py-2 rounded-control text-xs font-semibold border transition flex items-center gap-2 ${
+                        isSelected
+                          ? 'bg-brand-tint border-brand-tint text-brand'
+                          : 'bg-paper border-hairline text-muted hover:bg-mist'
+                      }`}
+                    >
+                      {isSelected
+                        ? <Check className="w-3.5 h-3.5 shrink-0" />
+                        : <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />}
+                      {tv.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={() => setIsAdding(false)}
-              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
-            >
+          <div className="flex justify-end gap-2 pt-3 border-t border-hairline">
+            <button type="button" onClick={() => setIsAdding(false)} className={btnGhost}>
               {t('cancel')}
             </button>
-            <button
-              type="submit"
-              className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition"
-            >
-              {t('saveExpense')}
-            </button>
+            <button type="submit" className={btnPrimary}>{t('saveExpense')}</button>
           </div>
         </form>
       )}
 
-      {/* Settlements & Breakdown Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Who Owes Who Debt Simplifier (5 Cols, admin only) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div className="lg:col-span-5 space-y-4">
+          {/* Full settlement matrix stays an admin tool */}
           {isAdmin && (
-          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-emerald-400" /> {t('groupSettlement')}
-            </h3>
-            <p className="text-xs text-slate-400">
-              {t('settlementHint')}
-            </p>
+            <div className={`${card} p-4 sm:p-5 space-y-3`}>
+              <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+                <Users className="w-4 h-4 text-muted" /> {t('groupSettlement')}
+              </h3>
+              <p className="text-xs text-muted leading-relaxed">{t('settlementHint')}</p>
 
-            <div className="space-y-2.5 pt-2">
-              {settlements.length > 0 ? (
-                settlements.map((s, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-2 font-medium text-slate-300">
-                      <span className="font-bold text-white">{getTravelerName(s.from)}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span className="font-bold text-emerald-300">{getTravelerName(s.to)}</span>
+              <div className="space-y-1.5 pt-1">
+                {settlements.length > 0 ? (
+                  settlements.map((s, idx) => (
+                    <div
+                      key={idx}
+                      className="px-3 py-2.5 bg-mist rounded-control flex items-center justify-between gap-3 text-sm"
+                    >
+                      <span className="text-muted min-w-0 truncate">
+                        {t('settlePersonToPerson', {
+                          from: getTravelerName(s.from),
+                          to: getTravelerName(s.to)
+                        })}
+                      </span>
+                      <span className={`font-semibold text-ink shrink-0 ${money}`}>
+                        {s.amount.toLocaleString()} {trip.currency}
+                      </span>
                     </div>
-                    <div className="font-bold text-amber-400 font-mono text-sm">
-                      {s.amount.toLocaleString()} {trip.currency}
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-5 text-xs text-faint bg-mist rounded-control">
+                    {t('allBalanced')}
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-6 text-xs text-slate-500 bg-slate-950/40 rounded-2xl">
-                  {t('allBalanced')}
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-hairline space-y-1.5">
+                <div className="text-[11px] font-semibold text-faint uppercase tracking-wider">
+                  {t('individualBalances')}
                 </div>
-              )}
-            </div>
-
-            {/* Traveler Net Balances */}
-            <div className="pt-4 border-t border-slate-800 space-y-2">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('individualBalances')}</div>
-              {trip.travelers.map(t => {
-                const bal = Math.round(balances[t.id] || 0);
-                const isPositive = bal > 0;
-                return (
-                  <div key={t.id} className="flex items-center justify-between text-xs py-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.avatarColor }} />
-                      <span className="text-slate-300">{t.name}</span>
+                {trip.travelers.map(tv => {
+                  const bal = Math.round(balances[tv.id] || 0);
+                  return (
+                    <div key={tv.id} className="flex items-center justify-between gap-3 text-xs py-0.5">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />
+                        <span className="text-muted truncate">{tv.name}</span>
+                      </span>
+                      <span className={`font-semibold shrink-0 ${money} ${
+                        bal > 0 ? 'text-brand' : bal < 0 ? 'text-clay' : 'text-faint'
+                      }`}>
+                        {bal > 0 ? `+${bal.toLocaleString()}` : bal.toLocaleString()} {trip.currency}
+                      </span>
                     </div>
-                    <span className={`font-mono font-bold ${
-                      isPositive ? 'text-emerald-400' : bal < 0 ? 'text-rose-400' : 'text-slate-400'
-                    }`}>
-                      {isPositive ? `+${bal.toLocaleString()}` : bal.toLocaleString()} {trip.currency}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
           )}
 
-          {/* Category Breakdown Progress */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-sky-400" /> {t('categoryBreakdown')}
-            </h3>
-            <div className="space-y-2.5 pt-1">
-              {(Object.keys(categoryTotals) as ActivityCategory[]).map(catKey => {
-                const amount = categoryTotals[catKey] || 0;
-                const percent = totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0;
-                const meta = categoryMetaMap[catKey] || categoryMetaMap.other;
+          {/* Category breakdown */}
+          {totalSpent > 0 && (
+            <div className={`${card} p-4 sm:p-5 space-y-3`}>
+              <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+                <PieChart className="w-4 h-4 text-muted" /> {t('categoryBreakdown')}
+              </h3>
+              <div className="space-y-2.5">
+                {(Object.keys(categoryTotals) as ActivityCategory[]).map(catKey => {
+                  const amt = categoryTotals[catKey] || 0;
+                  const percent = totalSpent > 0 ? Math.round((amt / totalSpent) * 100) : 0;
+                  const meta = categoryMetaMap[catKey] || categoryMetaMap.other;
+                  const Icon = meta.icon;
 
-                return (
-                  <div key={catKey} className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-slate-300 flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${meta.textColor}`} />
-                        {lang === 'zh' ? meta.labelZh : meta.label}
-                      </span>
-                      <span className="font-mono text-slate-300">{amount.toLocaleString()} {trip.currency} ({percent}%)</span>
+                  return (
+                    <div key={catKey} className="space-y-1.5">
+                      <div className="flex justify-between gap-3 text-xs">
+                        <span className="text-muted flex items-center gap-1.5 min-w-0">
+                          <Icon className="w-3.5 h-3.5 shrink-0 text-faint" />
+                          <span className="truncate">{lang === 'zh' ? meta.labelZh : meta.label}</span>
+                        </span>
+                        <span className={`text-ink shrink-0 ${money}`}>
+                          {amt.toLocaleString()} · {percent}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-mist rounded-full h-1.5 overflow-hidden">
+                        <div className={`${meta.spine} h-full rounded-full`} style={{ width: `${percent}%` }} />
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${percent}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Right: Expense Ledger Table (7 Cols) */}
+        {/* Ledger */}
         <div className="lg:col-span-7">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-emerald-400" /> {t('expenseHistory')} ({trip.expenses?.length || 0})
-              </h3>
-            </div>
+          <div className={`${card} p-4 sm:p-5 space-y-3`}>
+            <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-muted" />
+              {t('expenseHistory')} ({trip.expenses?.length || 0})
+            </h3>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {trip.expenses && trip.expenses.length > 0 ? (
                 trip.expenses.map((exp) => {
                   const meta = categoryMetaMap[exp.category] || categoryMetaMap.other;
@@ -434,38 +510,37 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                   return (
                     <div
                       key={exp.id}
-                      className="p-3.5 bg-slate-950/70 border border-slate-800/80 rounded-2xl flex items-center justify-between gap-3 hover:border-slate-700 transition"
+                      className={`${cardFlat} p-3 flex items-center justify-between gap-3`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl ${meta.bgColor} ${meta.borderColor} border flex items-center justify-center ${meta.textColor} shrink-0`}>
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-bold text-white">{exp.title}</div>
-                          <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                            <span>{t('paidByLabel')} <strong className="text-slate-200">{getTravelerName(exp.paidByTravelerId)}</strong></span>
-                            <span>•</span>
-                            <span>{exp.date}</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={`w-[3px] self-stretch min-h-[34px] rounded-full shrink-0 ${meta.spine}`} aria-hidden="true" />
+                        <Icon className="w-4 h-4 text-faint shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-ink truncate">{exp.title}</div>
+                          <div className="text-[11px] text-muted truncate">
+                            {t('paidByLabel')} {getTravelerName(exp.paidByTravelerId)} · {exp.date}
+                            {isAdmin && ` · ${t('splitByN', { n: exp.splitWithTravelerIds?.length || trip.travelers.length })}`}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <div className="text-right font-mono">
-                          <div className="text-sm font-bold text-emerald-400">{exp.amount.toLocaleString()} {exp.currency}</div>
-                          <div className="text-[10px] text-slate-400">≈ {trip.homeCurrency} {(exp.amount / rate).toFixed(0)}</div>
-                          {isAdmin && (
-                            <div className="text-[10px] text-slate-500">{t('splitByN', { n: exp.splitWithTravelerIds?.length || trip.travelers.length })}</div>
-                          )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="text-right">
+                          <div className={`text-sm font-semibold text-ink ${money}`}>
+                            {exp.amount.toLocaleString()} {exp.currency}
+                          </div>
+                          <div className={`text-[11px] text-muted ${money}`}>
+                            ≈ {trip.homeCurrency} {toHome(exp.amount)}
+                          </div>
                         </div>
 
                         {isAdmin && (
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
-                            className="p-1.5 text-slate-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition"
+                            className="w-10 h-10 inline-flex items-center justify-center rounded-control text-faint hover:text-clay hover:bg-clay-tint transition"
                             title={t('deleteExpense')}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -473,8 +548,13 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                   );
                 })
               ) : (
-                <div className="text-center py-10 text-xs text-slate-500">
-                  {t('noExpensesYet')}
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted">{t('noExpensesYet')}</p>
+                  {!isReadOnly && !isAdding && (
+                    <button onClick={() => setIsAdding(true)} className={`${btnPrimarySm} mt-3`}>
+                      <Plus className="w-3.5 h-3.5" /> {t('logNewExpense')}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

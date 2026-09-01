@@ -1,7 +1,8 @@
-import React from 'react';
-import { Heart, ShoppingBag, MapPin, Utensils, Hash, Lightbulb } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Heart, ShoppingBag, MapPin, Utensils, Hash, Lightbulb, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useI18n } from '../utils/i18n';
+import { card, cardFlat, iconBtn } from './ui';
 
 interface Phrase {
   th: string; // Thai script — big, can be shown to locals
@@ -14,7 +15,6 @@ interface PhraseCategory {
   icon: LucideIcon;
   zh: string;
   en: string;
-  accent: string; // tailwind text color for the icon
   phrases: Phrase[];
 }
 
@@ -23,7 +23,6 @@ const PHRASE_CATEGORIES: PhraseCategory[] = [
     icon: Heart,
     zh: '礼貌用语',
     en: 'Politeness',
-    accent: 'text-rose-400',
     phrases: [
       { th: 'สวัสดีครับ / ค่ะ', pron: 'Sa-wat-dee (krap/ka)', zh: '你好', en: 'Hello' },
       { th: 'ขอบคุณครับ / ค่ะ', pron: 'Khop khun (krap/ka)', zh: '谢谢', en: 'Thank you' },
@@ -36,7 +35,6 @@ const PHRASE_CATEGORIES: PhraseCategory[] = [
     icon: ShoppingBag,
     zh: '购物砍价',
     en: 'Shopping & Bargaining',
-    accent: 'text-pink-400',
     phrases: [
       { th: 'เท่าไหร่ครับ / คะ?', pron: 'Tao-rai (krap/ka)?', zh: '多少钱？', en: 'How much is this?' },
       { th: 'แพงไป', pron: 'Phaeng pai', zh: '太贵了', en: 'Too expensive' },
@@ -49,7 +47,6 @@ const PHRASE_CATEGORIES: PhraseCategory[] = [
     icon: MapPin,
     zh: '问路',
     en: 'Directions',
-    accent: 'text-emerald-400',
     phrases: [
       { th: '...อยู่ที่ไหน?', pron: '... yoo tee nai?', zh: '……在哪里？（前面接地名）', en: 'Where is ...? (say the place first)' },
       { th: 'ห้องน้ำอยู่ที่ไหน?', pron: 'Hong nam yoo tee nai?', zh: '厕所在哪里？', en: 'Where is the toilet?' },
@@ -62,7 +59,6 @@ const PHRASE_CATEGORIES: PhraseCategory[] = [
     icon: Utensils,
     zh: '餐饮点餐',
     en: 'Food & Ordering',
-    accent: 'text-amber-400',
     phrases: [
       { th: 'ไม่เผ็ด', pron: 'Mai phet', zh: '不要辣', en: 'Not spicy' },
       { th: 'เผ็ดนิดหน่อย', pron: 'Phet nit noi', zh: '一点点辣', en: 'A little spicy' },
@@ -76,7 +72,6 @@ const PHRASE_CATEGORIES: PhraseCategory[] = [
     icon: Hash,
     zh: '数字（砍价必备）',
     en: 'Numbers (for bargaining)',
-    accent: 'text-sky-400',
     phrases: [
       { th: 'หนึ่ง สอง สาม สี่ ห้า', pron: 'Neung, Song, Sam, See, Haa', zh: '1 2 3 4 5', en: '1 2 3 4 5' },
       { th: 'หก เจ็ด แปด เก้า สิบ', pron: 'Hok, Jet, Paet, Gao, Sip', zh: '6 7 8 9 10', en: '6 7 8 9 10' },
@@ -90,44 +85,88 @@ const PHRASE_CATEGORIES: PhraseCategory[] = [
 export const PhrasesTab: React.FC = () => {
   const { lang, t } = useI18n();
 
+  // This tab is used *at* someone — you hold the phone up to a driver.
+  // So a tapped phrase goes full-size on white with nothing else on screen.
+  const [showing, setShowing] = useState<Phrase | null>(null);
+
+  useEffect(() => {
+    if (!showing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowing(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showing]);
+
   return (
-    <div className="space-y-5">
-      {/* Tip banner */}
-      <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl px-4 py-3 flex items-start gap-2.5">
-        <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-        <p className="text-xs text-slate-300 leading-relaxed">{t('phrasesHint')}</p>
+    <div className="space-y-4">
+      <div className="bg-gilt-tint rounded-card px-4 py-3 flex items-start gap-2.5">
+        <Lightbulb className="w-4 h-4 text-gilt shrink-0 mt-0.5" />
+        <div className="text-xs text-gilt leading-relaxed space-y-1">
+          <p>{t('tapPhraseHint')}</p>
+          <p className="opacity-90">{t('phrasesHint')}</p>
+        </div>
       </div>
 
-      {/* Categories */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {PHRASE_CATEGORIES.map((cat) => {
           const Icon = cat.icon;
           return (
-            <div key={cat.en} className="bg-slate-900/70 border border-slate-800 rounded-3xl p-4 sm:p-5 space-y-2.5">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
-                <div className={`w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center ${cat.accent}`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm font-bold text-white">{lang === 'zh' ? cat.zh : cat.en}</h3>
+            <div key={cat.en} className={`${card} p-4 space-y-2`}>
+              <div className="flex items-center gap-2 pb-2 border-b border-hairline">
+                <Icon className="w-4 h-4 text-muted shrink-0" />
+                <h3 className="text-sm font-semibold text-ink">{lang === 'zh' ? cat.zh : cat.en}</h3>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {cat.phrases.map((phrase, idx) => (
-                  <div key={idx} className="p-2.5 bg-slate-950/70 rounded-xl border border-slate-800/80">
+                  <button
+                    key={idx}
+                    onClick={() => setShowing(phrase)}
+                    className={`${cardFlat} w-full text-left p-2.5 hover:bg-mist transition`}
+                  >
                     <div className="flex items-baseline justify-between gap-3">
-                      <div className="text-base font-bold text-amber-300 select-all">{phrase.th}</div>
-                      <div className="text-xs text-slate-200 font-medium text-right shrink-0">
+                      <div className="thai-display text-base font-semibold text-ink">{phrase.th}</div>
+                      <div className="text-xs text-muted text-right shrink-0">
                         {lang === 'zh' ? phrase.zh : phrase.en}
                       </div>
                     </div>
-                    <div className="text-[11px] text-slate-500 italic font-mono mt-0.5">{phrase.pron}</div>
-                  </div>
+                    <div className="text-[11px] text-faint font-mono mt-0.5">{phrase.pron}</div>
+                  </button>
                 ))}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Show mode — read at arm's length by a stranger, so the type
+          scale is broken here on purpose. */}
+      {showing && (
+        <div
+          className="fixed inset-0 z-50 bg-paper flex flex-col animate-fadeIn no-print"
+          onClick={() => setShowing(null)}
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-hairline shrink-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-faint">
+              {t('showToLocal')}
+            </span>
+            <button onClick={() => setShowing(null)} className={iconBtn} title={t('close')}>
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 flex flex-col items-center justify-center gap-6 p-6 text-center">
+            <p className="thai-display text-[34px] sm:text-5xl font-bold text-ink leading-snug select-all">
+              {showing.th}
+            </p>
+            <div className="space-y-1.5">
+              <p className="text-lg text-muted">{lang === 'zh' ? showing.zh : showing.en}</p>
+              <p className="text-sm text-faint font-mono">{showing.pron}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

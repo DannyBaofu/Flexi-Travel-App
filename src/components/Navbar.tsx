@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Share2,
   Plus,
@@ -6,12 +6,17 @@ import {
   Car,
   Printer,
   ChevronDown,
-  LogIn
+  LogIn,
+  LogOut,
+  MoreHorizontal,
+  Lock,
+  Users
 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import type { Trip, TripRole } from '../types/travel';
 import { emailToId } from '../services/cloudSync';
 import { useI18n } from '../utils/i18n';
+import { iconBtn, iconBtnSolid } from './ui';
 
 interface NavbarProps {
   trips: Trip[];
@@ -28,6 +33,10 @@ interface NavbarProps {
   onOpenAuthModal: () => void;
   onSignOut: () => void;
 }
+
+const menuItem =
+  'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-control text-sm text-ink ' +
+  'hover:bg-mist transition text-left';
 
 export const Navbar: React.FC<NavbarProps> = ({
   trips,
@@ -47,125 +56,153 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { lang, setLang, t } = useI18n();
   const isAdmin = role === 'admin';
   const isReadOnly = role === 'viewer';
-  return (
-    <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 transition-all no-print">
-      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo & Trip Dropdown */}
-          <div className="flex items-center gap-1.5 sm:gap-6 min-w-0">
-            {/* Trip Selector */}
-            <div className="relative flex items-center">
-              <select
-                value={activeTrip.id}
-                onChange={(e) => onSelectTrip(e.target.value)}
-                className="appearance-none bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-white text-xs sm:text-sm font-semibold rounded-xl pl-3.5 pr-8 py-2 focus:outline-none focus:border-emerald-500 cursor-pointer max-w-[150px] sm:max-w-[260px] truncate"
-              >
-                {trips.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.destination} ({t.startDate.slice(5)})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 pointer-events-none" />
-            </div>
 
-            {/* New Trip Button */}
-            {!isReadOnly && (
-              <button
-                onClick={onOpenNewTripModal}
-                className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium"
-                title={t('createNewTrip')}
-              >
-                <Plus className="w-4 h-4 text-emerald-400" />
-                <span className="hidden sm:inline">{t('newTrip')}</span>
-              </button>
-            )}
+  // Four controls is the ceiling for a phone top bar, so everything that
+  // is not language, taxi cards or share lives behind this one menu.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointer = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  const run = (fn: () => void) => () => {
+    setMenuOpen(false);
+    fn();
+  };
+
+  return (
+    <header className="sticky top-0 z-40 bg-paper/90 backdrop-blur border-b border-hairline no-print">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-2 h-14">
+          {/* Trip selector */}
+          <div className="relative flex items-center min-w-0">
+            <select
+              value={activeTrip.id}
+              onChange={(e) => onSelectTrip(e.target.value)}
+              aria-label={t('tripSettings')}
+              className="appearance-none bg-mist hover:bg-hairline/60 border border-hairline text-ink text-sm font-semibold rounded-control pl-3 pr-8 py-2 focus:outline-none focus:border-brand cursor-pointer max-w-[150px] sm:max-w-[280px] truncate transition"
+            >
+              {trips.map((tr) => (
+                <option key={tr.id} value={tr.id}>
+                  {tr.destination} ({tr.startDate.slice(5)})
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-muted absolute right-2.5 pointer-events-none" />
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Cloud Sign In / Account */}
-            {cloudEnabled && (
-              user ? (
-                <button
-                  onClick={onSignOut}
-                  className="w-8 h-8 shrink-0 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 text-xs font-bold flex items-center justify-center transition hover:bg-sky-500/30"
-                  title={`${t('cloudOn')} · ${emailToId(user.email) || '?'} · ${t('signOut')}`}
-                >
-                  {(emailToId(user.email) || '?').charAt(0).toUpperCase()}
-                </button>
-              ) : (
-                <button
-                  onClick={onOpenAuthModal}
-                  className="p-1.5 sm:px-3 sm:py-2 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
-                  title={t('signInTitle')}
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('signIn')}</span>
-                </button>
-              )
-            )}
-
-            {/* Language Toggle */}
+          {/* Quick actions — language, taxi, menu, share */}
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-              className="p-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition"
+              className={`${iconBtn} text-xs font-bold`}
               title={lang === 'zh' ? 'Switch to English' : '切换为中文'}
             >
-              {lang === 'zh' ? 'EN' : '中文'}
+              {lang === 'zh' ? 'EN' : '中'}
             </button>
 
-            {/* Show Taxi Cards Button (Super handy for Bangkok!) */}
             <button
               onClick={onOpenTaxiCardsModal}
-              className="p-1.5 sm:px-3 sm:py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
+              className={`${iconBtn} text-gilt`}
               title={t('showDriverTaxiCards')}
             >
-              <Car className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">{t('taxiCards')}</span>
+              <Car className="w-[18px] h-[18px]" />
             </button>
 
-            {/* Print / Save PDF Button */}
-            <button
-              onClick={onPrint}
-              className="hidden sm:block p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs transition"
-              title={t('printTitle')}
-            >
-              <Printer className="w-4 h-4" />
-            </button>
-
-            {/* Trip Settings (admin only) */}
-            {isAdmin && (
+            <div className="relative" ref={menuRef}>
               <button
-                onClick={onOpenSettingsModal}
-                className="p-1.5 sm:p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs transition"
-                title={t('tripSettings')}
+                onClick={() => setMenuOpen((v) => !v)}
+                className={iconBtn}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                title={t('more')}
               >
-                <Sliders className="w-4 h-4" />
+                <MoreHorizontal className="w-[18px] h-[18px]" />
               </button>
-            )}
 
-            {/* Share with Friends Button */}
+              {menuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 mt-2 w-60 bg-paper border border-hairline rounded-card shadow-lift p-1.5 animate-riseIn z-50"
+                >
+                  {!isReadOnly && (
+                    <button className={menuItem} onClick={run(onOpenNewTripModal)}>
+                      <Plus className="w-4 h-4 text-muted shrink-0" />
+                      {t('createNewTrip')}
+                    </button>
+                  )}
+
+                  {isAdmin && (
+                    <button className={menuItem} onClick={run(onOpenSettingsModal)}>
+                      <Sliders className="w-4 h-4 text-muted shrink-0" />
+                      {t('tripSettings')}
+                    </button>
+                  )}
+
+                  <button className={menuItem} onClick={run(onPrint)}>
+                    <Printer className="w-4 h-4 text-muted shrink-0" />
+                    {t('printTitle')}
+                  </button>
+
+                  {cloudEnabled && (
+                    <>
+                      <div className="h-px bg-hairline my-1.5" />
+                      {user ? (
+                        <button className={menuItem} onClick={run(onSignOut)}>
+                          <LogOut className="w-4 h-4 text-muted shrink-0" />
+                          <span className="min-w-0 truncate">
+                            {t('signOut')}
+                            <span className="text-faint"> · {emailToId(user.email) || '?'}</span>
+                          </span>
+                        </button>
+                      ) : (
+                        <button className={menuItem} onClick={run(onOpenAuthModal)}>
+                          <LogIn className="w-4 h-4 text-muted shrink-0" />
+                          {t('signIn')}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
             <button
               onClick={onOpenShareModal}
-              className="p-1.5 sm:px-3.5 sm:py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20 active:scale-95"
+              className={iconBtnSolid}
               title={t('shareTrip')}
             >
-              <Share2 className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('shareTrip')}</span>
+              <Share2 className="w-[18px] h-[18px]" />
             </button>
           </div>
         </div>
       </div>
 
+      {/* Read-only is plain neutral with a lock; only a real capability
+          change earns the brand tint. */}
       {isReadOnly && (
-        <div className="bg-sky-950/80 border-b border-sky-800/60 px-4 py-1.5 text-center text-xs text-sky-200 font-medium">
-          {t('readOnlyBanner')}
+        <div className="bg-mist border-b border-hairline px-4 py-1.5 flex items-center justify-center gap-1.5 text-xs font-medium text-muted">
+          <Lock className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">{t('readOnlyBanner')}</span>
         </div>
       )}
       {role === 'member' && (
-        <div className="bg-emerald-950/70 border-b border-emerald-800/50 px-4 py-1.5 text-center text-xs text-emerald-200 font-medium">
-          {t('memberBanner')}
+        <div className="bg-brand-tint px-4 py-1.5 flex items-center justify-center gap-1.5 text-xs font-medium text-brand-deep">
+          <Users className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">{t('memberBanner')}</span>
         </div>
       )}
     </header>

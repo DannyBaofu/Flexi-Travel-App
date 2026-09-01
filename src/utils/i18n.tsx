@@ -22,9 +22,10 @@ const dict: Record<string, Entry> = {
   printTitle: { zh: '打印行程或保存为 PDF', en: 'Print Itinerary or Save as PDF' },
   tripSettings: { zh: '行程设置', en: 'Trip Settings' },
   shareTrip: { zh: '分享行程', en: 'Share Trip' },
+  // Kept to one line: this banner sits above every screen on a phone
   readOnlyBanner: {
-    zh: '👁️ 正在以只读模式查看共享行程。您可以浏览行程、地图和打车卡！',
-    en: '👁️ Viewing Shared Itinerary in Read-Only Mode. You can browse schedule, maps, and taxi cards!'
+    zh: '只读模式 · 可以浏览，不能修改',
+    en: 'Read-only · browse, but no edits'
   },
 
   // ---- Trip banner ----
@@ -63,6 +64,9 @@ const dict: Record<string, Entry> = {
   confirmDeleteActivity: { zh: '确定要从行程中删除此活动吗？', en: 'Delete this activity from your schedule?' },
   markBooked: { zh: '标记为已预订 / 已完成', en: 'Mark as booked/completed' },
   markPending: { zh: '标记为待定', en: 'Mark as pending' },
+  // Short enough to sit in a chip on a 375px row
+  bookedChip: { zh: '已预订', en: 'Booked' },
+  notBookedChip: { zh: '未预订', en: 'Not booked' },
 
   // ---- Transport connector ----
   approxMinutes: { zh: '约 {n} 分钟', en: '~{n} min' },
@@ -240,8 +244,8 @@ const dict: Record<string, Entry> = {
   roleMember: { zh: '旅伴', en: 'Member' },
   roleViewer: { zh: '访客', en: 'Viewer' },
   memberBanner: {
-    zh: '🤝 您以旅伴身份协作：可添加/编辑活动、勾选清单、记录支出。行程设置与删除由管理员管理。',
-    en: '🤝 You are collaborating as a Member: add & edit activities, tick checklists, log expenses. Trip settings & deletions are managed by the Admin.'
+    zh: '旅伴模式 · 可添加活动、记支出、勾清单',
+    en: 'Member · add activities, log expenses, tick items'
   },
   shareAsAdmin: { zh: '管理员（完全控制）', en: 'Admin (Full Control)' },
   shareAsAdminDesc: { zh: '行程设置、删除、旅伴管理等全部权限', en: 'Full access: settings, deletions, manage travelers' },
@@ -318,6 +322,47 @@ const dict: Record<string, Entry> = {
   emptyHint: { zh: '创建你的第一个行程，开始安排每天的活动、预算和行李清单。', en: 'Create your first trip to start planning days, budget and packing.' },
   createFirstTrip: { zh: '创建第一个行程', en: 'Create Your First Trip' },
   noChecklistItems: { zh: '清单还是空的，在上方添加第一项。', en: 'Your checklist is empty — add your first item above.' },
+
+  // ---- Bottom tab bar (short labels — four across a 375px screen) ----
+  tabItineraryShort: { zh: '行程', en: 'Plan' },
+  tabBudgetShort: { zh: '预算', en: 'Budget' },
+  tabChecklistShort: { zh: '清单', en: 'Packing' },
+  tabPhrasesShort: { zh: '泰语', en: 'Thai' },
+
+  // ---- Shared controls ----
+  close: { zh: '关闭', en: 'Close' },
+  more: { zh: '更多', en: 'More' },
+  showMore: { zh: '展开', en: 'more' },
+  showLess: { zh: '收起', en: 'less' },
+
+  // ---- Invite code entry on the first screen ----
+  haveInviteCode: { zh: '朋友给了你邀请码？', en: 'Got an invite code from a friend?' },
+  inviteCodePlaceholder: { zh: '例如 AB3F7K', en: 'e.g. AB3F7K' },
+  joinWithCode: { zh: '加入行程', en: 'Join Trip' },
+  emptyOr: { zh: '或者', en: 'or' },
+
+  // ---- Itinerary ----
+  todayBadge: { zh: '今天', en: 'Today' },
+  dayTotalLabel: { zh: '当日合计', en: 'Day total' },
+  filterLabel: { zh: '筛选', en: 'Filter' },
+  clearFilter: { zh: '清除筛选', en: 'Clear filter' },
+
+  // ---- Budget: the personal answer comes first ----
+  yourBalance: { zh: '你的余额', en: 'Your balance' },
+  youAreOwed: { zh: '大家欠你', en: 'You are owed' },
+  youOwe: { zh: '你需要付', en: 'You owe' },
+  youAreSettled: { zh: '已结清，不欠不欠', en: 'All settled — nothing to pay' },
+  whoAreYou: { zh: '你是哪一位？', en: 'Which one are you?' },
+  pickYourselfHint: { zh: '选一下你自己，就能直接看到该收或该付多少。', en: 'Pick yourself to see what you owe or are owed.' },
+  settleTheyPayYou: { zh: '{name} 付给你', en: '{name} pays you' },
+  settleYouPay: { zh: '你付给 {name}', en: 'You pay {name}' },
+  settlePersonToPerson: { zh: '{from} 付给 {to}', en: '{from} pays {to}' },
+  groupTotalLabel: { zh: '全队总花费', en: 'Group total' },
+  changePerson: { zh: '不是我', en: 'Not me' },
+
+  // ---- Thai phrases: show mode ----
+  tapPhraseHint: { zh: '点任意一句，放大出示给当地人看。', en: 'Tap any phrase to show it full-size to someone.' },
+  showToLocal: { zh: '出示给对方看', en: 'Show this to them' },
 
   // ---- Shared trip / passcode ----
   sharedTrip: { zh: '共享行程', en: 'Shared Trip' }

@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, MapPin, Edit2 } from 'lucide-react';
 import type { Trip, TripRole } from '../types/travel';
 import { useI18n } from '../utils/i18n';
+import { money } from './ui';
 
 interface TripBannerProps {
   trip: Trip;
@@ -18,143 +19,125 @@ export const TripBanner: React.FC<TripBannerProps> = ({
 }) => {
   const { lang, t } = useI18n();
   const isAdmin = role === 'admin';
-  // Calculate total activities count
+
   const totalActivities = trip.days.reduce((sum, day) => sum + (day.activities?.length || 0), 0);
 
-  // Calculate total estimated budget across all activities
   const totalEstimatedCost = trip.days.reduce((sum, day) => {
     return sum + (day.activities?.reduce((actSum, act) => actSum + (act.cost || 0), 0) || 0);
   }, 0);
 
-  // Home currency conversion
   const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
-  const costInHomeCurrency = (totalEstimatedCost / rate).toFixed(0);
+  const costInHomeCurrency = Math.round(totalEstimatedCost / rate);
 
-  // Calculate checklist completion
   const totalChecklist = trip.checklist?.length || 0;
   const completedChecklist = trip.checklist?.filter(c => c.completed).length || 0;
   const checklistPercent = totalChecklist > 0 ? Math.round((completedChecklist / totalChecklist) * 100) : 0;
 
-  // Format dates display
   const formatDateDisplay = (start: string, end: string) => {
     const locale = lang === 'zh' ? 'zh-CN' : 'en-US';
     try {
       const s = new Date(start);
       const e = new Date(end);
-      return `${s.toLocaleDateString(locale, { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      return `${s.toLocaleDateString(locale, { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(locale, { month: 'short', day: 'numeric' })}`;
     } catch {
       return `${start} – ${end}`;
     }
   };
 
   return (
-    <div className="relative rounded-3xl overflow-hidden border border-slate-800 shadow-2xl mb-8 bg-slate-900">
-      {/* Background Cover Image with Gradient Overlay */}
-      <div className="absolute inset-0 z-0">
+    <div className="bg-paper border border-hairline rounded-card shadow-lift overflow-hidden mb-5">
+      {/* A photo band rather than a full-bleed hero: on white, text over a
+          picture needs a scrim, and a scrim is the one thing this theme
+          has no room for. */}
+      <div className="relative h-24 sm:h-32 bg-mist">
         <img
           src={trip.coverImage || 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=1600&q=80'}
-          alt={trip.title}
-          className="w-full h-full object-cover object-center filter brightness-[0.45]"
+          alt=""
+          className="w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+        {isAdmin && (
+          <button
+            onClick={onOpenSettings}
+            className="absolute top-2.5 right-2.5 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-control text-xs font-semibold bg-paper/90 backdrop-blur text-ink border border-hairline hover:bg-paper transition"
+          >
+            <Edit2 className="w-3.5 h-3.5 text-muted" />
+            <span className="hidden sm:inline">{t('customizeTrip')}</span>
+          </button>
+        )}
       </div>
 
-      {/* Banner Content */}
-      <div className="relative z-10 p-6 sm:p-8 lg:p-10 flex flex-col justify-between min-h-[300px]">
-        {/* Top Badges */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 backdrop-blur-md">
-              <MapPin className="w-3.5 h-3.5" />
-              {trip.destination}, {trip.country}
-            </span>
+      <div className="p-4 sm:p-5">
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-ink text-balance">
+          {trip.title}
+        </h1>
 
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/80 text-slate-200 border border-slate-700/80 backdrop-blur-md">
-              <Calendar className="w-3.5 h-3.5 text-sky-400" />
-              {formatDateDisplay(trip.startDate, trip.endDate)}
-            </span>
-          </div>
-
-          {isAdmin && (
-            <button
-              onClick={onOpenSettings}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700 backdrop-blur-md transition shadow-md"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{t('customizeTrip')}</span>
-            </button>
-          )}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted mt-1.5">
+          <span className="inline-flex items-center gap-1 min-w-0">
+            <MapPin className="w-3.5 h-3.5 shrink-0 text-faint" />
+            <span className="truncate">{trip.destination}, {trip.country}</span>
+          </span>
+          <span className="text-hairline">·</span>
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5 shrink-0 text-faint" />
+            {formatDateDisplay(trip.startDate, trip.endDate)}
+          </span>
+          <span className="text-hairline">·</span>
+          <span>{t('daysNights', { d: trip.days.length, n: Math.max(trip.days.length - 1, 0) })}</span>
+          <span className="text-hairline">·</span>
+          <span>{t('events', { n: totalActivities })}</span>
         </div>
 
-        {/* Center: Trip Title & Travelers */}
-        <div className="my-6 space-y-3">
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight drop-shadow-md">
-            {trip.title}
-          </h1>
-
-          {/* Travelers Avatars Pile */}
-          <div className="flex items-center gap-3 pt-1">
-            <div className="flex -space-x-2 overflow-hidden">
-              {trip.travelers?.map((traveler) => (
-                <div
-                  key={traveler.id}
-                  className="w-8 h-8 rounded-full border-2 border-slate-900 flex items-center justify-center text-xs font-bold text-slate-950 shadow"
-                  style={{ backgroundColor: traveler.avatarColor }}
-                  title={traveler.name}
-                >
-                  {traveler.name.charAt(0).toUpperCase()}
-                </div>
-              ))}
-            </div>
-            <span className="text-xs text-slate-300 font-medium">
-              {t('travelers', { n: trip.travelers?.length || 1 })} ({trip.travelers?.map(tv => tv.name.split(' ')[0]).join(', ')})
-            </span>
-          </div>
-        </div>
-
-        {/* Bottom Statistics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-800/80">
-          <div className="bg-slate-900/80 backdrop-blur border border-slate-800 p-3 rounded-2xl">
-            <div className="text-[11px] font-medium text-slate-400">{t('totalDuration')}</div>
-            <div className="text-base font-bold text-white mt-0.5">
-              {t('daysNights', { d: trip.days.length, n: trip.days.length - 1 })}
-            </div>
-          </div>
-
-          <div className="bg-slate-900/80 backdrop-blur border border-slate-800 p-3 rounded-2xl">
-            <div className="text-[11px] font-medium text-slate-400">{t('scheduledActivities')}</div>
-            <div className="text-base font-bold text-white mt-0.5">
-              {t('events', { n: totalActivities })}
-            </div>
-          </div>
-
-          <div className="bg-slate-900/80 backdrop-blur border border-slate-800 p-3 rounded-2xl">
-            <div className="text-[11px] font-medium text-slate-400 flex items-center justify-between">
-              <span>{t('estimatedBudget')}</span>
-              <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                {rateIsLive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title={t('liveRate')} />}
-                1 {trip.homeCurrency} ≈ {rate} {trip.currency}
-              </span>
-            </div>
-            <div className="text-base font-bold text-emerald-400 mt-0.5 truncate">
-              {totalEstimatedCost.toLocaleString()} {trip.currency}
-              <span className="text-xs font-normal text-slate-400 ml-1">
-                (≈ {trip.homeCurrency} {costInHomeCurrency})
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-slate-900/80 backdrop-blur border border-slate-800 p-3 rounded-2xl">
-            <div className="text-[11px] font-medium text-slate-400 flex items-center justify-between">
-              <span>{t('packingChecklist')}</span>
-              <span className="text-[10px] text-sky-400">{checklistPercent}%</span>
-            </div>
-            <div className="w-full bg-slate-800 rounded-full h-2 mt-2 overflow-hidden">
+        {/* Travelers */}
+        <div className="flex items-center gap-2.5 mt-3">
+          <div className="flex -space-x-1.5">
+            {trip.travelers?.map((traveler) => (
               <div
-                className="bg-sky-500 h-full rounded-full transition-all duration-500"
+                key={traveler.id}
+                className="w-7 h-7 rounded-full border-2 border-paper flex items-center justify-center text-[11px] font-bold text-white"
+                style={{ backgroundColor: traveler.avatarColor }}
+                title={traveler.name}
+              >
+                {traveler.name.charAt(0).toUpperCase()}
+              </div>
+            ))}
+          </div>
+          <span className="text-xs text-muted truncate min-w-0">
+            {t('travelers', { n: trip.travelers?.length || 1 })}
+          </span>
+        </div>
+
+        {/* The two numbers people actually open this screen for */}
+        <div className="grid grid-cols-2 gap-4 sm:gap-12 sm:grid-cols-[minmax(0,200px)_minmax(0,260px)] mt-4 pt-4 border-t border-hairline">
+          <div className="min-w-0">
+            <div className="text-[11px] text-faint">{t('estimatedBudget')}</div>
+            <div className={`text-base font-semibold text-ink mt-0.5 truncate ${money}`}>
+              {totalEstimatedCost.toLocaleString()} {trip.currency}
+            </div>
+            <div className={`text-[11px] text-muted flex items-center gap-1.5 ${money}`}>
+              {rateIsLive && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-brand shrink-0"
+                  title={t('liveRate')}
+                />
+              )}
+              ≈ {trip.homeCurrency} {costInHomeCurrency.toLocaleString()}
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center justify-between gap-2 text-[11px]">
+              <span className="text-faint truncate">{t('packingChecklist')}</span>
+              <span className={`text-muted shrink-0 ${money}`}>
+                {completedChecklist}/{totalChecklist}
+              </span>
+            </div>
+            <div className="w-full bg-mist rounded-full h-1.5 mt-2.5 overflow-hidden">
+              <div
+                className="bg-brand h-full rounded-full transition-all duration-500"
                 style={{ width: `${checklistPercent}%` }}
               />
             </div>
+            <div className={`text-[11px] text-muted mt-1.5 ${money}`}>{checklistPercent}%</div>
           </div>
         </div>
       </div>

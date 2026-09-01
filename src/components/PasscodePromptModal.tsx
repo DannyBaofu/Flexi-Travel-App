@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { hashPin } from '../services/sharing';
 import { useI18n } from '../utils/i18n';
+import { btnPrimary, btnSecondary, inputMono, card } from './ui';
 
 interface PasscodePromptModalProps {
   isOpen: boolean;
@@ -31,8 +32,7 @@ export const PasscodePromptModal: React.FC<PasscodePromptModalProps> = ({
       return;
     }
 
-    const calculatedHash = hashPin(pin.trim());
-    if (calculatedHash === expectedPinHash) {
+    if (hashPin(pin.trim()) === expectedPinHash) {
       setError(false);
       onSuccess();
     } else {
@@ -40,55 +40,50 @@ export const PasscodePromptModal: React.FC<PasscodePromptModalProps> = ({
     }
   };
 
+  // This one blocks the whole app rather than sitting over it, so it keeps
+  // its own centred layout instead of the shared modal shell.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5 text-center">
-        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
-          <Lock className="w-8 h-8" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-mist animate-fadeIn no-print">
+      <div className={`${card} w-full max-w-sm p-6 space-y-5 text-center`}>
+        <div className="w-14 h-14 rounded-modal bg-gilt-tint text-gilt flex items-center justify-center mx-auto">
+          <Lock className="w-7 h-7" />
         </div>
 
-        <div>
-          <h2 className="text-xl font-bold text-white">{t('passcodeTitle')}</h2>
-          <p className="text-xs text-slate-400 mt-1">
-            {t('passcodeDescPrefix')} <span className="text-emerald-400 font-semibold">"{tripTitle}"</span> {t('passcodeDescSuffix')}
+        <div className="space-y-1.5">
+          <h2 className="text-lg font-semibold text-ink">{t('passcodeTitle')}</h2>
+          <p className="text-xs text-muted leading-relaxed">
+            {t('passcodeDescPrefix')}{' '}
+            <span className="font-semibold text-ink">“{tripTitle}”</span>{' '}
+            {t('passcodeDescSuffix')}
           </p>
         </div>
 
-        <form onSubmit={handleVerify} className="space-y-4">
-          <div>
-            <input
-              type="password"
-              autoFocus
-              maxLength={8}
-              value={pin}
-              onChange={(e) => {
-                setPin(e.target.value);
-                setError(false);
-              }}
-              placeholder={t('enterPin')}
-              className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-center text-white text-lg tracking-widest font-mono focus:outline-none focus:border-amber-500 transition"
-            />
-          </div>
+        <form onSubmit={handleVerify} className="space-y-3">
+          <input
+            type="password"
+            autoFocus
+            maxLength={8}
+            value={pin}
+            onChange={(e) => {
+              setPin(e.target.value);
+              setError(false);
+            }}
+            placeholder={t('enterPin')}
+            className={`${inputMono} text-center text-lg tracking-[0.3em] py-3`}
+          />
 
           {error && (
-            <div className="text-xs text-red-400 flex items-center justify-center gap-1.5 bg-red-500/10 p-2.5 rounded-xl border border-red-500/20">
+            <p className="text-xs text-clay bg-clay-tint py-2.5 px-3 rounded-control flex items-center justify-center gap-1.5">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{t('wrongPin')}</span>
-            </div>
+              {t('wrongPin')}
+            </p>
           )}
 
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
-            >
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onCancel} className={`${btnSecondary} flex-1`}>
               {t('cancel')}
             </button>
-            <button
-              type="submit"
-              className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20"
-            >
+            <button type="submit" className={`${btnPrimary} flex-1`}>
               {t('unlock')} <ArrowRight className="w-4 h-4" />
             </button>
           </div>

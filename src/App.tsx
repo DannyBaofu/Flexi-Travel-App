@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Calendar, 
-  DollarSign, 
-  Luggage, 
-  Languages,
-  Compass
-} from 'lucide-react';
+import { Calendar, Compass } from 'lucide-react';
 import type { Trip, ActivityItem, TripRole } from './types/travel';
 import { storageService } from './services/storage';
 import { sharingService, resolveShareRole } from './services/sharing';
@@ -23,6 +17,9 @@ import { TaxiCardsModal } from './components/TaxiCardsModal';
 import { PasscodePromptModal } from './components/PasscodePromptModal';
 import { PrintItineraryView } from './components/PrintItineraryView';
 import { PhrasesTab } from './components/PhrasesTab';
+import { TopTabs, BottomTabs } from './components/TabBar';
+import type { TabId } from './components/TabBar';
+import { btnPrimary, btnSecondary, card, inputMono, label as labelCls } from './components/ui';
 import { AuthModal } from './components/AuthModal';
 import { useI18n } from './utils/i18n';
 import type { User } from '@supabase/supabase-js';
@@ -58,11 +55,13 @@ export function App() {
   const [joinError, setJoinError] = useState<string | null>(null);
   // An invite link arrived, but this deployment has no cloud backend configured
   const [joinBlockedNoCloud, setJoinBlockedNoCloud] = useState(false);
+  // Typed by hand on the first screen, for a friend given the code verbally
+  const [joinCodeInput, setJoinCodeInput] = useState('');
   const cloudMode = isCloudEnabled && !!user;
   const pushTimerRef = useRef<number | null>(null);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'itinerary' | 'budget' | 'checklist' | 'phrases'>('itinerary');
+  const [activeTab, setActiveTab] = useState<TabId>('itinerary');
   const [rateIsLive, setRateIsLive] = useState(false);
 
   // Modals
@@ -310,28 +309,80 @@ export function App() {
     handleUpdateTrip({ ...activeTrip, days: updatedDays });
   };
 
+  // A hand-typed code joins through exactly the same path as an invite link:
+  // set it pending, and the effects above handle sign-in and the join itself.
+  const handleJoinByCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = joinCodeInput.trim().toUpperCase();
+    if (!code) return;
+    setJoinError(null);
+    if (!isCloudEnabled) {
+      setJoinBlockedNoCloud(true);
+      return;
+    }
+    setPendingJoinCode(code);
+  };
+
   const handleShowTaxiAddress = () => {
     setIsTaxiCardsModalOpen(true);
   };
 
-  // No trips at all — invite the user to create one rather than inventing data
+  // No trips at all. Offer both doors plainly: start one, or join a shared one.
   if (!activeTrip) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white p-6">
-        <div className="text-center space-y-5 max-w-sm">
-          <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
-            <Compass className="w-8 h-8" />
+      <div className="min-h-screen bg-mist flex items-center justify-center p-5">
+        <div className="w-full max-w-sm space-y-5">
+          <div className="text-center space-y-3">
+            <div className="w-14 h-14 rounded-modal bg-brand-tint text-brand flex items-center justify-center mx-auto">
+              <Compass className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <h1 className="text-xl font-semibold tracking-tight text-ink">{t('emptyTitle')}</h1>
+              <p className="text-sm text-muted leading-relaxed">{t('emptyHint')}</p>
+            </div>
           </div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-bold">{t('emptyTitle')}</h2>
-            <p className="text-sm text-slate-400 leading-relaxed">{t('emptyHint')}</p>
-          </div>
-          <button
-            onClick={() => setIsNewTripModalOpen(true)}
-            className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-sm transition shadow-lg shadow-emerald-500/20 inline-flex items-center gap-2"
-          >
+
+          <button onClick={() => setIsNewTripModalOpen(true)} className={`${btnPrimary} w-full`}>
             <Calendar className="w-4 h-4" /> {t('createFirstTrip')}
           </button>
+
+          <div className="flex items-center gap-3 text-[11px] text-faint">
+            <span className="h-px flex-1 bg-hairline" />
+            {t('emptyOr')}
+            <span className="h-px flex-1 bg-hairline" />
+          </div>
+
+          <form onSubmit={handleJoinByCode} className={`${card} p-4`}>
+            <label className={labelCls} htmlFor="invite-code">{t('haveInviteCode')}</label>
+            <div className="flex gap-2">
+              <input
+                id="invite-code"
+                value={joinCodeInput}
+                onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
+                placeholder={t('inviteCodePlaceholder')}
+                maxLength={12}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                className={`${inputMono} tracking-[0.16em] uppercase`}
+              />
+              <button
+                type="submit"
+                disabled={!joinCodeInput.trim()}
+                className={`${btnSecondary} shrink-0`}
+              >
+                {t('joinWithCode')}
+              </button>
+            </div>
+            {(joinError || joinBlockedNoCloud) && (
+              <p className="text-xs text-clay mt-2 leading-relaxed">
+                {joinBlockedNoCloud ? t('joinNeedsCloud') : t('joinFailed', { msg: joinError ?? '' })}
+              </p>
+            )}
+            {cloudMode && pendingJoinCode && (
+              <p className="text-xs text-muted mt-2">{t('joiningTrip')}</p>
+            )}
+          </form>
         </div>
 
         <NewTripModal
@@ -339,12 +390,17 @@ export function App() {
           onClose={() => setIsNewTripModalOpen(false)}
           onCreateTrip={handleCreateTrip}
         />
+
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
+    <div className="min-h-screen bg-mist text-ink flex flex-col">
       {/* Navigation Bar */}
       <Navbar
         trips={trips}
@@ -363,25 +419,25 @@ export function App() {
       />
 
       {(joinError || joinBlockedNoCloud) && (
-        <div className="bg-red-950/80 border-b border-red-800/60 px-4 py-2 text-center text-xs text-red-200 no-print flex items-center justify-center gap-3">
+        <div className="bg-clay-tint border-b border-clay/20 px-4 py-2 text-xs text-clay no-print flex items-center justify-center gap-3">
           <span>{joinBlockedNoCloud ? t('joinNeedsCloud') : t('joinFailed', { msg: joinError ?? '' })}</span>
           <button
             onClick={() => { setJoinError(null); setJoinBlockedNoCloud(false); }}
-            className="underline hover:text-white"
-            title={t('cancel')}
+            className="font-semibold underline shrink-0"
+            title={t('close')}
           >
-            X
+            {t('close')}
           </button>
         </div>
       )}
       {cloudMode && pendingJoinCode && (
-        <div className="bg-sky-950/80 border-b border-sky-800/60 px-4 py-2 text-center text-xs text-sky-200 no-print">
+        <div className="bg-brand-tint border-b border-brand/15 px-4 py-2 text-center text-xs font-medium text-brand-deep no-print">
           {t('joiningTrip')}
         </div>
       )}
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 no-print">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 sm:pb-8 no-print">
         {/* Destination Hero Banner */}
         <TripBanner
           trip={activeTrip}
@@ -390,58 +446,7 @@ export function App() {
           rateIsLive={rateIsLive}
         />
 
-        {/* Tab Navigation (Itinerary, Budget, Packing Checklist) */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-6">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
-            <button
-              onClick={() => setActiveTab('itinerary')}
-              className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
-                activeTab === 'itinerary'
-                  ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
-                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              <span>{t('tabItinerary')}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('budget')}
-              className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
-                activeTab === 'budget'
-                  ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
-                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'
-              }`}
-            >
-              <DollarSign className="w-4 h-4" />
-              <span>{t('tabBudget')}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('checklist')}
-              className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
-                activeTab === 'checklist'
-                  ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
-                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'
-              }`}
-            >
-              <Luggage className="w-4 h-4" />
-              <span>{t('tabChecklist')}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('phrases')}
-              className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
-                activeTab === 'phrases'
-                  ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
-                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'
-              }`}
-            >
-              <Languages className="w-4 h-4" />
-              <span>{t('tabPhrases')}</span>
-            </button>
-          </div>
-        </div>
+        <TopTabs active={activeTab} onChange={setActiveTab} />
 
         {/* Tab Views */}
         {activeTab === 'itinerary' && (
@@ -478,9 +483,12 @@ export function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 py-6 text-center text-xs text-slate-500 no-print">
+      <footer className="hidden sm:block border-t border-hairline bg-paper py-5 text-center text-xs text-faint no-print">
         <p>{t('appTagline')}</p>
       </footer>
+
+      {/* Phone: the four tabs sit within the thumb arc, not at the top */}
+      <BottomTabs active={activeTab} onChange={setActiveTab} />
 
       {/* Print / PDF Document Layout (Only shown in print mode) */}
       <PrintItineraryView trip={activeTrip} />

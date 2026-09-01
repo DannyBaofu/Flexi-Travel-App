@@ -29,6 +29,28 @@ and `{trip.homeCurrency}` (MYR by default, per-trip configurable). The rate
 refreshes live from free mid-market APIs with the stored value as the offline
 fallback.
 
+**Never name a raw Tailwind shade.** The theme is *Daylight*: a light, white UI
+whose whole palette lives in the `@theme` block of `src/index.css` as semantic
+tokens — `paper` `mist` `hairline` `ink` `muted` `faint`, `brand` (indigo,
++`-deep` +`-tint`), `gilt` (confirmed), `clay` (destructive), and `spine-1..4`
+for category timelines. Write `bg-paper text-muted border-hairline`, never
+`bg-white text-slate-400`. A `bg-emerald-500` or `text-slate-300` anywhere in a
+component is a bug, not a shortcut: routing everything through tokens is what
+makes a future dark theme a second token block instead of a second rewrite.
+Radii are `rounded-control` (10px), `rounded-card` (12px), `rounded-modal`
+(16px); there is exactly one shadow, `shadow-lift`. There is no
+`tailwind.config.js` — Tailwind v4 is CSS-first and never loaded it.
+
+**Buttons, inputs, cards and the modal shell come from `src/components/ui.tsx`.**
+Import `btnPrimary` / `input` / `card` / `Modal` rather than re-typing class
+strings. Indigo is scarce on purpose — **one primary button per screen**; a
+second one means neither answers "what do I do here".
+
+**Colour never carries meaning alone.** Booked shows a tick *and* a chip; money
+owed shows a direction arrow *and* a sentence, never just a sign or a hue.
+Anything tappable is at least 44px, and the four tabs live at the *bottom* on
+phones (`BottomTabs`) and at the top from `sm:` up (`TopTabs`).
+
 **Permissions follow one rule:** additive or reversible actions belong to
 `member`; destructive or structural ones belong to `admin`. So members add and
 edit activities, tick checklists, and log expenses; admins own deletes,
@@ -41,18 +63,25 @@ only. Commits end with the `Co-Authored-By: Claude Fable 5` trailer.
 
 ## Things that will confuse you once
 
-`resize_window` silently fails below ~500px in Chrome, so a "mobile" screenshot
-is really the desktop layout — use the `mobile-check` skill's iframe technique
-instead.
+Browser checks go through the `playwright` MCP server in `.mcp.json`. Its
+`browser_resize` sets the viewport via CDP, so 375px is a genuine 375px in both
+headed and headless mode — the old Chrome minimum-window-width problem, and the
+iframe workaround that used to be needed for it, are both gone. The browser runs
+`--isolated`, so localStorage starts empty and the app shows its empty state
+until you seed a trip; see the `mobile-check` skill.
 
 Piping Python through a bash heredoc breaks on the Thai and Chinese strings in
 this repo (`unexpected EOF`). Write patch scripts to the scratchpad directory and
 run them by path.
 
-`oxlint` reports pre-existing `react(set-state-in-effect)` and
-`react(immutability)` warnings in `App.tsx` and the modals. They predate current
-work and are not part of shipping. Git's `LF will be replaced by CRLF` warnings
-on this Windows machine are harmless noise.
+`oxlint` reports four pre-existing warnings: `react(set-state-in-effect)` in
+`ActivityModal`, `ShareModal` and `TripSettingsModal` (each syncs form state to a
+prop when the modal opens), plus `react(only-export-components)` in `i18n.tsx`.
+They are not part of shipping. Git's `LF will be replaced by CRLF` warnings on
+this Windows machine are harmless noise.
+
+The itinerary opens on **today** when the trip is running and on day 1 otherwise
+— day index is the day offset from `trip.startDate`, so it needs no new field.
 
 Share links come in two kinds: **cloud invites** (`/j/AB3F7K`, ~35 chars,
 requires sign-in, grants a role) and **snapshot links** (the whole trip
@@ -76,6 +105,12 @@ off** — `signUpWithId` detects that case and throws `CONFIRM_EMAIL_ON`. Show
 A `Trip` holds `days[] → activities[]`, plus `expenses`, `checklist`, and
 `taxiCards`. `myRole` on a Trip is local-only — it describes *this browser's*
 permission and is stripped before the trip is stored or shared.
+
+Two other things are deliberately *not* on the Trip, for the same reason: the UI
+language (`travelsync-lang`) and which traveller is "me" for the budget tab's
+personal balance (`travelsync-me`, a `tripId → travelerId` map). Both describe
+the device, not the trip, so they stay in their own `localStorage` keys and need
+no storage migration.
 
 `transportToNext` on an activity describes the hop to the **next** activity that
 day, so the last activity of each day has none, and a duplicated activity must

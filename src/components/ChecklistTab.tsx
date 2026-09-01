@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { 
-  CheckSquare, 
-  Square, 
-  Plus, 
-  Trash2, 
-  Sparkles, 
-  FileCheck2, 
-  Smartphone, 
-  Shirt, 
-  HeartPulse, 
+import {
+  CheckSquare,
+  Square,
+  Plus,
+  Trash2,
+  Sparkles,
+  FileCheck2,
+  Smartphone,
+  Shirt,
+  HeartPulse,
   Luggage
 } from 'lucide-react';
 import type { Trip, ChecklistItem, TripRole } from '../types/travel';
 import { useI18n } from '../utils/i18n';
+import { card, btnPrimarySm, input, select, money } from './ui';
 
 interface ChecklistTabProps {
   trip: Trip;
@@ -30,7 +31,7 @@ const CATEGORY_T_KEYS: Record<string, string> = {
   'Essentials': 'cat_essentials'
 };
 
-const CATEGORY_ICONS: Record<string, any> = {
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
   'Documents & Money': FileCheck2,
   'Electronics': Smartphone,
   'Clothes': Shirt,
@@ -60,12 +61,14 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
   ];
 
   const triggerConfetti = () => {
+    // Celebration should not be mandatory.
     try {
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
       confetti({
         particleCount: 80,
         spread: 60,
         origin: { y: 0.8 },
-        colors: ['#10b981', '#0ea5e9', '#f59e0b', '#ec4899']
+        colors: ['#3930DB', '#8B85EC', '#8A5D0B', '#EDECFD']
       });
     } catch {
       // Ignore if not loaded
@@ -77,16 +80,13 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
     const target = trip.checklist?.find(c => c.id === itemId);
     const willBeCompleted = target ? !target.completed : false;
 
-    const updated = (trip.checklist || []).map(item => {
-      if (item.id !== itemId) return item;
-      return { ...item, completed: !item.completed };
-    });
+    const updated = (trip.checklist || []).map(item =>
+      item.id === itemId ? { ...item, completed: !item.completed } : item
+    );
 
     onUpdateTrip({ ...trip, checklist: updated });
 
-    if (willBeCompleted) {
-      triggerConfetti();
-    }
+    if (willBeCompleted) triggerConfetti();
   };
 
   const handleAddItem = (e: React.FormEvent) => {
@@ -100,20 +100,13 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
       completed: false
     };
 
-    onUpdateTrip({
-      ...trip,
-      checklist: [...(trip.checklist || []), newItem]
-    });
-
+    onUpdateTrip({ ...trip, checklist: [...(trip.checklist || []), newItem] });
     setNewItemTitle('');
   };
 
   const handleDeleteItem = (itemId: string) => {
     if (!isAdmin) return;
-    onUpdateTrip({
-      ...trip,
-      checklist: (trip.checklist || []).filter(c => c.id !== itemId)
-    });
+    onUpdateTrip({ ...trip, checklist: (trip.checklist || []).filter(c => c.id !== itemId) });
   };
 
   const totalItems = trip.checklist?.length || 0;
@@ -121,28 +114,30 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
   const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
   return (
-    <div className="space-y-6">
-      {/* Slim Progress Header */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl px-4 py-3 shadow flex items-center gap-3">
-        <Luggage className="w-4 h-4 text-emerald-400 shrink-0" />
-        <span className="text-sm font-bold text-white shrink-0">{t('checklistTitle')}</span>
-        <div className="flex-1 bg-slate-800 rounded-full h-2 overflow-hidden">
+    <div className="space-y-4">
+      {/* Progress header */}
+      <div className={`${card} px-4 py-3 flex items-center gap-3`}>
+        <Luggage className="w-4 h-4 text-muted shrink-0" />
+        <span className="text-sm font-semibold text-ink shrink-0">{t('checklistTitle')}</span>
+        <div className="flex-1 bg-mist rounded-full h-1.5 overflow-hidden">
           <div
-            className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500"
+            className="bg-brand h-full rounded-full transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <span className="text-xs font-mono font-bold text-emerald-400 shrink-0">{progressPercent}%</span>
-        <span className="text-[11px] text-slate-400 shrink-0 hidden sm:inline">{t('packedCount', { done: completedItems, total: totalItems })}</span>
+        <span className={`text-xs font-semibold text-ink shrink-0 ${money}`}>{progressPercent}%</span>
+        <span className={`text-[11px] text-muted shrink-0 hidden sm:inline ${money}`}>
+          {t('packedCount', { done: completedItems, total: totalItems })}
+        </span>
       </div>
 
-      {/* Add Item Bar */}
+      {/* Add item */}
       {!isReadOnly && (
-        <form onSubmit={handleAddItem} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-lg flex flex-col sm:flex-row gap-3">
+        <form onSubmit={handleAddItem} className={`${card} p-3 flex flex-col sm:flex-row gap-2`}>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value as ChecklistItem['category'])}
-            className="bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-500"
+            className={`${select} sm:w-auto shrink-0`}
           >
             {categories.map(cat => (
               <option key={cat} value={cat}>{t(CATEGORY_T_KEYS[cat] || cat)}</option>
@@ -154,69 +149,80 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
             value={newItemTitle}
             onChange={(e) => setNewItemTitle(e.target.value)}
             placeholder={t('checklistPlaceholder')}
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            className={`${input} flex-1`}
           />
 
-          <button
-            type="submit"
-            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition shrink-0"
-          >
+          <button type="submit" className={`${btnPrimarySm} shrink-0 py-2.5`}>
             <Plus className="w-4 h-4" /> {t('addItem')}
           </button>
         </form>
       )}
 
       {totalItems === 0 && (
-        <div className="text-center py-10 border border-dashed border-slate-800 rounded-2xl bg-slate-950/30">
-          <p className="text-sm text-slate-400 font-medium">{t('noChecklistItems')}</p>
+        <div className="text-center py-10 border border-dashed border-hairline rounded-card bg-paper">
+          <p className="text-sm text-muted">{t('noChecklistItems')}</p>
         </div>
       )}
 
-      {/* Categorized Lists */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* Categorized lists */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {categories.map(cat => {
           const itemsInCat = (trip.checklist || []).filter(item => item.category === cat);
           if (itemsInCat.length === 0) return null;
 
           const Icon = CATEGORY_ICONS[cat] || Luggage;
           const completedInCat = itemsInCat.filter(i => i.completed).length;
+          const catPercent = Math.round((completedInCat / itemsInCat.length) * 100);
+
+          // Done work sinks; what is left is always what you see first.
+          const ordered = [
+            ...itemsInCat.filter(i => !i.completed),
+            ...itemsInCat.filter(i => i.completed)
+          ];
 
           return (
-            <div key={cat} className="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                    <Icon className="w-4 h-4" />
+            <div key={cat} className={`${card} p-4 space-y-3`}>
+              <div className="space-y-2 pb-1">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Icon className="w-4 h-4 text-muted shrink-0" />
+                    <h3 className="text-sm font-semibold text-ink truncate">
+                      {t(CATEGORY_T_KEYS[cat] || cat)}
+                    </h3>
                   </div>
-                  <h3 className="text-sm font-bold text-white">{t(CATEGORY_T_KEYS[cat] || cat)}</h3>
+                  <span className={`text-xs text-muted shrink-0 ${money}`}>
+                    {completedInCat}/{itemsInCat.length}
+                  </span>
                 </div>
-                <span className="text-xs font-mono text-slate-400">
-                  {completedInCat} / {itemsInCat.length}
-                </span>
+                {/* A 2px bar scans faster than "3 / 8" */}
+                <div className="w-full bg-mist rounded-full h-[3px] overflow-hidden">
+                  <div
+                    className="bg-brand h-full rounded-full transition-all duration-300"
+                    style={{ width: `${catPercent}%` }}
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                {itemsInCat.map(item => (
+              <div className="space-y-0.5">
+                {ordered.map(item => (
                   <div
                     key={item.id}
-                    className={`flex items-center justify-between p-2.5 rounded-xl border transition ${
-                      item.completed
-                        ? 'bg-slate-950/40 border-slate-800/60 text-slate-400'
-                        : 'bg-slate-950/80 border-slate-800 text-slate-200 hover:border-slate-700'
+                    className={`flex items-center gap-1 rounded-control transition ${
+                      item.completed ? 'opacity-55' : ''
                     }`}
                   >
                     <button
                       type="button"
                       onClick={() => handleToggle(item.id)}
                       disabled={isReadOnly}
-                      className="flex items-center gap-2.5 text-left flex-1"
+                      className="flex items-center gap-2.5 text-left flex-1 min-h-[44px] px-2 rounded-control hover:bg-mist disabled:hover:bg-transparent transition"
                     >
                       {item.completed ? (
-                        <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <CheckSquare className="w-4 h-4 text-brand shrink-0" />
                       ) : (
-                        <Square className="w-4 h-4 text-slate-500 shrink-0" />
+                        <Square className="w-4 h-4 text-faint shrink-0" />
                       )}
-                      <span className={`text-xs ${item.completed ? 'line-through text-slate-500' : 'font-medium'}`}>
+                      <span className={`text-sm ${item.completed ? 'line-through text-muted' : 'text-ink'}`}>
                         {item.title}
                       </span>
                     </button>
@@ -224,7 +230,7 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
                     {isAdmin && (
                       <button
                         onClick={() => handleDeleteItem(item.id)}
-                        className="p-1 text-slate-600 hover:text-red-400 transition"
+                        className="w-10 h-10 inline-flex items-center justify-center rounded-control text-faint hover:text-clay hover:bg-clay-tint transition shrink-0"
                         title={t('deleteItem')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -232,12 +238,6 @@ export const ChecklistTab: React.FC<ChecklistTabProps> = ({
                     )}
                   </div>
                 ))}
-
-                {itemsInCat.length === 0 && (
-                  <div className="text-xs text-slate-500 py-3 text-center">
-                    {t('noItemsInCategory')}
-                  </div>
-                )}
               </div>
             </div>
           );

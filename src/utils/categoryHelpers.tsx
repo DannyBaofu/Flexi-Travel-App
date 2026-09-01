@@ -16,10 +16,9 @@ export interface CategoryMeta {
   label: string;
   labelZh: string;
   icon: LucideIcon;
-  bgColor: string;
-  textColor: string;
-  borderColor: string;
-  badgeBg: string;
+  /** 3px timeline spine tone — decorative only, never carries meaning
+   *  on its own. Runs tonally from brand through to grey. */
+  spine: string;
 }
 
 export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
@@ -27,81 +26,54 @@ export const categoryMetaMap: Record<ActivityCategory, CategoryMeta> = {
     label: 'Flight & Transit',
     labelZh: '航班交通',
     icon: Plane,
-    bgColor: 'bg-sky-500/10',
-    textColor: 'text-sky-400',
-    borderColor: 'border-sky-500/30',
-    badgeBg: 'bg-sky-500/20'
+    spine: 'bg-spine-3'
   },
   hotel: {
     label: 'Stay & Hotel',
     labelZh: '住宿酒店',
     icon: Hotel,
-    bgColor: 'bg-indigo-500/10',
-    textColor: 'text-indigo-400',
-    borderColor: 'border-indigo-500/30',
-    badgeBg: 'bg-indigo-500/20'
+    spine: 'bg-spine-2'
   },
   food: {
     label: 'Food & Dining',
     labelZh: '美食餐饮',
     icon: Utensils,
-    bgColor: 'bg-amber-500/10',
-    textColor: 'text-amber-400',
-    borderColor: 'border-amber-500/30',
-    badgeBg: 'bg-amber-500/20'
+    spine: 'bg-spine-1'
   },
   sightseeing: {
     label: 'Sightseeing & Culture',
     labelZh: '观光文化',
     icon: Camera,
-    bgColor: 'bg-emerald-500/10',
-    textColor: 'text-emerald-400',
-    borderColor: 'border-emerald-500/30',
-    badgeBg: 'bg-emerald-500/20'
+    spine: 'bg-spine-2'
   },
   shopping: {
     label: 'Shopping & Market',
     labelZh: '购物市集',
     icon: ShoppingBag,
-    bgColor: 'bg-pink-500/10',
-    textColor: 'text-pink-400',
-    borderColor: 'border-pink-500/30',
-    badgeBg: 'bg-pink-500/20'
+    spine: 'bg-spine-3'
   },
   transport: {
     label: 'Transport & Ride',
     labelZh: '交通出行',
     icon: Car,
-    bgColor: 'bg-blue-500/10',
-    textColor: 'text-blue-400',
-    borderColor: 'border-blue-500/30',
-    badgeBg: 'bg-blue-500/20'
+    spine: 'bg-spine-3'
   },
   nightlife: {
     label: 'Nightlife & Bars',
     labelZh: '夜生活酒吧',
     icon: Moon,
-    bgColor: 'bg-purple-500/10',
-    textColor: 'text-purple-400',
-    borderColor: 'border-purple-500/30',
-    badgeBg: 'bg-purple-500/20'
+    spine: 'bg-spine-1'
   },
   relax: {
     label: 'Relax & Massage',
     labelZh: '放松按摩',
     icon: Sparkles,
-    bgColor: 'bg-teal-500/10',
-    textColor: 'text-teal-400',
-    borderColor: 'border-teal-500/30',
-    badgeBg: 'bg-teal-500/20'
+    spine: 'bg-spine-4'
   },
   other: {
     label: 'Other Activity',
     labelZh: '其他活动',
     icon: HelpCircle,
-    bgColor: 'bg-slate-500/10',
-    textColor: 'text-slate-400',
-    borderColor: 'border-slate-500/30',
-    badgeBg: 'bg-slate-500/20'
+    spine: 'bg-spine-4'
   }
 };
