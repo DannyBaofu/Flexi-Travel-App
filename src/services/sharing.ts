@@ -53,8 +53,9 @@ export const sharingService = {
     const serialized = JSON.stringify(payload);
     const compressed = LZString.compressToEncodedURIComponent(serialized);
     
-    const baseUrl = window.location.origin + window.location.pathname;
-    return `${baseUrl}#share=${compressed}`;
+    // Always anchor to the site root: the sharer may currently be sitting on an
+    // invite path like /j/AB3F7K, which must not leak into the snapshot link.
+    return `${window.location.origin}/#share=${compressed}`;
   },
 
   /**
@@ -88,7 +89,7 @@ export const sharingService = {
    * Clears the share parameter from the URL hash without reloading.
    */
   clearShareHash() {
-    window.history.replaceState(null, '', window.location.pathname);
+    window.history.replaceState(null, '', '/');
   },
 
   /**

@@ -63,20 +63,50 @@ The output will be in the `dist/` directory, ready to be deployed to Vercel, Net
 
 ## 📱 How to Share with Friends
 
-1. Click the **"Share Trip"** button in the top right.
-2. Choose **Collaborative Edit** (if you want friends to add places) or **Viewer (Read-Only)**.
-3. (Optional) Turn on **"Require PIN / Passcode"** and type a 4-digit code (e.g. `2026`).
-4. Click **"Copy Link"** or let friends scan the **QR Code** directly with their smartphone cameras!
+**With cloud sync on (recommended):** Sign in → **Share Trip** → pick Admin /
+Member / Viewer → **Create Invite Link**. You get a ~35-character link like
+`/j/AB3F7K` that fits in a QR code, and everything stays in sync afterwards.
+
+**Without cloud sync:** the **Snapshot Share** box packs the whole trip into the
+URL. It needs no login and works offline, but the link runs to thousands of
+characters (too long for a QR code and for some messaging apps) and it sends a
+frozen copy — your friend's later edits never come back to you.
+
+The optional **PIN / Passcode** on snapshot links is a convenience lock, not real
+security: the check happens in the browser and the link carries everything needed
+to open it. Use cloud invites for anything you actually want restricted.
 
 ## Cloud Sync (Supabase)
 
-Optional realtime backend: sign in, invite friends with tiny links, and admin edits appear on every member's phone instantly. Without keys the app runs in local-only mode (localStorage + snapshot share links).
+Optional realtime backend: friends sign in, open a tiny invite link, and every
+edit appears on everyone's phone instantly. **Without keys the app runs in
+local-only mode** — each browser keeps its own private copy, nothing is saved to
+a server, and sharing falls back to the long snapshot links.
 
-Setup (once):
+**Full walkthrough: [SETUP-CLOUD.md](SETUP-CLOUD.md).** The short version:
+
 1. Create a free project at https://supabase.com (no credit card).
-2. In the project: SQL Editor -> paste and run `supabase/schema.sql`.
-3. Settings -> API: copy the Project URL and the `anon` public key.
-4. Copy `.env.example` to `.env` and fill both values (local dev),
-   and add the same two variables in Vercel -> Project Settings -> Environment Variables, then redeploy.
+2. SQL Editor → paste and run `supabase/schema.sql`.
+3. Authentication → Email → turn **Confirm email OFF** (required, see below).
+4. Project Settings → API: copy the Project URL and the `anon` public key.
+5. Add both as `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` in Vercel →
+   Project Settings → Environment Variables, then **redeploy**. Copy
+   `.env.example` to `.env` with the same values for local dev.
 
-Roles: whoever creates a trip is its admin. Admins create invite links (admin / member / viewer) from the Share dialog; friends open the link, sign in with an email code, and are joined with that role. Row Level Security enforces membership and write permissions server-side.
+### Login: ID and password
+
+Friends do not use email. The organiser hands out a short ID and a password
+(`danny` / `bkk2026`), and the app maps that onto an internal address
+`danny@travellor.app` so Supabase has something to identify. No mail is ever
+sent there, which is why **Confirm email must be off** — otherwise accounts are
+created but can never be confirmed. First-time users register themselves on the
+"First Time" tab with the exact credentials they were given; after everyone has
+registered, close signups in Supabase.
+
+### Roles and invites
+
+Whoever creates a trip is its admin. Admins create invite links (admin / member /
+viewer) from the Share dialog — `https://travellor.vercel.app/j/AB3F7K`, about 35
+characters. Friends open the link, sign in, and are joined with that role. Row
+Level Security enforces membership and write permissions server-side, so an
+invite code is the only way into a trip.

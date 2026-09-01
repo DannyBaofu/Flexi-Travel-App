@@ -20,19 +20,59 @@ export function onAuthChange(cb: (user: User | null) => void): () => void {
   return () => data.subscription.unsubscribe();
 }
 
-export async function sendOtp(email: string): Promise<void> {
+// ---------- Credentials ----------
+
+// Friends sign in with a short ID and password the organiser hands out in
+// person. Supabase identifies users by email, so the ID is mapped onto a fixed
+// internal domain. Nothing is ever posted to that domain: the Supabase project
+// must have "Confirm email" turned off, which signUpWithId checks for.
+const ID_DOMAIN = 'travellor.app';
+const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{2,19}$/;
+
+export const MIN_PASSWORD_LENGTH = 6;
+
+// Thrown when the project still has email confirmation enabled, which would
+// leave the account stranded because the internal domain receives no mail.
+export const CONFIRM_EMAIL_ON = 'CONFIRM_EMAIL_ON';
+
+export function normalizeId(id: string): string {
+  return id.trim().toLowerCase();
+}
+
+export function isValidId(id: string): boolean {
+  return ID_PATTERN.test(normalizeId(id));
+}
+
+export function idToEmail(id: string): string {
+  return `${normalizeId(id)}@${ID_DOMAIN}`;
+}
+
+// Turn the stored email back into the ID the friend actually typed.
+export function emailToId(email: string | null | undefined): string {
+  if (!email) return '';
+  const suffix = `@${ID_DOMAIN}`;
+  return email.endsWith(suffix) ? email.slice(0, -suffix.length) : email;
+}
+
+export async function signInWithId(id: string, password: string): Promise<void> {
   if (!supabase) throw new Error('Cloud disabled');
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true }
+  const { error } = await supabase.auth.signInWithPassword({
+    email: idToEmail(id),
+    password
   });
   if (error) throw error;
 }
 
-export async function verifyOtp(email: string, code: string): Promise<void> {
+export async function signUpWithId(id: string, password: string): Promise<void> {
   if (!supabase) throw new Error('Cloud disabled');
-  const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
+  const { data, error } = await supabase.auth.signUp({
+    email: idToEmail(id),
+    password
+  });
   if (error) throw error;
+  // With confirmation off the account is signed in straight away. If no session
+  // comes back the project is still waiting on an email that can never arrive.
+  if (!data.session) throw new Error(CONFIRM_EMAIL_ON);
 }
 
 export async function signOut(): Promise<void> {
@@ -114,7 +154,8 @@ export function subscribeTrip(tripId: string, onRemoteChange: (trip: Trip) => vo
 
 // ---------- Invites ----------
 
-function randomCode(length = 8): string {
+// Alphabet excludes I, O, 0 and 1 so a code read off a screen can be typed back.
+function randomCode(length = 6): string {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
@@ -133,24 +174,39 @@ export async function createInvite(tripId: string, role: TripRole): Promise<stri
 
 export async function joinTripByCode(code: string): Promise<string> {
   if (!supabase) throw new Error('Cloud disabled');
-  const { data, error } = await supabase.rpc('join_trip', { p_code: code });
+  const { data, error } = await supabase.rpc('join_trip', { p_code: normalizeInviteCode(code) });
   if (error) throw error;
   return data as string;
 }
 
 // ---------- Invite URL helpers ----------
 
+// Invite links are the short ones: https://host/j/AB3F7K, about 35 characters,
+// small enough for a QR code and for any messaging app. Vercel rewrites every
+// path to index.html, so /j/<code> loads the SPA and is read back here.
+const JOIN_PATH_PATTERN = /^\/j\/([A-Za-z0-9]{4,16})\/?$/;
+
+export function normalizeInviteCode(code: string): string {
+  return code.trim().toUpperCase();
+}
+
 export function buildInviteUrl(code: string): string {
-  return `${window.location.origin}${window.location.pathname}#join=${code}`;
+  return `${window.location.origin}/j/${code}`;
 }
 
 export function parseJoinCodeFromUrl(): string | null {
+  const fromPath = JOIN_PATH_PATTERN.exec(window.location.pathname);
+  if (fromPath) return normalizeInviteCode(fromPath[1]);
+
+  // Older invites used a #join= hash; keep honouring links already sent out.
   const hash = window.location.hash;
-  if (!hash.includes('#join=')) return null;
-  const code = hash.split('#join=')[1];
-  return code ? code.trim() : null;
+  if (hash.includes('#join=')) {
+    const code = hash.split('#join=')[1];
+    return code ? normalizeInviteCode(code) : null;
+  }
+  return null;
 }
 
 export function clearJoinHash(): void {
-  window.history.replaceState(null, '', window.location.pathname);
+  window.history.replaceState(null, '', '/');
 }

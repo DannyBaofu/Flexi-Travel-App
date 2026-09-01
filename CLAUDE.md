@@ -54,10 +54,22 @@ run them by path.
 work and are not part of shipping. Git's `LF will be replaced by CRLF` warnings
 on this Windows machine are harmless noise.
 
-Share links come in two kinds: **cloud invites** (tiny URL + code, requires
-sign-in, grants a role) and **snapshot links** (the whole trip LZ-compressed
-into the URL, works offline). Snapshot URLs routinely exceed QR-code capacity —
-that's why the QR only renders below a length threshold rather than always.
+Share links come in two kinds: **cloud invites** (`/j/AB3F7K`, ~35 chars,
+requires sign-in, grants a role) and **snapshot links** (the whole trip
+LZ-compressed into the URL hash, works offline). A realistic 6-day trip makes a
+~13,000-character snapshot URL, so the QR only renders below a length threshold
+and a warning appears past ~2,000 characters. Invite links are the answer to
+"make the link shorter" — compression tuning is not.
+
+Invites live at a **path**, not a hash, which is why `vite.config.ts` must keep
+`base: '/'`. A relative base makes `/j/AB3F7K` request `/j/assets/...`, Vercel's
+catch-all rewrite returns index.html for it, and the page renders blank.
+
+**Auth is ID + password, not email.** Friends get a short ID from the organiser
+and `cloudSync.ts` maps it onto `<id>@travellor.app` because Supabase needs an
+email. No mail is ever sent there, so the project must have **Confirm email
+off** — `signUpWithId` detects that case and throws `CONFIRM_EMAIL_ON`. Show
+`emailToId(user.email)` in the UI, never the raw email.
 
 ## Data model notes
 

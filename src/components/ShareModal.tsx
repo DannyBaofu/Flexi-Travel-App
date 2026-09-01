@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import type { Trip, TripRole } from '../types/travel';
 import { sharingService } from '../services/sharing';
-import { createInvite, buildInviteUrl } from '../services/cloudSync';
+import { createInvite, buildInviteUrl, isCloudEnabled } from '../services/cloudSync';
 import { useI18n } from '../utils/i18n';
 
 interface ShareModalProps {
@@ -32,6 +32,10 @@ interface ShareModalProps {
 
 // QR codes cap out around 2953 bytes at level L; leave headroom.
 const QR_MAX_URL_LENGTH = 2800;
+
+// Past roughly this length a URL stops surviving the round trip through
+// messaging apps and address bars, so we warn instead of letting it fail quietly.
+const MESSAGING_SAFE_URL_LENGTH = 2000;
 
 export const ShareModal: React.FC<ShareModalProps> = ({
   isOpen,
@@ -261,15 +265,32 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             </div>
           </div>
 
-          {/* Live Collaboration Invite (cloud sync) */}
+          {/* Live Collaboration Invite (cloud sync) â€” the short link */}
           {cloudMode && isAdmin && (
             <div className="space-y-3 bg-sky-500/5 border border-sky-500/20 rounded-2xl p-4">
-              <h3 className="text-xs font-bold text-sky-300 uppercase tracking-wider">{t('inviteSection')}</h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-xs font-bold text-sky-300 uppercase tracking-wider">{t('inviteSection')}</h3>
+                <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-md uppercase tracking-wide">
+                  {t('inviteRecommended')}
+                </span>
+              </div>
               <p className="text-xs text-slate-400">{t('inviteHint')}</p>
 
               {inviteUrl ? (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                      {t('inviteShortBadge', { n: inviteUrl.length })}
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {t('inviteCodeLabel')}:{' '}
+                      <span className="font-mono font-bold text-sky-200 tracking-widest select-all">
+                        {inviteUrl.split('/').pop()}
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <input
                       type="text"
                       readOnly
@@ -278,7 +299,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     />
                     <button
                       onClick={handleCopyInvite}
-                      className={`px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition shrink-0 ${
+                      className={`px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition shrink-0 ${
                         inviteCopied
                           ? 'bg-emerald-500 text-slate-950'
                           : 'bg-sky-600 hover:bg-sky-500 text-white'
@@ -288,8 +309,20 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                       {inviteCopied ? t('copied') : t('copyLink')}
                     </button>
                   </div>
-                  <div className="bg-white p-3 rounded-xl w-fit shadow-lg">
-                    <QRCodeSVG value={inviteUrl} size={110} level="M" />
+
+                  <p className="text-[11px] text-slate-500">{t('inviteCodeHint')}</p>
+
+                  <div className="flex flex-col sm:flex-row items-start gap-3">
+                    <div className="bg-white p-3 rounded-xl shrink-0 shadow-lg">
+                      <QRCodeSVG value={inviteUrl} size={110} level="M" />
+                    </div>
+                    <button
+                      onClick={handleCreateInvite}
+                      disabled={inviteBusy}
+                      className="px-3 py-2 rounded-xl text-[11px] font-semibold text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 transition"
+                    >
+                      {inviteBusy ? t('creatingInvite') : t('inviteNewLink')}
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -310,11 +343,28 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             </div>
           )}
 
+          {/* Cloud not configured at all â€” explain why links are long */}
+          {!cloudMode && (
+            <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl text-xs text-amber-200/90 leading-relaxed flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+              <span>{isCloudEnabled ? t('inviteRequiresLogin') : t('cloudOffNotice')}</span>
+            </div>
+          )}
+
           {/* Share Link & QR Code Box */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               {cloudMode ? t('snapshotSection') : t('shareableLink')}
             </h3>
+
+            <p className="text-xs text-slate-400 leading-relaxed">{t('snapshotIsCopy')}</p>
+
+            {shareUrl.length > MESSAGING_SAFE_URL_LENGTH && (
+              <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl text-xs text-amber-200/90 leading-relaxed flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                <span>{t('snapshotLengthWarn', { n: shareUrl.length })}</span>
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input

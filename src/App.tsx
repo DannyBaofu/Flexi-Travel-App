@@ -56,6 +56,8 @@ export function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
+  // An invite link arrived, but this deployment has no cloud backend configured
+  const [joinBlockedNoCloud, setJoinBlockedNoCloud] = useState(false);
   const cloudMode = isCloudEnabled && !!user;
   const pushTimerRef = useRef<number | null>(null);
 
@@ -77,8 +79,14 @@ export function App() {
   // Parse share hash from URL on page mount
   useEffect(() => {
     const joinCode = parseJoinCodeFromUrl();
-    if (joinCode && isCloudEnabled) {
-      setPendingJoinCode(joinCode);
+    if (joinCode) {
+      // An invite link is useless without the cloud backend; say so rather than
+      // silently dropping the user on an empty app at a /j/... URL.
+      if (isCloudEnabled) {
+        setPendingJoinCode(joinCode);
+      } else {
+        setJoinBlockedNoCloud(true);
+      }
       clearJoinHash();
       return;
     }
@@ -354,10 +362,16 @@ export function App() {
         onSignOut={handleSignOut}
       />
 
-      {joinError && (
+      {(joinError || joinBlockedNoCloud) && (
         <div className="bg-red-950/80 border-b border-red-800/60 px-4 py-2 text-center text-xs text-red-200 no-print flex items-center justify-center gap-3">
-          <span>{t('joinFailed', { msg: joinError })}</span>
-          <button onClick={() => setJoinError(null)} className="underline hover:text-white">X</button>
+          <span>{joinBlockedNoCloud ? t('joinNeedsCloud') : t('joinFailed', { msg: joinError ?? '' })}</span>
+          <button
+            onClick={() => { setJoinError(null); setJoinBlockedNoCloud(false); }}
+            className="underline hover:text-white"
+            title={t('cancel')}
+          >
+            X
+          </button>
         </div>
       )}
       {cloudMode && pendingJoinCode && (

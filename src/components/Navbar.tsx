@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import type { Trip, TripRole } from '../types/travel';
+import { emailToId } from '../services/cloudSync';
 import { useI18n } from '../utils/i18n';
 
 interface NavbarProps {
@@ -89,9 +90,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={onSignOut}
                   className="w-8 h-8 shrink-0 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 text-xs font-bold flex items-center justify-center transition hover:bg-sky-500/30"
-                  title={`${t('cloudOn')} · ${user.email} · ${t('signOut')}`}
+                  title={`${t('cloudOn')} · ${emailToId(user.email) || '?'} · ${t('signOut')}`}
                 >
-                  {(user.email || '?').charAt(0).toUpperCase()}
+                  {(emailToId(user.email) || '?').charAt(0).toUpperCase()}
                 </button>
               ) : (
                 <button
