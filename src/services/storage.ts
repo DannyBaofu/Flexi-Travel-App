@@ -1,4 +1,5 @@
 import type { Trip } from '../types/travel';
+import { resolveKitty } from './kitty';
 
 const TRIPS_STORAGE_KEY = 'travelsync_trips_v1';
 const ACTIVE_TRIP_KEY = 'travelsync_active_trip_id_v1';
@@ -33,6 +34,13 @@ function purgeSeededSample(trips: Trip[]): Trip[] {
   return cleaned;
 }
 
+// Trips saved before the shared pot existed have no `kitty`. Give them the
+// default (switched off) on read so every code path downstream can rely on the
+// field being there.
+function backfillKitty(trips: Trip[]): Trip[] {
+  return trips.map(trip => (trip.kitty ? trip : { ...trip, kitty: resolveKitty(trip) }));
+}
+
 export const storageService = {
   // Returns whatever the user actually has. An empty list is a valid state —
   // the app shows a "create your first trip" screen rather than inventing data.
@@ -42,7 +50,7 @@ export const storageService = {
       if (!stored) return [];
       const parsed = JSON.parse(stored);
       if (!Array.isArray(parsed)) return [];
-      return purgeSeededSample(parsed);
+      return backfillKitty(purgeSeededSample(parsed));
     } catch (e) {
       console.error('Error loading trips from storage:', e);
       return [];

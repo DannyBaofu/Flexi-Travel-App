@@ -110,11 +110,25 @@ Two other things are deliberately *not* on the Trip, for the same reason: the UI
 language (`travelsync-lang`) and which traveller is "me" for the budget tab's
 personal balance (`travelsync-me`, a `tripId → travelerId` map). Both describe
 the device, not the trip, so they stay in their own `localStorage` keys and need
-no storage migration.
+no storage migration. `travelsync-me` also supplies the **default payer** when
+logging an expense, which is what lets that form ask for an amount and nothing
+else — its date likewise defaults to *today*, not to `trip.startDate`.
 
 `transportToNext` on an activity describes the hop to the **next** activity that
 day, so the last activity of each day has none, and a duplicated activity must
 have it cleared.
+
+**The shared pot (`trip.kitty`) and the splitter are two halves of one sum.**
+Everyone hands the holder the same amount up front, so money the pot paid for is
+money *already settled* — `computeKitty` returns `coveredIds`, and
+`BudgetTracker` skips exactly those expenses when building balances. Counting
+them in both places would overstate every debt in the list, which is the one bug
+to watch for when touching either side. The pot drains **oldest bill first** and
+covers a bill only in full: when it cannot afford one, that bill stays an
+ordinary split expense and the pot keeps its remainder for a smaller one later.
+Contributions are in the **home** currency (what people hand over); spending is
+converted at `exchangeRate`. All of this lives in `src/services/kitty.ts` with
+tests — change the drawdown rules there, not in the component.
 
 Adding a field that existing saved trips won't have? Add a backfill in
 `src/services/storage.ts` — `getTrips()` already migrates older shapes, and

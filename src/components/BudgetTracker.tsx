@@ -7,9 +7,13 @@ import {
   Receipt,
   ArrowDownLeft,
   ArrowUpRight,
-  Check
+  Check,
+  ChevronDown,
+  PiggyBank,
+  Sliders
 } from 'lucide-react';
-import type { Trip, ExpenseItem, ActivityCategory, TripRole } from '../types/travel';
+import type { Trip, ExpenseItem, ActivityCategory, TripRole, TripKitty } from '../types/travel';
+import { computeKitty, resolveKitty } from '../services/kitty';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { useI18n } from '../utils/i18n';
 import {
@@ -18,9 +22,9 @@ import {
   btnPrimary,
   btnPrimarySm,
   btnGhost,
+  btnDanger,
+  iconBtn,
   input,
-  inputMono,
-  select,
   label,
   money
 } from './ui';
@@ -58,6 +62,21 @@ const writeMe = (tripId: string, travelerId: string) => {
   }
 };
 
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const toISO = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+/**
+ * Expenses are logged on the day they happen, so the date field starts at
+ * today — not at the trip's start date, which was only ever right on day one.
+ */
+const todayISO = () => toISO(new Date());
+
+const yesterdayISO = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return toISO(d);
+};
+
 export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   trip,
   onUpdateTrip,
@@ -70,13 +89,27 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
   const [category, setCategory] = useState<ActivityCategory>('food');
-  const [paidBy, setPaidBy] = useState<string>(trip.travelers[0]?.id || '');
+  // Empty means nobody picked anyone, so the payer falls through to whoever
+  // this browser belongs to — right almost every time you log your own spend.
+  const [paidBy, setPaidBy] = useState<string>('');
   const [splitWith, setSplitWith] = useState<string[]>(trip.travelers.map(tv => tv.id));
-  const [date, setDate] = useState<string>(trip.startDate);
+  const [date, setDate] = useState<string>(todayISO);
+  // Payer, date and split all have good defaults, so they stay folded away.
+  const [showMore, setShowMore] = useState(false);
+  const [kittyEditing, setKittyEditing] = useState(false);
   const [meId, setMeId] = useState<string>(() => readMe(trip.id));
 
   const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
   const toHome = (n: number) => Math.round(n / rate).toLocaleString();
+
+  const kitty = resolveKitty(trip);
+  const kittyState = computeKitty(trip);
+
+  const updateKitty = (patch: Partial<TripKitty>) =>
+    onUpdateTrip({ ...trip, kitty: { ...kitty, ...patch } });
+
+  const toggleInList = <T,>(list: T[], value: T): T[] =>
+    list.includes(value) ? list.filter(v => v !== value) : [...list, value];
 
   const totalSpent = (trip.expenses || []).reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
@@ -90,6 +123,10 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   trip.travelers.forEach(tv => { balances[tv.id] = 0; });
 
   (trip.expenses || []).forEach(exp => {
+    // Money the shared pot paid for was settled the moment everyone chipped
+    // in. Counting it here as well would overstate every debt in the list.
+    if (kittyState.coveredIds.has(exp.id)) return;
+
     const payer = exp.paidByTravelerId;
     const splitters = exp.splitWithTravelerIds && exp.splitWithTravelerIds.length > 0
       ? exp.splitWithTravelerIds
@@ -124,18 +161,37 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
 
   const getTravelerName = (id: string) => trip.travelers.find(tv => tv.id === id)?.name || 'Unknown';
 
+  const effectivePaidBy = paidBy || meId || trip.travelers[0]?.id || '';
+
+  const catLabel = (cat: ActivityCategory) =>
+    lang === 'zh' ? categoryMetaMap[cat].labelZh : categoryMetaMap[cat].label;
+
+  /** "Today" and "Yesterday" read faster than a date, which is most of them. */
+  const describeDate = (iso: string) => {
+    if (iso === todayISO()) return t('todayBadge');
+    if (iso === yesterdayISO()) return t('expenseYesterday');
+    return iso;
+  };
+
+  const describePayer = (payerId: string) =>
+    payerId && payerId === meId
+      ? t('expensePaidByYou')
+      : t('expensePaidByOther', { name: getTravelerName(payerId) });
+
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !amount || Number(amount) <= 0) return;
+    // The amount is now the only thing that has to be filled in.
+    if (!amount || Number(amount) <= 0) return;
 
     const newExpense: ExpenseItem = {
       id: `exp-${Date.now()}`,
-      title: title.trim(),
+      // An unnamed expense takes its category's name rather than staying blank
+      title: title.trim() || catLabel(category),
       amount: Number(amount),
       currency: trip.currency,
       category,
       date,
-      paidByTravelerId: paidBy,
+      paidByTravelerId: effectivePaidBy,
       splitWithTravelerIds: splitWith.length > 0 ? splitWith : trip.travelers.map(tv => tv.id)
     };
 
@@ -144,6 +200,9 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
     setIsAdding(false);
     setTitle('');
     setAmount('');
+    setPaidBy('');
+    setDate(todayISO());
+    setShowMore(false);
   };
 
   const handleDeleteExpense = (expId: string) => {
@@ -157,6 +216,12 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
     } else {
       setSplitWith([...splitWith, travelerId]);
     }
+  };
+
+  const turnOffKitty = () => {
+    if (!window.confirm(t('kittyConfirmOff'))) return;
+    updateKitty({ enabled: false });
+    setKittyEditing(false);
   };
 
   const pickMe = (id: string) => {
@@ -266,6 +331,239 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         </div>
       )}
 
+      {/* ---- Shared pot: "have we still got food money?" ---- */}
+      {kittyState.enabled ? (
+        <div className={`${card} p-4 sm:p-5 space-y-3.5`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] text-faint flex items-center gap-1.5">
+                <PiggyBank className="w-3.5 h-3.5" />
+                {t('kittyRemaining')}
+              </div>
+              <div
+                className={`text-2xl font-semibold mt-1 ${
+                  kittyState.exhausted ? 'text-clay' : 'text-ink'
+                } ${money}`}
+              >
+                {trip.homeCurrency} {Math.round(kittyState.remainingHome).toLocaleString()}
+              </div>
+              {/* The number that matters at the stall is the local one */}
+              <div className={`text-xs text-muted ${money}`}>
+                ≈ {trip.currency} {Math.round(kittyState.remainingHome * rate).toLocaleString()}
+              </div>
+            </div>
+
+            {isAdmin && (
+              <button
+                onClick={() => setKittyEditing(v => !v)}
+                className={iconBtn}
+                title={t('kittySettings')}
+              >
+                <Sliders className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <div>
+            <div className="w-full bg-mist rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  kittyState.exhausted
+                    ? 'bg-clay'
+                    : kittyState.runningLow
+                      ? 'bg-gilt'
+                      : 'bg-brand'
+                }`}
+                style={{ width: `${kittyState.usedPercent}%` }}
+              />
+            </div>
+            <div className={`flex items-center justify-between gap-3 text-[11px] text-muted mt-1.5 ${money}`}>
+              <span className="truncate">
+                {t('kittyUsedOf', {
+                  used: `${trip.homeCurrency} ${Math.round(kittyState.spentHome).toLocaleString()}`,
+                  total: `${trip.homeCurrency} ${Math.round(kittyState.potTotalHome).toLocaleString()}`
+                })}
+              </span>
+              <span className="shrink-0">{kittyState.usedPercent}%</span>
+            </div>
+          </div>
+
+          {/* Running out is the whole point of the card, so it is said plainly */}
+          {kittyState.exhausted ? (
+            <p className="text-xs text-clay bg-clay-tint rounded-control px-3 py-2.5 leading-relaxed">
+              {t('kittyExhausted')}
+            </p>
+          ) : kittyState.runningLow ? (
+            <p className="text-xs text-gilt bg-gilt-tint rounded-control px-3 py-2.5 leading-relaxed">
+              {t('kittyLow')}
+            </p>
+          ) : null}
+
+          {kittyState.uncoveredCount > 0 && (
+            <p className="text-xs text-muted leading-relaxed">
+              {kittyState.uncoveredCount === 1
+                ? t('kittySplitBackOne')
+                : t('kittySplitBack', { n: kittyState.uncoveredCount })}
+            </p>
+          )}
+
+          <div className="pt-3 border-t border-hairline text-xs text-muted flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className={money}>
+              {t('kittyPotLine', {
+                n: trip.travelers.length,
+                per: `${trip.homeCurrency} ${kitty.perPerson.toLocaleString()}`
+              })}
+            </span>
+            <span className="text-hairline">·</span>
+            <span className="truncate">
+              {kitty.holderTravelerId
+                ? t('kittyHeldBy', { name: getTravelerName(kitty.holderTravelerId) })
+                : t('kittyNoHolder')}
+            </span>
+            <span className="text-hairline">·</span>
+            <span className={kittyState.unpaidTravelerIds.length > 0 ? 'text-gilt' : ''}>
+              {kittyState.unpaidTravelerIds.length === 0
+                ? t('kittyAllCollected')
+                : t('kittyWaitingOn', {
+                    names: kittyState.unpaidTravelerIds
+                      .map(getTravelerName)
+                      .join(lang === 'zh' ? '\u3001' : ', ')
+                  })}
+            </span>
+          </div>
+
+          {/* Setting the pot up is splitter internals, so it is the admin's */}
+          {isAdmin && kittyEditing && (
+            <div className="pt-3 border-t border-hairline space-y-3.5 animate-riseIn">
+              <div>
+                <label className={label} htmlFor="kitty-per-person">
+                  {t('kittyPerPerson', { cur: trip.homeCurrency })}
+                </label>
+                <input
+                  id="kitty-per-person"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="any"
+                  defaultValue={kitty.perPerson || ''}
+                  onBlur={(e) => updateKitty({ perPerson: Number(e.target.value) || 0 })}
+                  placeholder="300"
+                  className={`${input} ${money}`}
+                />
+              </div>
+
+              <div>
+                <span className={label}>{t('kittyHolder')}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {trip.travelers.map(tv => {
+                    const on = kitty.holderTravelerId === tv.id;
+                    return (
+                      <button
+                        type="button"
+                        key={tv.id}
+                        onClick={() => updateKitty({ holderTravelerId: tv.id })}
+                        aria-pressed={on}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                          on
+                            ? 'bg-brand-tint border-brand-tint text-brand'
+                            : 'bg-paper border-hairline text-muted hover:bg-mist'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />
+                        {tv.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <span className={label}>{t('kittyCovers')}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(Object.keys(categoryMetaMap) as ActivityCategory[]).map(cat => {
+                    const meta = categoryMetaMap[cat];
+                    const Icon = meta.icon;
+                    const on = kitty.categories.includes(cat);
+                    return (
+                      <button
+                        type="button"
+                        key={cat}
+                        onClick={() => {
+                          const next = toggleInList(kitty.categories, cat);
+                          // A pot that covers nothing would silently stop working
+                          if (next.length > 0) updateKitty({ categories: next });
+                        }}
+                        aria-pressed={on}
+                        className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                          on
+                            ? 'bg-brand-tint border-brand-tint text-brand'
+                            : 'bg-paper border-hairline text-muted hover:bg-mist'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        {lang === 'zh' ? meta.labelZh : meta.label.split(' ')[0]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <span className={label}>{t('kittyWhoPaidIn')}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {trip.travelers.map(tv => {
+                    const on = kitty.paidInTravelerIds.includes(tv.id);
+                    return (
+                      <button
+                        type="button"
+                        key={tv.id}
+                        onClick={() =>
+                          updateKitty({ paidInTravelerIds: toggleInList(kitty.paidInTravelerIds, tv.id) })
+                        }
+                        aria-pressed={on}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                          on
+                            ? 'bg-brand-tint border-brand-tint text-brand'
+                            : 'bg-paper border-hairline text-muted hover:bg-mist'
+                        }`}
+                      >
+                        {on
+                          ? <Check className="w-3.5 h-3.5 shrink-0" />
+                          : <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />}
+                        {tv.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button type="button" onClick={turnOffKitty} className={`${btnDanger} w-full`}>
+                {t('kittyTurnOff')}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : isAdmin ? (
+        <button
+          onClick={() => {
+            updateKitty({
+              enabled: true,
+              holderTravelerId: kitty.holderTravelerId || meId || trip.travelers[0]?.id
+            });
+            setKittyEditing(true);
+          }}
+          className={`${card} w-full p-4 flex items-center gap-3 text-left hover:bg-mist transition`}
+        >
+          <span className="w-10 h-10 rounded-control bg-brand-tint text-brand flex items-center justify-center shrink-0">
+            <PiggyBank className="w-5 h-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-ink">{t('kittyStart')}</span>
+            <span className="block text-xs text-muted mt-0.5 leading-relaxed">{t('kittyStartHint')}</span>
+          </span>
+        </button>
+      ) : null}
+
       {/* ---- Group total: supporting detail, plus the add button ---- */}
       <div className={`${card} p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4`}>
         <div className="min-w-0">
@@ -290,111 +588,184 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         )}
       </div>
 
-      {/* ---- Add expense ---- */}
+      {/* ---- Add expense: amount, category, save. Everything else has a
+              sensible default and lives behind "more options". ---- */}
       {isAdding && (
-        <form onSubmit={handleAddExpense} className={`${card} p-4 sm:p-5 space-y-4 animate-riseIn`}>
-          <h3 className="text-base font-semibold text-ink">{t('addTravelExpense')}</h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className={label}>{t('expenseDescription')}</label>
+        <form onSubmit={handleAddExpense} className={`${card} p-4 sm:p-5 space-y-5 animate-riseIn`}>
+          {/* The one thing you actually have to type */}
+          <div>
+            <label className={label} htmlFor="expense-amount">{t('expenseAmountQ')}</label>
+            <div className="flex items-baseline gap-2">
               <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t('expensePlaceholder')}
-                className={input}
-                required
-              />
-            </div>
-
-            <div>
-              <label className={label}>{t('amountLabel', { cur: trip.currency })}</label>
-              <input
+                id="expense-amount"
                 type="number"
-                min="1"
+                inputMode="decimal"
+                min="0"
                 step="any"
+                autoFocus
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="1500"
-                className={inputMono}
+                placeholder="0"
+                className={`flex-1 min-w-0 bg-transparent border-0 border-b-2 border-hairline focus:border-brand focus:outline-none text-3xl font-semibold text-ink py-1 ${money}`}
                 required
               />
+              <span className="text-base font-semibold text-muted shrink-0">{trip.currency}</span>
+            </div>
+            {/* Fixed height so the layout does not jump as you type */}
+            <div className={`text-xs text-muted mt-2 h-4 ${money}`}>
+              {amount !== '' && Number(amount) > 0
+                ? `\u2248 ${trip.homeCurrency} ${toHome(Number(amount))}`
+                : ''}
             </div>
           </div>
 
-          <div className={`grid grid-cols-1 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
-            <div>
-              <label className={label}>{t('category')}</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as ActivityCategory)}
-                className={select}
-              >
-                {(Object.keys(categoryMetaMap) as ActivityCategory[]).map(cat => (
-                  <option key={cat} value={cat}>
-                    {lang === 'zh' ? categoryMetaMap[cat].labelZh : categoryMetaMap[cat].label}
-                  </option>
-                ))}
-              </select>
+          {/* Tapping a chip beats opening a nine-item dropdown on a phone */}
+          <div>
+            <span className={label}>{t('expenseWhatFor')}</span>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(categoryMetaMap) as ActivityCategory[]).map(cat => {
+                const meta = categoryMetaMap[cat];
+                const Icon = meta.icon;
+                const on = category === cat;
+                return (
+                  <button
+                    type="button"
+                    key={cat}
+                    onClick={() => setCategory(cat)}
+                    aria-pressed={on}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                      on
+                        ? 'bg-brand-tint border-brand-tint text-brand'
+                        : 'bg-paper border-hairline text-muted hover:bg-mist'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    {lang === 'zh' ? meta.labelZh : meta.label.split(' ')[0]}
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            {isAdmin && (
-              <div>
-                <label className={label}>{t('paidBy')}</label>
-                <select value={paidBy} onChange={(e) => setPaidBy(e.target.value)} className={select}>
-                  {trip.travelers.map(tv => (
-                    <option key={tv.id} value={tv.id}>{tv.name}</option>
-                  ))}
-                </select>
+          <div>
+            <label className={label} htmlFor="expense-note">{t('expenseNoteOptional')}</label>
+            <input
+              id="expense-note"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t('expensePlaceholder')}
+              className={input}
+            />
+          </div>
+
+          {/* Payer, date and split: shown as one line, opened only if wrong */}
+          <div className="border-t border-hairline pt-3">
+            <button
+              type="button"
+              onClick={() => setShowMore(v => !v)}
+              aria-expanded={showMore}
+              className="w-full flex items-center justify-between gap-3 text-left min-h-[36px]"
+            >
+              <span className="text-xs text-muted min-w-0 truncate">
+                {describePayer(effectivePaidBy)}
+                {' \u00b7 '}
+                {describeDate(date)}
+                {isAdmin && splitWith.length !== trip.travelers.length
+                  ? ` \u00b7 ${t('splitByN', { n: splitWith.length })}`
+                  : ''}
+              </span>
+              <span className="text-xs font-semibold text-brand shrink-0 inline-flex items-center gap-1">
+                {t('expenseMoreOptions')}
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showMore ? 'rotate-180' : ''}`} />
+              </span>
+            </button>
+
+            {showMore && (
+              <div className="mt-3 space-y-3.5">
+                {/* Who paid is the admin's call; a member logs their own */}
+                {isAdmin && (
+                  <div>
+                    <span className={label}>{t('paidBy')}</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {trip.travelers.map(tv => {
+                        const on = effectivePaidBy === tv.id;
+                        return (
+                          <button
+                            type="button"
+                            key={tv.id}
+                            onClick={() => setPaidBy(tv.id)}
+                            aria-pressed={on}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                              on
+                                ? 'bg-brand-tint border-brand-tint text-brand'
+                                : 'bg-paper border-hairline text-muted hover:bg-mist'
+                            }`}
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />
+                            {tv.name}{tv.id === meId ? ` (${t('youLabel')})` : ''}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className={label} htmlFor="expense-date">{t('date')}</label>
+                  <input
+                    id="expense-date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className={input}
+                  />
+                </div>
+
+                {isAdmin && (
+                  <div>
+                    <span className={label}>{t('splitWithLabel')}</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {trip.travelers.map(tv => {
+                        const isSelected = splitWith.includes(tv.id);
+                        return (
+                          <button
+                            type="button"
+                            key={tv.id}
+                            onClick={() => toggleSplitter(tv.id)}
+                            aria-pressed={isSelected}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                              isSelected
+                                ? 'bg-brand-tint border-brand-tint text-brand'
+                                : 'bg-paper border-hairline text-muted hover:bg-mist'
+                            }`}
+                          >
+                            {isSelected
+                              ? <Check className="w-3.5 h-3.5 shrink-0" />
+                              : <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />}
+                            {tv.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-
-            <div>
-              <label className={label}>{t('date')}</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className={input}
-              />
-            </div>
           </div>
 
-          {/* Split internals are the admin's business */}
-          {isAdmin && (
-            <div>
-              <label className={label}>{t('splitWithLabel')}</label>
-              <div className="flex flex-wrap gap-2">
-                {trip.travelers.map(tv => {
-                  const isSelected = splitWith.includes(tv.id);
-                  return (
-                    <button
-                      type="button"
-                      key={tv.id}
-                      onClick={() => toggleSplitter(tv.id)}
-                      className={`px-3 py-2 rounded-control text-xs font-semibold border transition flex items-center gap-2 ${
-                        isSelected
-                          ? 'bg-brand-tint border-brand-tint text-brand'
-                          : 'bg-paper border-hairline text-muted hover:bg-mist'
-                      }`}
-                    >
-                      {isSelected
-                        ? <Check className="w-3.5 h-3.5 shrink-0" />
-                        : <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />}
-                      {tv.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2 pt-3 border-t border-hairline">
-            <button type="button" onClick={() => setIsAdding(false)} className={btnGhost}>
+          {/* Save is visibly the thing to press */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { setIsAdding(false); setShowMore(false); }}
+              className={`${btnGhost} flex-1`}
+            >
               {t('cancel')}
             </button>
-            <button type="submit" className={btnPrimary}>{t('saveExpense')}</button>
+            <button type="submit" className={`${btnPrimary} flex-[2]`}>
+              {t('saveExpense')}
+            </button>
           </div>
         </form>
       )}
@@ -517,9 +888,25 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                         <Icon className="w-4 h-4 text-faint shrink-0" />
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-ink truncate">{exp.title}</div>
-                          <div className="text-[11px] text-muted truncate">
-                            {t('paidByLabel')} {getTravelerName(exp.paidByTravelerId)} · {exp.date}
-                            {isAdmin && ` · ${t('splitByN', { n: exp.splitWithTravelerIds?.length || trip.travelers.length })}`}
+                          {/* "You paid · Today" reads at a glance; the split
+                              count lives in the settlement panel, not here.
+                              Anything the pot bought says so instead. */}
+                          <div className="text-[11px] truncate">
+                            <span
+                              className={
+                                kittyState.coveredIds.has(exp.id)
+                                  ? 'text-brand font-medium'
+                                  : 'text-muted'
+                              }
+                            >
+                              {kittyState.coveredIds.has(exp.id)
+                                ? t('kittyFromFund')
+                                : describePayer(exp.paidByTravelerId)}
+                            </span>
+                            <span className="text-muted">
+                              {' · '}
+                              {describeDate(exp.date)}
+                            </span>
                           </div>
                         </div>
                       </div>

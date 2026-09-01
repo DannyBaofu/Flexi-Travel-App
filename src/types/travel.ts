@@ -97,6 +97,23 @@ export interface TaxiCard {
   noteForDriver?: string;
 }
 
+/**
+ * A shared cash pot. Everyone hands the holder the same amount up front, and
+ * spending in the covered categories comes out of that pot rather than being
+ * settled between people afterwards.
+ */
+export interface TripKitty {
+  enabled: boolean;
+  /** Contribution per traveller, in the trip's HOME currency (what they hand over). */
+  perPerson: number;
+  /** Who is physically holding the money. */
+  holderTravelerId?: string;
+  /** Spending in these categories draws the pot down. */
+  categories: ActivityCategory[];
+  /** Travellers who have actually handed their share over. */
+  paidInTravelerIds: string[];
+}
+
 export interface ShareSettings {
   isPublic: boolean;
   isPasswordProtected: boolean;
@@ -120,6 +137,8 @@ export interface Trip {
   expenses: ExpenseItem[];
   checklist: ChecklistItem[];
   taxiCards: TaxiCard[];
+  /** Optional shared cash pot. Absent on trips created before it existed. */
+  kitty?: TripKitty;
   shareSettings: ShareSettings;
   createdAt: string;
   updatedAt: string;

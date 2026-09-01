@@ -89,9 +89,16 @@ const dict: Record<string, Entry> = {
   logNewExpense: { zh: '记一笔支出', en: 'Log New Expense' },
   viewingSharedLedger: { zh: '正在查看共享账本', en: 'Viewing shared expense ledger' },
   addTravelExpense: { zh: '添加旅行支出', en: 'Add Travel Expense' },
-  expenseDescription: { zh: '支出描述 *', en: 'Expense Description *' },
-  expensePlaceholder: { zh: '例如：湄南河晚餐游船 / Grab 打车', en: 'e.g. Chao Phraya Dinner Cruise / Grab Taxi' },
-  amountLabel: { zh: '金额（{cur}）*', en: 'Amount ({cur}) *' },
+  expenseAmountQ: { zh: '花了多少？', en: 'How much?' },
+  expenseWhatFor: { zh: '这笔是什么？', en: 'What was it for?' },
+  expenseNoteOptional: { zh: '备注（可选）', en: 'Note (optional)' },
+  expensePlaceholder: { zh: '例如：湄南河晚餐游船', en: 'e.g. Chao Phraya dinner cruise' },
+  expenseMoreOptions: { zh: '更多选项', en: 'More options' },
+  expensePaidByYou: { zh: '你付的', en: 'You paid' },
+  expensePaidByOther: { zh: '{name} 付的', en: '{name} paid' },
+  expenseYesterday: { zh: '昨天', en: 'Yesterday' },
+  expenseSplitEveryone: { zh: '全员分摊', en: 'Split with everyone' },
+  youLabel: { zh: '你', en: 'You' },
   rateLabel: { zh: '汇率', en: 'Rate' },
   category: { zh: '类别', en: 'Category' },
   date: { zh: '日期', en: 'Date' },
@@ -108,7 +115,7 @@ const dict: Record<string, Entry> = {
   paidByLabel: { zh: '付款人', en: 'Paid by' },
   splitByN: { zh: '{n} 人分摊', en: 'Split by {n}' },
   deleteExpense: { zh: '删除支出', en: 'Delete Expense' },
-  noExpensesYet: { zh: '暂无支出记录。点击上方「记一笔支出」开始记录。', en: 'No expenses logged yet. Click "Log New Expense" above to get started.' },
+  noExpensesYet: { zh: '还没有记过支出。', en: 'No expenses logged yet.' },
 
   // ---- Checklist ----
   checklistTitle: { zh: '行前准备与打包', en: 'Pre-Trip & Packing Readiness' },
@@ -363,6 +370,31 @@ const dict: Record<string, Entry> = {
   // ---- Thai phrases: show mode ----
   tapPhraseHint: { zh: '点任意一句，放大出示给当地人看。', en: 'Tap any phrase to show it full-size to someone.' },
   showToLocal: { zh: '出示给对方看', en: 'Show this to them' },
+
+  // ---- Shared cash pot ----
+  kittyTitle: { zh: '公共基金', en: 'Shared fund' },
+  kittyStart: { zh: '开一个公共基金', en: 'Start a shared fund' },
+  kittyStartHint: { zh: '大家先各交一笔钱交给一个人保管，餐费直接从里面出。', en: 'Everyone hands one person the same amount up front, and spending comes out of the pot.' },
+  kittyRemaining: { zh: '基金还剩', en: 'Left in the fund' },
+  kittyUsedOf: { zh: '已用 {used} / 共 {total}', en: '{used} of {total} used' },
+  kittyPotLine: { zh: '{n} 人 × {per}', en: '{n} people × {per}' },
+  kittyHeldBy: { zh: '{name} 保管', en: 'held by {name}' },
+  kittyNoHolder: { zh: '还没指定保管人', en: 'no holder set yet' },
+  kittyAllCollected: { zh: '已收齐', en: 'all collected' },
+  kittyWaitingOn: { zh: '还差 {names} 没交', en: 'still waiting on {names}' },
+  kittyLow: { zh: '基金快用完了。', en: 'The fund is running low.' },
+  kittyExhausted: { zh: '基金已经用完了，之后的支出回到大家分摊。', en: 'The fund is spent — later spending goes back to being split.' },
+  // Follows the activityCountOne / activitiesCount pattern used elsewhere
+  kittySplitBackOne: { zh: '有 1 笔基金付不起，已回到大家分摊。', en: 'One bill the fund could not cover went back to being split.' },
+  kittySplitBack: { zh: '有 {n} 笔基金付不起，已回到大家分摊。', en: '{n} bills the fund could not cover went back to being split.' },
+  kittyFromFund: { zh: '公基金', en: 'From fund' },
+  kittySettings: { zh: '基金设置', en: 'Fund settings' },
+  kittyPerPerson: { zh: '每人交多少（{cur}）', en: 'Amount per person ({cur})' },
+  kittyHolder: { zh: '谁保管这笔钱', en: 'Who holds the money' },
+  kittyCovers: { zh: '基金支付哪些类别', en: 'What the fund pays for' },
+  kittyWhoPaidIn: { zh: '谁已经交了', en: 'Who has handed it over' },
+  kittyTurnOff: { zh: '关闭基金', en: 'Turn off the fund' },
+  kittyConfirmOff: { zh: '关闭公共基金？之前由基金支付的支出会回到大家分摊。', en: 'Turn off the shared fund? Expenses it covered will go back to being split.' },
 
   // ---- Shared trip / passcode ----
   sharedTrip: { zh: '共享行程', en: 'Shared Trip' }
