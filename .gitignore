@@ -25,3 +25,6 @@ dist-ssr
 
 # Environment (Supabase keys)
 .env
+
+# Playwright MCP scratch output
+.playwright-mcp/

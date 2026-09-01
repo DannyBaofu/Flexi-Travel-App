@@ -1,108 +1,102 @@
 ---
 name: mobile-check
-description: Verify TravelSync renders correctly at real iPhone width (375px) and locate horizontal-overflow bugs. Use after any change to the navbar, cards, modals, tabs, or layout, and whenever the user reports something looking cramped, stacked, cut off, or sideways-scrolling on their phone. Browser window resizing does not work below roughly 500px in Chrome, so reach for this skill's iframe technique rather than trusting resize_window or a desktop screenshot.
+description: Verify TravelSync renders correctly at real iPhone width (375px) and locate horizontal-overflow bugs. Use after any change to the navbar, cards, modals, tabs, or layout, and whenever the user reports something looking cramped, stacked, cut off, or sideways-scrolling on their phone. Drives the page with the Playwright MCP browser tools, which set a genuine 375px viewport, so a desktop screenshot never stands in for the phone layout.
 ---
 
 # Checking TravelSync at real phone width
 
-Most of this app's users are on a phone, and its layout is mobile-first —
-base styles target the phone and `sm:` unlocks the desktop version. So phone
-width is the primary case, not an afterthought.
+Most of this app's users are on a phone, and its layout is mobile-first — base
+styles target the phone and `sm:` unlocks the desktop version. So phone width is
+the primary case, not an afterthought.
 
-## Why the obvious approach fails
+Everything here uses the `playwright` MCP server configured in `.mcp.json`. If
+the `browser_*` tools aren't available, the session was started before that file
+existed — say so rather than falling back to a desktop screenshot.
 
-`resize_window` reports success and changes nothing below roughly 500px —
-Chrome enforces a minimum window width. The screenshot still comes back
-1536px wide, so the page renders its **desktop** layout and everything looks
-fine. This is worse than no check at all, because it produces false confidence.
+## Setting the viewport
 
-The reliable workaround is to inject an iframe at phone width into the page
-that's already loaded. The iframe gets a genuine 375px viewport, so media
-queries and `sm:` breakpoints behave exactly as they do on a real device.
+`browser_resize` sets a real viewport through CDP, so it goes below Chrome's
+minimum window width in both headed and headless mode. Verified on this project:
+asking for 375, 390 and even 320 yields exactly that `window.innerWidth`, and
+`matchMedia('(min-width: 640px)')` correctly reports false, so `sm:` styles
+switch off exactly as they do on a device.
 
-## The technique
-
-Load the app in a tab first. If you're testing a local build, navigate the tab
-itself to `http://localhost:<port>` — an HTTPS page cannot embed an HTTP iframe
-(mixed content silently blocks it, and the iframe comes back empty).
-
-**1. Inject the frame**
-
-```js
-document.getElementById('mviewf')?.remove();
-const f = document.createElement('iframe');
-f.id = 'mviewf';
-f.src = '/';
-f.style.cssText = 'position:fixed;top:0;left:0;width:375px;height:740px;' +
-  'z-index:999999;border:3px solid red;background:#111;';
-document.body.appendChild(f);
+```
+browser_resize   { "width": 375, "height": 740 }
 ```
 
-Give it ~4 seconds to load before measuring. The red border makes the frame
-edge obvious in screenshots so you can see what's clipped.
+There is no need for the old iframe trick, and no need to distrust the result.
 
-**2. Measure for overflow**
+**Widths worth testing.** **375** is the important one — iPhone SE and the mini
+sizes, the narrowest common device. If it fits at 375, it fits everywhere. **390**
+covers the iPhone 14/15 class. Anything wider is already desktop-ish.
 
-```js
-const f = document.getElementById('mviewf');
-const d = f.contentDocument;
-({
-  scrollW: d.documentElement.scrollWidth,
-  vw: f.contentWindow.innerWidth,
-  overflow: d.documentElement.scrollWidth > f.contentWindow.innerWidth + 2
-})
+## Getting the app into a state worth looking at
+
+The Playwright browser runs with `--isolated`, so it starts with **empty
+localStorage every time**. Since trips live in localStorage, a fresh navigate
+lands on the "no trips yet" empty state — which is not the layout you're trying
+to check. Seed a trip first:
+
+```
+browser_evaluate { "function": "() => { localStorage.setItem('travelsync_trips_v1', JSON.stringify([ /* one Trip object */ ])); localStorage.setItem('travelsync_sample_purged_v1','1'); return 'seeded'; }" }
 ```
 
-If `scrollW` exceeds the viewport width, the page scrolls sideways — the
-symptom users describe as "wobbling" or "buttons squashed together". The 2px
-tolerance absorbs rounding.
+Then `browser_navigate` again to reload with that trip present. Keep the seed
+minimal — a trip with two days and three activities exercises the itinerary rows,
+the day pills and the cost summary without a wall of JSON.
 
-**3. Find the culprit**
+The **sign-in button and auth modal only render when cloud sync is configured**
+(`isCloudEnabled`). To see them locally, build and serve with placeholder keys:
 
-```js
-const f = document.getElementById('mviewf');
-const d = f.contentDocument;
-const vw = f.contentWindow.innerWidth;
-[...d.querySelectorAll('*')]
-  .filter(el => {
-    const r = el.getBoundingClientRect();
-    return (r.right > vw + 2 || r.left < -2) && r.width > 50;
-  })
-  .filter(el => !el.closest('.overflow-x-auto'))   // intentional scrollers
-  .slice(0, 8)
-  .map(el => `${el.tagName}.${String(el.className).slice(0, 60)} ` +
-             `w=${Math.round(el.getBoundingClientRect().width)} ` +
-             `right=${Math.round(el.getBoundingClientRect().right)}`)
-  .join('\n')
+```
+VITE_SUPABASE_URL=https://dummy.supabase.co VITE_SUPABASE_ANON_KEY=dummy npm run build
+npx vite preview --port 4173
+```
+
+Nothing reaches the network, but the navbar button and modal render.
+
+## Measuring for overflow
+
+`browser_evaluate` executes arbitrary JS, so it is deliberately **not** on the
+permission allowlist in `.claude/settings.json` — expect a prompt each time.
+
+```
+browser_evaluate { "function": "() => { const d = document.documentElement; return { scrollW: d.scrollWidth, vw: window.innerWidth, overflow: d.scrollWidth > window.innerWidth + 2 }; }" }
+```
+
+If `scrollW` exceeds the viewport width, the page scrolls sideways — the symptom
+users describe as "wobbling" or "buttons squashed together". The 2px tolerance
+absorbs rounding.
+
+## Finding the culprit
+
+```
+browser_evaluate { "function": "() => { const vw = window.innerWidth; return [...document.querySelectorAll('*')].filter(el => { const r = el.getBoundingClientRect(); return (r.right > vw + 2 || r.left < -2) && r.width > 50; }).filter(el => !el.closest('.overflow-x-auto')).slice(0, 8).map(el => `${el.tagName}.${String(el.className).slice(0,60)} w=${Math.round(el.getBoundingClientRect().width)} right=${Math.round(el.getBoundingClientRect().right)}`); }" }
 ```
 
 Excluding `.overflow-x-auto` descendants matters: the day pills and category
 filter rows are *supposed* to scroll horizontally inside their containers.
 Without that filter they dominate the results and hide the real bug.
 
-**4. Look at it**
+`browser_snapshot { "boxes": true }` is a lighter alternative when you want the
+accessibility tree with bounding boxes and no permission prompt.
 
-Zoom to the frame region rather than taking a full screenshot — the phone
-layout is a small slice of a wide window:
+## Looking at it
+
+`browser_take_screenshot` **requires** a `scale`. Use `"css"` — it yields an
+image sized in CSS pixels, so a 375px viewport comes back 375px wide instead of
+being multiplied by the device pixel ratio.
 
 ```
-computer zoom, region: [0, 0, 381, 200]   // topbar
-computer zoom, region: [0, 0, 381, 745]   // full frame
+browser_take_screenshot { "scale": "css" }
+browser_take_screenshot { "scale": "css", "fullPage": true }
 ```
 
-**5. Clean up**
-
-```js
-document.getElementById('mviewf')?.remove();
-```
-
-Leaving the frame in place will confuse the next screenshot you take.
-
-## Widths worth testing
-
-**375px** is the important one — iPhone SE and the mini sizes, and the
-narrowest common device. If it fits at 375, it fits everywhere. **390px**
-covers the iPhone 14/15 class. Anything wider is already desktop-ish.
+`fullPage` is the one worth taking for a layout review: the phone layout is tall
+and the interesting breakage is often below the fold. To isolate one component,
+pass `element` (a human-readable description) together with `target` (a selector
+or a ref from `browser_snapshot`).
 
 ## What this has actually caught
 
@@ -118,8 +112,17 @@ desktop-only controls (like Print) with `hidden sm:block`.
 
 ## Also worth a glance while you're in there
 
-Overflow is the measurable failure, but two others need eyes: text that
-truncates so hard it's useless (`Lunch at K…` — prefer `line-clamp-2` over
-`truncate` for titles), and information hidden behind `sm:` that a phone user
-actually needs — the day cost was once `hidden sm:block`, meaning the primary
-audience couldn't see any prices at all.
+Overflow is the measurable failure, but three others need eyes:
+
+- Text that truncates so hard it's useless (`Lunch at K…`) — prefer
+  `line-clamp-2` over `truncate` for titles.
+- Information hidden behind `sm:` that a phone user actually needs — the day cost
+  was once `hidden sm:block`, meaning the primary audience couldn't see any
+  prices at all.
+- Long unbroken strings blowing out a card: snapshot share URLs, Thai addresses,
+  and Google Maps links. These need `break-all` or a container that scrolls.
+
+Check both languages. Chinese labels are usually shorter than their English
+counterparts, so a row that fits in the default Chinese UI can still overflow
+once someone toggles **EN**. Toggle it in the navbar, re-measure, and set it back
+to Chinese when you're done.
