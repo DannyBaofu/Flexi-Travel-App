@@ -1,14 +1,13 @@
 import React from 'react';
-import { Calendar, Wallet, Luggage, Languages } from 'lucide-react';
+import { Calendar, Wallet, Languages } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useI18n } from '../utils/i18n';
 
-export type TabId = 'itinerary' | 'budget' | 'checklist' | 'phrases';
+export type TabId = 'itinerary' | 'budget' | 'phrases';
 
 const TABS: { id: TabId; icon: LucideIcon; longKey: string; shortKey: string }[] = [
   { id: 'itinerary', icon: Calendar, longKey: 'tabItinerary', shortKey: 'tabItineraryShort' },
   { id: 'budget', icon: Wallet, longKey: 'tabBudget', shortKey: 'tabBudgetShort' },
-  { id: 'checklist', icon: Luggage, longKey: 'tabChecklist', shortKey: 'tabChecklistShort' },
   { id: 'phrases', icon: Languages, longKey: 'tabPhrases', shortKey: 'tabPhrasesShort' }
 ];
 

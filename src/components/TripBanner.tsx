@@ -2,36 +2,22 @@ import React from 'react';
 import { Calendar, MapPin, Edit2 } from 'lucide-react';
 import type { Trip, TripRole } from '../types/travel';
 import { useI18n } from '../utils/i18n';
-import { money } from './ui';
 
 interface TripBannerProps {
   trip: Trip;
   onOpenSettings: () => void;
   role: TripRole;
-  rateIsLive?: boolean;
 }
 
 export const TripBanner: React.FC<TripBannerProps> = ({
   trip,
   onOpenSettings,
-  role,
-  rateIsLive
+  role
 }) => {
   const { lang, t } = useI18n();
   const isAdmin = role === 'admin';
 
   const totalActivities = trip.days.reduce((sum, day) => sum + (day.activities?.length || 0), 0);
-
-  const totalEstimatedCost = trip.days.reduce((sum, day) => {
-    return sum + (day.activities?.reduce((actSum, act) => actSum + (act.cost || 0), 0) || 0);
-  }, 0);
-
-  const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
-  const costInHomeCurrency = Math.round(totalEstimatedCost / rate);
-
-  const totalChecklist = trip.checklist?.length || 0;
-  const completedChecklist = trip.checklist?.filter(c => c.completed).length || 0;
-  const checklistPercent = totalChecklist > 0 ? Math.round((completedChecklist / totalChecklist) * 100) : 0;
 
   const formatDateDisplay = (start: string, end: string) => {
     const locale = lang === 'zh' ? 'zh-CN' : 'en-US';
@@ -106,40 +92,6 @@ export const TripBanner: React.FC<TripBannerProps> = ({
           </span>
         </div>
 
-        {/* The two numbers people actually open this screen for */}
-        <div className="grid grid-cols-2 gap-4 sm:gap-12 sm:grid-cols-[minmax(0,200px)_minmax(0,260px)] mt-4 pt-4 border-t border-hairline">
-          <div className="min-w-0">
-            <div className="text-[11px] text-faint">{t('estimatedBudget')}</div>
-            <div className={`text-base font-semibold text-ink mt-0.5 truncate ${money}`}>
-              {totalEstimatedCost.toLocaleString()} {trip.currency}
-            </div>
-            <div className={`text-[11px] text-muted flex items-center gap-1.5 ${money}`}>
-              {rateIsLive && (
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-brand shrink-0"
-                  title={t('liveRate')}
-                />
-              )}
-              ≈ {trip.homeCurrency} {costInHomeCurrency.toLocaleString()}
-            </div>
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex items-center justify-between gap-2 text-[11px]">
-              <span className="text-faint truncate">{t('packingChecklist')}</span>
-              <span className={`text-muted shrink-0 ${money}`}>
-                {completedChecklist}/{totalChecklist}
-              </span>
-            </div>
-            <div className="w-full bg-mist rounded-full h-1.5 mt-2.5 overflow-hidden">
-              <div
-                className="bg-brand h-full rounded-full transition-all duration-500"
-                style={{ width: `${checklistPercent}%` }}
-              />
-            </div>
-            <div className={`text-[11px] text-muted mt-1.5 ${money}`}>{checklistPercent}%</div>
-          </div>
-        </div>
       </div>
     </div>
   );

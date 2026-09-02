@@ -11,7 +11,7 @@ export type ActivityCategory =
 
 // Role of THIS browser's user for a given trip.
 // 'admin'  — trip creator/organizer: full control
-// 'member' — invited traveler: basic edits (activities, checklist ticks, expenses)
+// 'member' — invited traveler: edits the plan and logs expenses
 // 'viewer' — read-only guest
 export type TripRole = 'admin' | 'member' | 'viewer';
 
@@ -41,12 +41,10 @@ export interface ActivityItem {
   category: ActivityCategory;
   locationName: string;
   locationAddress?: string;
-  thaiAddress?: string; // Local language taxi card address (e.g. Thai)
   googleMapsUrl?: string;
   cost?: number; // in destination currency (e.g. THB)
   currency?: string;
   notes?: string;
-  booked?: boolean;
   assignedTravelerIds?: string[];
   photoUrl?: string;
   transportToNext?: TransportSuggestion;
@@ -78,23 +76,6 @@ export interface ExpenseItem {
   date: string;
   paidByTravelerId: string;
   splitWithTravelerIds: string[];
-}
-
-export interface ChecklistItem {
-  id: string;
-  category: 'Essentials' | 'Documents & Money' | 'Electronics' | 'Clothes' | 'Toiletries & Medicine' | 'Bangkok Specific';
-  title: string;
-  completed: boolean;
-  assignedTo?: string;
-}
-
-export interface TaxiCard {
-  id: string;
-  nameEnglish: string;
-  nameThai: string;
-  thaiAddress: string;
-  nearestStation?: string; // BTS / MRT station
-  noteForDriver?: string;
 }
 
 /**
@@ -135,8 +116,6 @@ export interface Trip {
   travelers: Traveler[];
   days: DaySchedule[];
   expenses: ExpenseItem[];
-  checklist: ChecklistItem[];
-  taxiCards: TaxiCard[];
   /** Optional shared cash pot. Absent on trips created before it existed. */
   kitty?: TripKitty;
   shareSettings: ShareSettings;

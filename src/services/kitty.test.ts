@@ -23,8 +23,6 @@ const baseTrip = (expenses: ExpenseItem[], kitty?: Partial<Trip['kitty']>): Trip
     ],
     days: [],
     expenses,
-    checklist: [],
-    taxiCards: [],
     kitty: {
       enabled: true,
       perPerson: 300,

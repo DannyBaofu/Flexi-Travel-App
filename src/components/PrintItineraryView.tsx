@@ -74,9 +74,6 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
                         {act.cost ? ` (${act.cost.toLocaleString()} ${trip.currency})` : ''}
                       </div>
                       {act.locationName && <div className="text-muted">{act.locationName}</div>}
-                      {act.thaiAddress && (
-                        <div className="thai-display font-medium">{act.thaiAddress}</div>
-                      )}
                       {act.notes && <div className="text-muted mt-0.5">{act.notes}</div>}
                       {act.transportToNext && (
                         <div className="text-muted mt-0.5 font-medium">
@@ -93,26 +90,6 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
           );
         })}
       </div>
-
-      {trip.taxiCards && trip.taxiCards.length > 0 && (
-        <section className={`border-t-2 ${RULE} pt-4 break-before-page`}>
-          <h2 className="text-xl font-bold mb-3">{t('printTaxiCards')}</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {trip.taxiCards.map((card) => (
-              <div key={card.id} className={`border ${RULE} p-3 rounded break-inside-avoid`}>
-                <div className="font-bold text-sm">{card.nameEnglish}</div>
-                <div className="thai-display text-base font-bold my-1">{card.nameThai}</div>
-                <div className="thai-display text-xs text-muted">{card.thaiAddress}</div>
-                {card.nearestStation && (
-                  <div className="text-[11px] text-muted mt-1">
-                    {t('printStation')}: {card.nearestStation}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 };

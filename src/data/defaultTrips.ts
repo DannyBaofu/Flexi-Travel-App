@@ -48,7 +48,7 @@ export function createNewTrip(title: string, destination: string, country: strin
     homeCurrency: 'MYR',
     exchangeRate: 1,
     travelers: [
-      { id: 't1', name: 'You (Organizer)', avatarColor: '#10b981', isOwner: true }
+      { id: 't1', name: 'You (Organizer)', avatarColor: '#3930DB', isOwner: true }
     ],
     shareSettings: {
       isPublic: true,
@@ -57,8 +57,6 @@ export function createNewTrip(title: string, destination: string, country: strin
     },
     days,
     expenses: [],
-    checklist: [],
-    taxiCards: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };

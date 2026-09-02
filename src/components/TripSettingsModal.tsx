@@ -148,7 +148,6 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Bangkok Adventure"
               className={input}
               required
             />
@@ -161,7 +160,6 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 type="text"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                placeholder="e.g. Bangkok"
                 className={input}
                 required
               />
@@ -172,7 +170,6 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 type="text"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                placeholder="e.g. Thailand"
                 className={input}
                 required
               />
@@ -221,7 +218,6 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 type="text"
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                placeholder="THB"
                 className={`${inputMono} uppercase`}
                 required
               />
@@ -244,7 +240,6 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 step="any"
                 value={exchangeRate}
                 onChange={(e) => setExchangeRate(Number(e.target.value))}
-                placeholder="35.5"
                 className={inputMono}
                 required
               />
@@ -313,7 +308,6 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
             type="url"
             value={coverImage}
             onChange={(e) => setCoverImage(e.target.value)}
-            placeholder="https://images.unsplash.com/..."
             className={`${input} break-all`}
           />
 

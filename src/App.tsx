@@ -8,12 +8,10 @@ import { Navbar } from './components/Navbar';
 import { TripBanner } from './components/TripBanner';
 import { ItineraryView } from './components/ItineraryView';
 import { BudgetTracker } from './components/BudgetTracker';
-import { ChecklistTab } from './components/ChecklistTab';
 import { ActivityModal } from './components/ActivityModal';
 import { ShareModal } from './components/ShareModal';
 import { TripSettingsModal } from './components/TripSettingsModal';
 import { NewTripModal } from './components/NewTripModal';
-import { TaxiCardsModal } from './components/TaxiCardsModal';
 import { PasscodePromptModal } from './components/PasscodePromptModal';
 import { PrintItineraryView } from './components/PrintItineraryView';
 import { PhrasesTab } from './components/PhrasesTab';
@@ -62,13 +60,11 @@ export function App() {
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<TabId>('itinerary');
-  const [rateIsLive, setRateIsLive] = useState(false);
 
   // Modals
   const [isNewTripModalOpen, setIsNewTripModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isTaxiCardsModalOpen, setIsTaxiCardsModalOpen] = useState(false);
 
   // Activity Modal (Add / Edit)
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
@@ -254,14 +250,10 @@ export function App() {
 
   // Refresh the exchange rate from free mid-market APIs (12h cached)
   useEffect(() => {
-    if (!activeTrip || role === 'viewer') {
-      setRateIsLive(false);
-      return;
-    }
+    if (!activeTrip || role === 'viewer') return;
     let cancelled = false;
     fetchLiveRate(activeTrip.homeCurrency, activeTrip.currency).then((liveRate) => {
       if (cancelled || !liveRate) return;
-      setRateIsLive(true);
       const rounded = Math.round(liveRate * 100) / 100;
       const current = activeTrip.exchangeRate || 0;
       if (Math.abs(current - rounded) / rounded > 0.001) {
@@ -321,10 +313,6 @@ export function App() {
       return;
     }
     setPendingJoinCode(code);
-  };
-
-  const handleShowTaxiAddress = () => {
-    setIsTaxiCardsModalOpen(true);
   };
 
   // No trips at all. Offer both doors plainly: start one, or join a shared one.
@@ -409,7 +397,6 @@ export function App() {
         onOpenNewTripModal={() => setIsNewTripModalOpen(true)}
         onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
         onOpenShareModal={() => setIsShareModalOpen(true)}
-        onOpenTaxiCardsModal={() => setIsTaxiCardsModalOpen(true)}
         onPrint={() => window.print()}
         role={role}
         cloudEnabled={isCloudEnabled}
@@ -443,7 +430,6 @@ export function App() {
           trip={activeTrip}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           role={role}
-          rateIsLive={rateIsLive}
         />
 
         <TopTabs active={activeTab} onChange={setActiveTab} />
@@ -456,22 +442,12 @@ export function App() {
             onUpdateTrip={handleUpdateTrip}
             onOpenAddActivityModal={handleOpenAddActivity}
             onOpenEditActivityModal={handleOpenEditActivity}
-            onShowTaxiAddress={handleShowTaxiAddress}
             role={role}
           />
         )}
 
         {activeTab === 'budget' && (
           <BudgetTracker
-            key={activeTrip.id}
-            trip={activeTrip}
-            onUpdateTrip={handleUpdateTrip}
-            role={role}
-          />
-        )}
-
-        {activeTab === 'checklist' && (
-          <ChecklistTab
             key={activeTrip.id}
             trip={activeTrip}
             onUpdateTrip={handleUpdateTrip}
@@ -526,15 +502,6 @@ export function App() {
         isOpen={isNewTripModalOpen}
         onClose={() => setIsNewTripModalOpen(false)}
         onCreateTrip={handleCreateTrip}
-      />
-
-      <TaxiCardsModal
-        key={activeTrip.id}
-        isOpen={isTaxiCardsModalOpen}
-        onClose={() => setIsTaxiCardsModalOpen(false)}
-        trip={activeTrip}
-        onUpdateTrip={handleUpdateTrip}
-        role={role}
       />
 
       <AuthModal

@@ -3,11 +3,9 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   Copy,
   Check,
-  Lock,
   Share2,
   Download,
   Upload,
-  Smartphone,
   Eye,
   Edit3,
   Crown,
@@ -23,9 +21,7 @@ import {
   btnSecondary,
   btnSecondarySm,
   inputMono,
-  label,
   chipBrand,
-  chipPlain,
   card,
   money
 } from './ui';
@@ -39,15 +35,17 @@ interface ShareModalProps {
   onImportTrip: (importedTrip: Trip) => void;
 }
 
-// QR codes cap out around 2953 bytes at level L; leave headroom.
-const QR_MAX_URL_LENGTH = 2800;
-
-// Past roughly this length a URL stops surviving the round trip through
-// messaging apps and address bars, so we warn instead of letting it fail quietly.
-const MESSAGING_SAFE_URL_LENGTH = 2000;
-
 const sectionHeading = 'text-[11px] font-semibold text-faint uppercase tracking-wider';
 
+/**
+ * Sharing is now one short invite link and nothing else.
+ *
+ * The old snapshot link packed the whole trip into the URL — thousands of
+ * characters, no QR, and it sent a frozen copy that never synced back. With
+ * cloud sync on, an invite link is ~35 characters and stays live, so the
+ * snapshot is not worth the confusion of offering both. Snapshot links that
+ * were already sent still open fine; the app just stops making new ones.
+ */
 export const ShareModal: React.FC<ShareModalProps> = ({
   isOpen,
   onClose,
@@ -63,11 +61,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
-  const [usePin, setUsePin] = useState(false);
-  const [pinCode, setPinCode] = useState('');
-  const [shareUrl, setShareUrl] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
 
@@ -76,54 +69,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      const generated = sharingService.generateShareUrl(trip, {
-        role: effectiveShareRole,
-        pin: usePin ? pinCode : undefined
-      });
-      setShareUrl(generated);
-      setCopied(false);
-      setCopyError(false);
-      setImportError(null);
-      setImportSuccess(false);
       setInviteUrl('');
       setInviteError(null);
       setInviteCopied(false);
+      setImportError(null);
+      setImportSuccess(false);
     }
-  }, [isOpen, trip, effectiveShareRole, usePin, pinCode]);
-
-  const qrFits = shareUrl.length > 0 && shareUrl.length <= QR_MAX_URL_LENGTH;
-  const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setCopyError(false);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      // Clipboard API can fail (older iOS Safari, permissions) — fall back
-      try {
-        const el = document.createElement('textarea');
-        el.value = shareUrl;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      } catch {
-        setCopyError(true);
-      }
-    }
-  };
-
-  const handleNativeShare = async () => {
-    try {
-      await navigator.share({ title: trip.title, url: shareUrl });
-    } catch {
-      // User cancelled or share failed — nothing to do
-    }
-  };
+  }, [isOpen, trip, effectiveShareRole]);
 
   const handleCreateInvite = async () => {
     setInviteBusy(true);
@@ -143,7 +95,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       await navigator.clipboard.writeText(inviteUrl);
       setInviteCopied(true);
       setTimeout(() => setInviteCopied(false), 2500);
-    } catch { /* ignore */ }
+    } catch {
+      // Clipboard can be blocked; the link is on screen and selectable anyway
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,8 +108,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     reader.onload = (event) => {
       try {
         const content = event.target?.result as string;
-        const parsed = sharingService.importFromJson(content);
-        onImportTrip(parsed);
+        onImportTrip(sharingService.importFromJson(content));
         setImportSuccess(true);
         setImportError(null);
         setTimeout(() => onClose(), 1200);
@@ -189,7 +142,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       }
     >
       <div className="p-5 space-y-6">
-        {/* ---- Who the link lets in ---- */}
+        {/* ---- What the link lets them do ---- */}
         <section className="space-y-3">
           <h3 className={sectionHeading}>{t('sharingPermissions')}</h3>
 
@@ -228,19 +181,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           )}
         </section>
 
-        {/* ---- Invite link: the short one, and the one to reach for ---- */}
-        {cloudMode && isAdmin && (
+        {/* ---- The invite link ---- */}
+        {cloudMode ? (
           <section className="space-y-3 pt-5 border-t border-hairline">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className={sectionHeading}>{t('inviteSection')}</h3>
-              <span className={chipBrand}>{t('inviteRecommended')}</span>
-            </div>
+            <h3 className={sectionHeading}>{t('inviteSection')}</h3>
             <p className="text-xs text-muted leading-relaxed">{t('inviteHint')}</p>
 
             {inviteUrl ? (
               <div className={`${card} p-4 space-y-3`}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={chipPlain}>{t('inviteShortBadge', { n: inviteUrl.length })}</span>
+                  <span className={chipBrand}>{t('inviteShortBadge', { n: inviteUrl.length })}</span>
                   <span className="text-xs text-muted">
                     {t('inviteCodeLabel')}:{' '}
                     <span className={`font-bold text-ink tracking-[0.14em] select-all ${money}`}>
@@ -269,6 +219,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                 <p className="text-[11px] text-faint leading-relaxed">{t('inviteCodeHint')}</p>
 
                 <div className="flex flex-wrap items-center gap-3 pt-1">
+                  {/* Short enough to scan, unlike the snapshot link ever was */}
                   <div className="bg-paper p-2 rounded-control border border-hairline shrink-0">
                     <QRCodeSVG value={inviteUrl} size={104} level="M" />
                   </div>
@@ -287,110 +238,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               <p className="px-3 py-2.5 bg-clay-tint rounded-control text-xs text-clay">{inviteError}</p>
             )}
           </section>
-        )}
-
-        {!cloudMode && (
+        ) : (
           <p className="px-3 py-2.5 bg-gilt-tint rounded-control text-xs text-gilt leading-relaxed flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
             <span>{isCloudEnabled ? t('inviteRequiresLogin') : t('cloudOffNotice')}</span>
           </p>
         )}
-
-        {/* ---- Snapshot link ---- */}
-        <section className="space-y-3 pt-5 border-t border-hairline">
-          <h3 className={sectionHeading}>{cloudMode ? t('snapshotSection') : t('shareableLink')}</h3>
-          <p className="text-xs text-muted leading-relaxed">{t('snapshotIsCopy')}</p>
-
-          {shareUrl.length > MESSAGING_SAFE_URL_LENGTH && (
-            <p className="px-3 py-2.5 bg-gilt-tint rounded-control text-xs text-gilt leading-relaxed flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
-              <span>{t('snapshotLengthWarn', { n: shareUrl.length })}</span>
-            </p>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              type="text"
-              readOnly
-              value={shareUrl}
-              onFocus={(e) => e.currentTarget.select()}
-              className={`${inputMono} flex-1 min-w-0 bg-mist text-muted select-all`}
-            />
-            <div className="flex gap-2 shrink-0">
-              <button
-                onClick={handleCopyLink}
-                className={`${copied ? btnSecondary : btnPrimary} flex-1 sm:flex-none`}
-              >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copied ? t('copied') : t('copyLink')}
-              </button>
-              {canNativeShare && (
-                <button onClick={handleNativeShare} className={`${btnSecondary} flex-1 sm:flex-none`}>
-                  <Share2 className="w-4 h-4" /> {t('nativeShare')}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {copyError && (
-            <p className="px-3 py-2.5 bg-gilt-tint rounded-control text-xs text-gilt">{t('copyFailed')}</p>
-          )}
-
-          {/* A passcode only ever protects a snapshot — an invite link's
-              access is decided by the cloud, not the URL. */}
-          <div className="pt-1">
-            <label className="flex items-center justify-between gap-3 cursor-pointer">
-              <span className="flex items-center gap-2 text-sm text-ink">
-                <Lock className={`w-4 h-4 shrink-0 ${usePin ? 'text-gilt' : 'text-faint'}`} />
-                {t('requirePin')}
-              </span>
-              <span className="relative inline-flex shrink-0">
-                <input
-                  type="checkbox"
-                  checked={usePin}
-                  onChange={(e) => setUsePin(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <span className="w-10 h-6 bg-hairline rounded-full peer-checked:bg-brand transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-paper after:rounded-full after:h-5 after:w-5 after:transition-transform peer-checked:after:translate-x-4" />
-              </span>
-            </label>
-
-            {usePin && (
-              <div className="mt-3">
-                <label className={label}>{t('setPasscode')}</label>
-                <input
-                  type="password"
-                  maxLength={8}
-                  value={pinCode}
-                  onChange={(e) => setPinCode(e.target.value)}
-                  placeholder={t('pinPlaceholder')}
-                  className={`${inputMono} sm:w-64 tracking-[0.25em]`}
-                />
-                <p className="text-[11px] text-faint mt-1.5 leading-relaxed">{t('pinHint')}</p>
-              </div>
-            )}
-          </div>
-
-          {qrFits ? (
-            <div className={`${card} p-4 flex flex-col sm:flex-row items-center gap-4`}>
-              <div className="bg-paper p-2 rounded-control border border-hairline shrink-0">
-                <QRCodeSVG value={shareUrl} size={104} level="L" />
-              </div>
-              <div className="space-y-1.5 text-center sm:text-left">
-                <div className="text-sm font-semibold text-ink flex items-center justify-center sm:justify-start gap-1.5">
-                  <Smartphone className="w-4 h-4 text-muted" /> {t('scanWithPhone')}
-                </div>
-                <p className="text-xs text-muted leading-relaxed">{t('qrHint')}</p>
-                <span className={chipPlain}>{t('worksOffline')}</span>
-              </div>
-            </div>
-          ) : (
-            <p className="px-3 py-2.5 bg-mist rounded-control text-xs text-muted leading-relaxed flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-px text-gilt" />
-              <span>{t('qrTooLong')}</span>
-            </p>
-          )}
-        </section>
 
         {/* ---- Backup ---- */}
         <section className="space-y-3 pt-5 border-t border-hairline">

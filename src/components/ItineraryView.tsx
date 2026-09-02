@@ -8,8 +8,6 @@ import {
   Copy,
   ArrowUp,
   ArrowDown,
-  Check,
-  Languages,
   Search,
   ChevronDown,
   X,
@@ -40,7 +38,6 @@ interface ItineraryViewProps {
   onUpdateTrip: (updatedTrip: Trip) => void;
   onOpenAddActivityModal: (dayId: string) => void;
   onOpenEditActivityModal: (dayId: string, activity: ActivityItem) => void;
-  onShowTaxiAddress: (thaiAddress: string, title: string) => void;
   role: TripRole;
 }
 
@@ -90,7 +87,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   onUpdateTrip,
   onOpenAddActivityModal,
   onOpenEditActivityModal,
-  onShowTaxiAddress,
   role
 }) => {
   const { lang, t } = useI18n();
@@ -124,20 +120,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
       }
       return next;
     });
-  };
-
-  const handleToggleBooked = (dayId: string, activityId: string) => {
-    if (isReadOnly) return;
-    const updatedDays = trip.days.map((day) => {
-      if (day.id !== dayId) return day;
-      return {
-        ...day,
-        activities: day.activities.map((act) =>
-          act.id === activityId ? { ...act, booked: !act.booked } : act
-        )
-      };
-    });
-    onUpdateTrip({ ...trip, days: updatedDays });
   };
 
   const handleMoveActivity = (dayId: string, activityIndex: number, direction: 'up' | 'down') => {
@@ -447,21 +429,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                     {activity.cost.toLocaleString()} {trip.currency}
                                   </span>
                                 )}
-
-                                {/* Booked never rests on colour alone — there is a tick */}
-                                <button
-                                  type="button"
-                                  disabled={isReadOnly}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleBooked(day.id, activity.id);
-                                  }}
-                                  className={`${activity.booked ? chipGilt : chipPlain} ${isReadOnly ? '' : 'hover:opacity-80'} transition`}
-                                  title={activity.booked ? t('markPending') : t('markBooked')}
-                                >
-                                  <Check className={`w-3 h-3 ${activity.booked ? '' : 'opacity-40'}`} />
-                                  {activity.booked ? t('bookedChip') : t('notBookedChip')}
-                                </button>
                               </div>
                             </div>
 
@@ -479,20 +446,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                               )}
 
                               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
-                                {activity.thaiAddress && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onShowTaxiAddress(activity.thaiAddress!, activity.title);
-                                    }}
-                                    className={`${chipGilt} py-1.5`}
-                                    title={t('thaiTaxiCard')}
-                                  >
-                                    <Languages className="w-3.5 h-3.5" />
-                                    {t('thaiTaxiCard')}
-                                  </button>
-                                )}
-
                                 {activity.googleMapsUrl && (
                                   <a
                                     href={activity.googleMapsUrl}

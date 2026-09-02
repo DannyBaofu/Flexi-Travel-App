@@ -38,7 +38,15 @@ function purgeSeededSample(trips: Trip[]): Trip[] {
 // default (switched off) on read so every code path downstream can rely on the
 // field being there.
 function backfillKitty(trips: Trip[]): Trip[] {
-  return trips.map(trip => (trip.kitty ? trip : { ...trip, kitty: resolveKitty(trip) }));
+  return trips.map(trip => {
+    // Packing lists and taxi cards were removed from the app; trips saved
+    // while they existed still carry the arrays, so shed them here rather
+    // than letting dead data ride along in every cloud push and export.
+    const { checklist: _checklist, taxiCards: _taxiCards, ...rest } =
+      trip as Trip & { checklist?: unknown; taxiCards?: unknown };
+    const cleaned = rest as Trip;
+    return cleaned.kitty ? cleaned : { ...cleaned, kitty: resolveKitty(cleaned) };
+  });
 }
 
 export const storageService = {

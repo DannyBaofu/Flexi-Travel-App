@@ -11,14 +11,9 @@ const dict: Record<string, Entry> = {
   appTagline: { zh: '旅行行程规划', en: 'Travel Itinerary Planner' },
   tabItinerary: { zh: '每日行程', en: 'Day-by-Day Schedule' },
   tabBudget: { zh: '预算与分账', en: 'Budget & Expense Splitter' },
-  tabChecklist: { zh: '行李清单', en: 'Packing & Checklist' },
-  showTaxiCards: { zh: '出示打车卡', en: 'Show Taxi Cards' },
 
   // ---- Navbar ----
-  newTrip: { zh: '新建行程', en: 'New Trip' },
   createNewTrip: { zh: '创建新行程', en: 'Create New Trip' },
-  taxiCards: { zh: '打车卡', en: 'Taxi Cards' },
-  showDriverTaxiCards: { zh: '向司机出示打车卡', en: 'Show Driver Taxi Cards' },
   printTitle: { zh: '打印行程或保存为 PDF', en: 'Print Itinerary or Save as PDF' },
   tripSettings: { zh: '行程设置', en: 'Trip Settings' },
   shareTrip: { zh: '分享行程', en: 'Share Trip' },
@@ -31,12 +26,8 @@ const dict: Record<string, Entry> = {
   // ---- Trip banner ----
   customizeTrip: { zh: '自定义行程', en: 'Customize Trip' },
   travelers: { zh: '{n} 位旅伴', en: '{n} Travelers' },
-  totalDuration: { zh: '总天数', en: 'Total Duration' },
   daysNights: { zh: '{d} 天 {n} 夜', en: '{d} Days / {n} Nights' },
-  scheduledActivities: { zh: '已安排活动', en: 'Scheduled Activities' },
   events: { zh: '{n} 项', en: '{n} Events' },
-  estimatedBudget: { zh: '预算估算', en: 'Estimated Budget' },
-  packingChecklist: { zh: '行李清单', en: 'Packing & Checklist' },
 
   // ---- Itinerary view ----
   dayN: { zh: '第 {n} 天', en: 'Day {n}' },
@@ -46,13 +37,9 @@ const dict: Record<string, Entry> = {
   singleDayView: { zh: '单日视图', en: 'Single Day View' },
   searchPlaceholder: { zh: '搜索地点、美食、寺庙…', en: 'Search places, foods, temples...' },
   all: { zh: '全部', en: 'All' },
-  dayEstCost: { zh: '当日预计花费', en: 'Day Estimated Cost' },
   addActivity: { zh: '添加活动', en: 'Add Activity' },
-  mealsCount: { zh: '{n} 餐', en: '{n} meals' },
-  mealCountOne: { zh: '1 餐', en: '1 meal' },
   filteredItems: { zh: '筛选结果：{n} 项', en: 'Filtered: {n} items' },
   tips: { zh: '小贴士', en: 'Tips' },
-  thaiTaxiCard: { zh: '泰文打车卡', en: 'Thai Taxi Card' },
   googleMaps: { zh: '谷歌地图', en: 'Google Maps' },
   moveEarlier: { zh: '上移', en: 'Move Earlier' },
   moveLater: { zh: '下移', en: 'Move Later' },
@@ -62,11 +49,7 @@ const dict: Record<string, Entry> = {
   noActivities: { zh: '当日没有符合筛选条件的活动。', en: 'No scheduled activities matching filters for this day.' },
   addFirstActivity: { zh: '添加第一个活动', en: 'Add First Activity' },
   confirmDeleteActivity: { zh: '确定要从行程中删除此活动吗？', en: 'Delete this activity from your schedule?' },
-  markBooked: { zh: '标记为已预订 / 已完成', en: 'Mark as booked/completed' },
-  markPending: { zh: '标记为待定', en: 'Mark as pending' },
   // Short enough to sit in a chip on a 375px row
-  bookedChip: { zh: '已预订', en: 'Booked' },
-  notBookedChip: { zh: '未预订', en: 'Not booked' },
 
   // ---- Transport connector ----
   approxMinutes: { zh: '约 {n} 分钟', en: '~{n} min' },
@@ -81,14 +64,10 @@ const dict: Record<string, Entry> = {
   mode_airportRail: { zh: '机场快线', en: 'Airport Rail Link' },
 
   // ---- Budget tracker ----
-  totalGroupSpent: { zh: '团队总支出', en: 'Total Group Spent' },
-  perPersonAverage: { zh: '人均支出', en: 'Per Person Average' },
   splitEvenly: { zh: '平均分摊给 {n} 位旅伴', en: 'Split evenly across {n} travelers' },
-  quickAction: { zh: '快捷操作', en: 'Quick Action' },
   closeForm: { zh: '收起表单', en: 'Close Form' },
   logNewExpense: { zh: '记一笔支出', en: 'Log New Expense' },
   viewingSharedLedger: { zh: '正在查看共享账本', en: 'Viewing shared expense ledger' },
-  addTravelExpense: { zh: '添加旅行支出', en: 'Add Travel Expense' },
   expenseAmountQ: { zh: '花了多少？', en: 'How much?' },
   expenseWhatFor: { zh: '这笔是什么？', en: 'What was it for?' },
   expenseNoteOptional: { zh: '备注（可选）', en: 'Note (optional)' },
@@ -97,9 +76,7 @@ const dict: Record<string, Entry> = {
   expensePaidByYou: { zh: '你付的', en: 'You paid' },
   expensePaidByOther: { zh: '{name} 付的', en: '{name} paid' },
   expenseYesterday: { zh: '昨天', en: 'Yesterday' },
-  expenseSplitEveryone: { zh: '全员分摊', en: 'Split with everyone' },
   youLabel: { zh: '你', en: 'You' },
-  rateLabel: { zh: '汇率', en: 'Rate' },
   category: { zh: '类别', en: 'Category' },
   date: { zh: '日期', en: 'Date' },
   paidBy: { zh: '付款人', en: 'Paid By' },
@@ -112,29 +89,14 @@ const dict: Record<string, Entry> = {
   individualBalances: { zh: '个人余额', en: 'Individual Balances' },
   categoryBreakdown: { zh: '类别明细', en: 'Category Breakdown' },
   expenseHistory: { zh: '支出记录', en: 'Expense History' },
-  paidByLabel: { zh: '付款人', en: 'Paid by' },
   splitByN: { zh: '{n} 人分摊', en: 'Split by {n}' },
   deleteExpense: { zh: '删除支出', en: 'Delete Expense' },
   noExpensesYet: { zh: '还没有记过支出。', en: 'No expenses logged yet.' },
 
   // ---- Checklist ----
-  checklistTitle: { zh: '行前准备与打包', en: 'Pre-Trip & Packing Readiness' },
-  checklistHint: { zh: '出发前确认证件、e-SIM、曼谷穿搭与必需品都已备齐！', en: 'Ensure travel documents, e-SIM, Bangkok outfits, and essentials are ready before departure!' },
-  packedCount: { zh: '已备好 {done} / {total} 项', en: '{done} of {total} packed' },
-  addItem: { zh: '添加物品', en: 'Add Item' },
-  checklistPlaceholder: { zh: '添加新物品（如：雨伞、泰铢现金、充电宝）…', en: 'Add new item (e.g. Umbrella, Extra THB cash, Power bank)...' },
-  noItemsInCategory: { zh: '此类别暂无物品。', en: 'No items in this category.' },
   deleteItem: { zh: '删除物品', en: 'Delete item' },
-  cat_documents: { zh: '证件与钱财', en: 'Documents & Money' },
-  cat_electronics: { zh: '电子产品', en: 'Electronics' },
-  cat_clothes: { zh: '衣物', en: 'Clothes' },
-  cat_toiletries: { zh: '洗漱与药品', en: 'Toiletries & Medicine' },
-  cat_bangkok: { zh: '曼谷专属', en: 'Bangkok Specific' },
-  cat_essentials: { zh: '必需品', en: 'Essentials' },
 
   // ---- Expand/collapse ----
-  expandAll: { zh: '全部展开', en: 'Expand All' },
-  collapseAll: { zh: '全部收起', en: 'Collapse All' },
 
   // ---- Document ----
   docTitle: { zh: 'TravelSync - 行程规划与分享', en: 'TravelSync - Customizable Trip Planner & Sharing' },
@@ -142,21 +104,12 @@ const dict: Record<string, Entry> = {
   // ---- Activity modal ----
   editActivity: { zh: '编辑活动', en: 'Edit Activity' },
   addNewActivity: { zh: '添加新活动', en: 'Add New Activity' },
-  activityModalSubtitle: { zh: '自定义详情、地图与当地地址', en: 'Customize details, maps, and local addresses' },
   daySchedule: { zh: '所属日程', en: 'Day Schedule' },
   time: { zh: '时间', en: 'Time' },
-  timePlaceholder: { zh: '例如 09:30 AM', en: 'e.g. 09:30 AM' },
   activityTitleLabel: { zh: '活动名称 *', en: 'Activity Title *' },
-  activityTitlePlaceholder: { zh: '例如：郑王庙（黎明寺）参观', en: 'e.g. Wat Arun (Temple of Dawn) Visit' },
   locationVenue: { zh: '地点 / 场所名称', en: 'Location / Venue Name' },
-  locationPlaceholder: { zh: '例如：Wat Arun Ratchawararam', en: 'e.g. Wat Arun Ratchawararam' },
-  thaiAddressLabel: { zh: '泰文地址 / 司机提示', en: 'Thai Address / Show Driver Note' },
-  thaiAddressHint: { zh: '方便向曼谷出租车 / Grab 司机出示', en: 'Useful to show Bangkok taxi/Grab drivers' },
-  gmapsLinkLabel: { zh: '谷歌地图链接（可选）', en: 'Google Maps Link (Optional)' },
   estCostLabel: { zh: '预计花费（{cur}）', en: 'Estimated Cost ({cur})' },
-  alreadyBooked: { zh: '已预订 / 已确认', en: 'Already Booked / Reserved' },
   notesTips: { zh: '备注、小贴士与提醒', en: 'Notes, Tips & Reminders' },
-  notesPlaceholder: { zh: '例如：着装要求需遮盖肩膀和膝盖。下午阳光强，记得带伞。', en: 'e.g. Dress code: covered shoulders and knees. Bring umbrella for afternoon sun.' },
   saveChanges: { zh: '保存修改', en: 'Save Changes' },
 
   // ---- New trip modal ----
@@ -174,20 +127,10 @@ const dict: Record<string, Entry> = {
   safeShare: { zh: '安全分享给朋友', en: 'Safe Share with Friends' },
   shareSubtitle: { zh: '即时分享链接，支持 PIN 密码锁与离线二维码', en: 'Instant share link with PIN lock & offline QR code' },
   sharingPermissions: { zh: '分享权限与安全', en: 'Sharing Permissions & Security' },
-  collabEdit: { zh: '协作编辑', en: 'Collaborative Edit' },
-  collabEditDesc: { zh: '朋友可以自定义和添加活动', en: 'Friends can customize & add activities' },
   viewerReadOnly: { zh: '仅查看（只读）', en: 'Viewer (Read-Only)' },
   viewerDesc: { zh: '朋友只能查看行程和地图', en: 'Friends can only view schedule & maps' },
-  requirePin: { zh: '需要 PIN 密码', en: 'Require PIN / Passcode' },
-  setPasscode: { zh: '设置 4 位密码（例如 2026）', en: 'Set a 4-digit Passcode (e.g. 2026)' },
-  pinPlaceholder: { zh: '输入给朋友的 PIN 码', en: 'Enter PIN code for friends' },
-  pinHint: { zh: '朋友需要输入此密码才能解锁行程。', en: 'Friends will be prompted for this code to unlock the itinerary.' },
-  shareableLink: { zh: '可分享的网页链接', en: 'Shareable Web Link' },
   copied: { zh: '已复制！', en: 'Copied!' },
   copyLink: { zh: '复制链接', en: 'Copy Link' },
-  scanWithPhone: { zh: '用手机相机扫码', en: 'Scan with Mobile Phone Camera' },
-  qrHint: { zh: '朋友用 iPhone 或安卓手机相机对准此二维码，即可在手机浏览器中直接打开这份行程！', en: 'Friends can point their iPhone or Android camera at this QR code to instantly load this trip itinerary directly into their mobile browser!' },
-  worksOffline: { zh: '打开后可离线使用', en: 'Works offline once opened' },
   backupImport: { zh: '备份与导入行程', en: 'Backup & Import Itinerary' },
   exportJson: { zh: '导出行程 (.json)', en: 'Export Itinerary (.json)' },
   importJson: { zh: '导入行程 (.json)', en: 'Import Itinerary (.json)' },
@@ -195,24 +138,6 @@ const dict: Record<string, Entry> = {
   done: { zh: '完成', en: 'Done' },
 
   // ---- Taxi cards modal ----
-  taxiModalTitle: { zh: '出租车司机卡片', en: 'Show Taxi Driver Cards' },
-  bangkokTool: { zh: '曼谷旅行工具', en: 'Bangkok Travel Tool' },
-  taxiModalSubtitle: { zh: '大字泰文卡片，轻松向司机展示目的地', en: 'Large Thai text flashcards to easily communicate destinations to drivers' },
-  destCards: { zh: '目的地卡片', en: 'Destination Cards' },
-  addPlace: { zh: '添加地点', en: 'Add Place' },
-  noTaxiCards: { zh: '暂无打车卡。', en: 'No taxi cards yet.' },
-  handyPhrases: { zh: '常用打车泰语', en: 'Handy Taxi Phrases' },
-  addCustomCard: { zh: '添加自定义打车卡', en: 'Add Custom Taxi Card' },
-  placeNameEn: { zh: '地点名称（英文）', en: 'Place Name (English)' },
-  placeNameTh: { zh: '地点名称（泰文）', en: 'Place Name (Thai Script)' },
-  fullThaiAddress: { zh: '完整泰文地址 / 地标', en: 'Full Thai Address / Landmark' },
-  nearestStationLabel: { zh: '最近的 BTS / MRT 站', en: 'Nearest BTS / MRT Station' },
-  noteForDriverLabel: { zh: '给司机的提示', en: 'Note for Driver' },
-  saveCard: { zh: '保存卡片', en: 'Save Card' },
-  tapFullscreen: { zh: '在手机上全屏展示', en: 'Tap or show full-screen on mobile phone' },
-  taxiTip: { zh: '提示：可直接向曼谷的 Grab、Bolt、嘟嘟车或计价出租车司机出示此卡。', en: 'Tip: Show this card directly to Grab, Bolt, Tuk-tuk or Metered Taxi drivers in Bangkok.' },
-  deleteCard: { zh: '删除卡片', en: 'Delete Card' },
-  selectOrAdd: { zh: '在左侧选择目的地，或添加新的打车卡。', en: 'Select a destination on the left or add a new taxi card.' },
 
   // ---- Trip settings modal ----
   tripSettingsTitle: { zh: '行程设置与自定义', en: 'Trip Settings & Customization' },
@@ -243,13 +168,8 @@ const dict: Record<string, Entry> = {
   // ---- Print view ----
   printTravelers: { zh: '旅伴', en: 'Travelers' },
   printCurrency: { zh: '货币', en: 'Currency' },
-  printTaxiCards: { zh: '🚕 曼谷出租车卡片（出示给司机）', en: '🚕 Bangkok Taxi Flashcards for Drivers' },
-  printStation: { zh: '车站', en: 'Station' },
 
   // ---- Roles ----
-  roleAdmin: { zh: '管理员', en: 'Admin' },
-  roleMember: { zh: '旅伴', en: 'Member' },
-  roleViewer: { zh: '访客', en: 'Viewer' },
   memberBanner: {
     zh: '旅伴模式 · 可添加活动、记支出、勾清单',
     en: 'Member · add activities, log expenses, tick items'
@@ -259,9 +179,6 @@ const dict: Record<string, Entry> = {
   shareAsMember: { zh: '旅伴（基础编辑）', en: 'Member (Basic Edits)' },
   shareAsMemberDesc: { zh: '可编辑活动、勾选清单、记录支出', en: 'Can edit activities, tick checklists, log expenses' },
   memberShareNote: { zh: '只有管理员可以创建可编辑的分享链接，您可以分享只读链接。', en: 'Only the admin can create editable share links. You can share a read-only link.' },
-  qrTooLong: { zh: '行程内容较多，超出二维码容量。请使用「复制链接」或「系统分享」发送给朋友。', en: 'This trip is too large for a QR code. Use "Copy Link" or "Share via…" instead.' },
-  nativeShare: { zh: '系统分享…', en: 'Share via…' },
-  copyFailed: { zh: '复制失败，请长按链接手动复制。', en: 'Copy failed — long-press the link to copy it manually.' },
 
   // ---- Cloud sync & auth ----
   signIn: { zh: '登录', en: 'Sign In' },
@@ -289,7 +206,6 @@ const dict: Record<string, Entry> = {
   authConfirmEmailOn: { zh: '账号已建立，但云端仍要求邮箱验证。请组织者到 Supabase 后台关闭 Confirm email。', en: 'Account created, but the cloud still requires email confirmation. Ask the organizer to turn off "Confirm email" in Supabase.' },
   authFailed: { zh: '登录失败：{msg}', en: 'Sign-in failed: {msg}' },
   confirmSignOut: { zh: '确定退出登录？退出后将回到本地模式。', en: 'Sign out? You will return to local-only mode.' },
-  cloudOn: { zh: '云同步已开启', en: 'Cloud sync on' },
   inviteSection: { zh: '实时协作邀请（云同步）', en: 'Live Collaboration Invite (Cloud)' },
   createInviteBtn: { zh: '创建邀请链接', en: 'Create Invite Link' },
   creatingInvite: { zh: '创建中…', en: 'Creating…' },
@@ -298,20 +214,10 @@ const dict: Record<string, Entry> = {
   joiningTrip: { zh: '正在加入行程…', en: 'Joining trip…' },
   joinFailed: { zh: '加入行程失败：{msg}', en: 'Failed to join trip: {msg}' },
   joinNeedsCloud: { zh: '这个邀请链接需要云同步，但本站尚未启用云同步。', en: 'This invite link needs cloud sync, which is not enabled on this site yet.' },
-  snapshotSection: { zh: '快照分享（离线，无需登录）', en: 'Snapshot Share (offline, no login needed)' },
-  inviteRecommended: { zh: '推荐', en: 'Recommended' },
   inviteShortBadge: { zh: '短链接 · {n} 个字符', en: 'Short link · {n} characters' },
   inviteCodeLabel: { zh: '邀请码', en: 'Invite code' },
   inviteCodeHint: { zh: '朋友也可以直接输入这个邀请码，不一定要点链接。', en: 'Friends can also type this code in instead of tapping the link.' },
   inviteNewLink: { zh: '再建一个邀请链接', en: 'Create another invite link' },
-  snapshotLengthWarn: {
-    zh: '这条快照链接有 {n} 个字符，WhatsApp、iMessage 或浏览器可能会截断它，二维码也放不下。要稳定分享，请登录后使用上方的短邀请链接。',
-    en: 'This snapshot link is {n} characters long. WhatsApp, iMessage or the browser may cut it off, and it will not fit in a QR code. For reliable sharing, sign in and use the short invite link above.'
-  },
-  snapshotIsCopy: {
-    zh: '快照链接发出去的是一份副本：朋友之后的修改不会同步回你这里，你的修改也不会传给他们。',
-    en: 'A snapshot link sends a frozen copy: your friends’ later edits never reach you, and yours never reach them.'
-  },
   cloudOffNotice: {
     zh: '云同步尚未启用，所以目前只能用长快照链接分享，而且行程只保存在这台设备的浏览器里。',
     en: 'Cloud sync is not set up yet, so sharing only works through long snapshot links and trips are stored only in this browser.'
@@ -322,25 +228,20 @@ const dict: Record<string, Entry> = {
   phrasesHint: { zh: '直接把泰文大字出示给当地人看也可以！小贴士：男生句尾加 "krap (ครับ)"、女生加 "ka (ค่ะ)" 更有礼貌。', en: 'You can simply show the big Thai text to locals! Tip: men end sentences with "krap (ครับ)", women with "ka (ค่ะ)" to be polite.' },
 
   // ---- Live exchange rate ----
-  liveRate: { zh: '实时', en: 'live' },
 
   // ---- Empty state ----
   emptyTitle: { zh: '还没有行程', en: 'No trips yet' },
   emptyHint: { zh: '创建你的第一个行程，开始安排每天的活动、预算和行李清单。', en: 'Create your first trip to start planning days, budget and packing.' },
   createFirstTrip: { zh: '创建第一个行程', en: 'Create Your First Trip' },
-  noChecklistItems: { zh: '清单还是空的，在上方添加第一项。', en: 'Your checklist is empty — add your first item above.' },
 
   // ---- Bottom tab bar (short labels — four across a 375px screen) ----
   tabItineraryShort: { zh: '行程', en: 'Plan' },
   tabBudgetShort: { zh: '预算', en: 'Budget' },
-  tabChecklistShort: { zh: '清单', en: 'Packing' },
   tabPhrasesShort: { zh: '泰语', en: 'Thai' },
 
   // ---- Shared controls ----
   close: { zh: '关闭', en: 'Close' },
   more: { zh: '更多', en: 'More' },
-  showMore: { zh: '展开', en: 'more' },
-  showLess: { zh: '收起', en: 'less' },
 
   // ---- Invite code entry on the first screen ----
   haveInviteCode: { zh: '朋友给了你邀请码？', en: 'Got an invite code from a friend?' },
@@ -351,7 +252,6 @@ const dict: Record<string, Entry> = {
   // ---- Itinerary ----
   todayBadge: { zh: '今天', en: 'Today' },
   dayTotalLabel: { zh: '当日合计', en: 'Day total' },
-  filterLabel: { zh: '筛选', en: 'Filter' },
   clearFilter: { zh: '清除筛选', en: 'Clear filter' },
 
   // ---- Budget: the personal answer comes first ----
@@ -372,7 +272,6 @@ const dict: Record<string, Entry> = {
   showToLocal: { zh: '出示给对方看', en: 'Show this to them' },
 
   // ---- Shared cash pot ----
-  kittyTitle: { zh: '公共基金', en: 'Shared fund' },
   kittyStart: { zh: '开一个公共基金', en: 'Start a shared fund' },
   kittyStartHint: { zh: '大家先各交一笔钱交给一个人保管，餐费直接从里面出。', en: 'Everyone hands one person the same amount up front, and spending comes out of the pot.' },
   kittyRemaining: { zh: '基金还剩', en: 'Left in the fund' },
@@ -395,6 +294,15 @@ const dict: Record<string, Entry> = {
   kittyWhoPaidIn: { zh: '谁已经交了', en: 'Who has handed it over' },
   kittyTurnOff: { zh: '关闭基金', en: 'Turn off the fund' },
   kittyConfirmOff: { zh: '关闭公共基金？之前由基金支付的支出会回到大家分摊。', en: 'Turn off the shared fund? Expenses it covered will go back to being split.' },
+
+  // ---- Place suggestions ----
+  noPlacesFound: { zh: '没有找到地点，直接输入名字也可以。', en: 'No places found — you can just type the name.' },
+
+  // ---- Personal spending (kept apart from the shared fund) ----
+  personalSection: { zh: '我的花费', en: 'My spending' },
+  personalPickHint: { zh: '选一下你是谁，就能看到你的花费', en: 'Pick who you are to see your own spending' },
+  personalPaidOut: { zh: '你垫付的', en: 'You paid out' },
+  personalYourShare: { zh: '你应分摊', en: 'Your share' },
 
   // ---- Shared trip / passcode ----
   sharedTrip: { zh: '共享行程', en: 'Shared Trip' }

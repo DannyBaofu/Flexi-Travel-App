@@ -46,10 +46,14 @@ Import `btnPrimary` / `input` / `card` / `Modal` rather than re-typing class
 strings. Indigo is scarce on purpose — **one primary button per screen**; a
 second one means neither answers "what do I do here".
 
-**Colour never carries meaning alone.** Booked shows a tick *and* a chip; money
-owed shows a direction arrow *and* a sentence, never just a sign or a hue.
-Anything tappable is at least 44px, and the four tabs live at the *bottom* on
-phones (`BottomTabs`) and at the top from `sm:` up (`TopTabs`).
+**Colour never carries meaning alone.** Money owed shows a direction arrow *and*
+a sentence, never just a sign or a hue. Anything tappable is at least 44px, and
+the three tabs live at the *bottom* on phones (`BottomTabs`) and at the top from
+`sm:` up (`TopTabs`).
+
+**No sample text in inputs.** Placeholders that read `e.g. Bangkok` were removed
+on purpose — the label says what the field is, and a fake example is one more
+thing to read past.
 
 **Permissions follow one rule:** additive or reversible actions belong to
 `member`; destructive or structural ones belong to `admin`. So members add and
@@ -74,21 +78,33 @@ Piping Python through a bash heredoc breaks on the Thai and Chinese strings in
 this repo (`unexpected EOF`). Write patch scripts to the scratchpad directory and
 run them by path.
 
-`oxlint` reports four pre-existing warnings: `react(set-state-in-effect)` in
+`oxlint` reports five known warnings: `react(set-state-in-effect)` in
 `ActivityModal`, `ShareModal` and `TripSettingsModal` (each syncs form state to a
-prop when the modal opens), plus `react(only-export-components)` in `i18n.tsx`.
-They are not part of shipping. Git's `LF will be replaced by CRLF` warnings on
+prop when the modal opens), the same rule in `LocationInput` (a debounced fetch,
+which is exactly the external-system case the rule carves out), plus
+`react(only-export-components)` in `i18n.tsx`. They are not part of shipping. Git's `LF will be replaced by CRLF` warnings on
 this Windows machine are harmless noise.
 
 The itinerary opens on **today** when the trip is running and on day 1 otherwise
 — day index is the day offset from `trip.startDate`, so it needs no new field.
 
-Share links come in two kinds: **cloud invites** (`/j/AB3F7K`, ~35 chars,
-requires sign-in, grants a role) and **snapshot links** (the whole trip
-LZ-compressed into the URL hash, works offline). A realistic 6-day trip makes a
-~13,000-character snapshot URL, so the QR only renders below a length threshold
-and a warning appears past ~2,000 characters. Invite links are the answer to
-"make the link shorter" — compression tuning is not.
+**The bundle roughly doubles once the Supabase keys are set**, ~350kB to ~550kB.
+That is not a regression: without keys `isCloudEnabled` folds to `false` at build
+time and the bundler tree-shakes all of `@supabase/supabase-js` away. Compare
+like for like before chasing a size jump.
+
+Sharing is **one short cloud invite** (`/j/AB3F7K`, ~35 chars, requires sign-in,
+grants a role), and only an admin ever sees the button. The old snapshot link —
+the whole trip LZ-compressed into the URL hash, ~13,000 characters for a 6-day
+trip — is no longer generated; `sharing.ts` still *parses* incoming ones so links
+already sent keep working, and `PasscodePromptModal` still exists for the PIN
+they could carry.
+
+**Location suggestions come from Photon** (`placeSearch.ts`), an OpenStreetMap
+geocoder built for type-ahead. Nominatim is the better-known OSM endpoint but its
+usage policy forbids autocomplete, so it is the wrong tool. No API key, no
+billing. Requests are debounced 450ms and need 3+ characters; the trip
+destination is appended to bias results to the right city.
 
 Invites live at a **path**, not a hash, which is why `vite.config.ts` must keep
 `base: '/'`. A relative base makes `/j/AB3F7K` request `/j/assets/...`, Vercel's
@@ -102,8 +118,11 @@ off** — `signUpWithId` detects that case and throws `CONFIRM_EMAIL_ON`. Show
 
 ## Data model notes
 
-A `Trip` holds `days[] → activities[]`, plus `expenses`, `checklist`, and
-`taxiCards`. `myRole` on a Trip is local-only — it describes *this browser's*
+A `Trip` holds `days[] → activities[]`, plus `expenses` and the optional
+`kitty`. Packing checklists, taxi cards, Thai addresses and the booked flag were
+all removed; `getTrips()` sheds the dead `checklist` / `taxiCards` arrays from
+older saved trips so they stop riding along in every cloud push and export.
+`myRole` on a Trip is local-only — it describes *this browser's*
 permission and is stripped before the trip is stored or shared.
 
 Two other things are deliberately *not* on the Trip, for the same reason: the UI

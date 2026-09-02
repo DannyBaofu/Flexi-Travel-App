@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, Check, Languages, Globe, CalendarPlus } from 'lucide-react';
+import { MapPin, Clock, CalendarPlus } from 'lucide-react';
 import type { ActivityItem, ActivityCategory, DaySchedule, Trip } from '../types/travel';
 import { categoryMetaMap } from '../utils/categoryHelpers';
+import { mapsUrlFor, type PlaceSuggestion } from '../services/placeSearch';
 import { useI18n, translateWeekday } from '../utils/i18n';
 import { Modal, btnPrimary, btnGhost, input, inputMono, select, label } from './ui';
+import { LocationInput } from './LocationInput';
 
 interface ActivityModalProps {
   isOpen: boolean;
@@ -24,16 +26,14 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
 }) => {
   const { lang, t } = useI18n();
   const [selectedDayId, setSelectedDayId] = useState(currentDayId);
-  const [time, setTime] = useState('10:00 AM');
+  const [time, setTime] = useState('10:00');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<ActivityCategory>('sightseeing');
   const [locationName, setLocationName] = useState('');
   const [locationAddress, setLocationAddress] = useState('');
-  const [thaiAddress, setThaiAddress] = useState('');
   const [googleMapsUrl, setGoogleMapsUrl] = useState('');
   const [cost, setCost] = useState<number | ''>(0);
   const [notes, setNotes] = useState('');
-  const [booked, setBooked] = useState(false);
 
   useEffect(() => {
     if (activityToEdit) {
@@ -42,48 +42,45 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setCategory(activityToEdit.category);
       setLocationName(activityToEdit.locationName);
       setLocationAddress(activityToEdit.locationAddress || '');
-      setThaiAddress(activityToEdit.thaiAddress || '');
       setGoogleMapsUrl(activityToEdit.googleMapsUrl || '');
       setCost(activityToEdit.cost !== undefined ? activityToEdit.cost : 0);
       setNotes(activityToEdit.notes || '');
-      setBooked(Boolean(activityToEdit.booked));
     } else {
-      setTime('10:00 AM');
+      setTime('10:00');
       setTitle('');
       setCategory('sightseeing');
       setLocationName('');
       setLocationAddress('');
-      setThaiAddress('');
       setGoogleMapsUrl('');
       setCost(0);
       setNotes('');
-      setBooked(false);
     }
     setSelectedDayId(currentDayId);
   }, [activityToEdit, currentDayId, isOpen]);
+
+  /** Picking a suggestion fills the address and an exact map pin for free. */
+  const handlePickPlace = (place: PlaceSuggestion) => {
+    setLocationName(place.name);
+    setLocationAddress(place.address);
+    setGoogleMapsUrl(mapsUrlFor(place));
+    if (!title.trim()) setTitle(place.name);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    let mapsUrl = googleMapsUrl.trim();
-    if (!mapsUrl && locationName.trim()) {
-      mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(locationName.trim() + ' ' + trip.destination)}`;
-    }
-
     const activity: ActivityItem = {
       id: activityToEdit ? activityToEdit.id : `act-${Date.now()}`,
-      time: time.trim() || '12:00 PM',
+      time: time.trim() || '12:00',
       title: title.trim(),
       category,
       locationName: locationName.trim() || title.trim(),
       locationAddress: locationAddress.trim() || undefined,
-      thaiAddress: thaiAddress.trim() || undefined,
-      googleMapsUrl: mapsUrl || undefined,
+      googleMapsUrl: googleMapsUrl.trim() || undefined,
       cost: cost === '' ? 0 : Number(cost),
       currency: trip.currency,
-      notes: notes.trim() || undefined,
-      booked
+      notes: notes.trim() || undefined
     };
 
     onSave(selectedDayId, activity);
@@ -95,7 +92,6 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={activityToEdit ? t('editActivity') : t('addNewActivity')}
-      subtitle={t('activityModalSubtitle')}
       icon={<CalendarPlus className="w-5 h-5" />}
       closeLabel={t('close')}
       size="md"
@@ -111,10 +107,41 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       }
     >
       <form id="activity-form" onSubmit={handleSubmit} className="p-5 space-y-4">
+        <div>
+          <label className={label} htmlFor="activity-title">{t('activityTitleLabel')}</label>
+          <input
+            id="activity-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className={input}
+            required
+          />
+        </div>
+
+        {/* Type a place, pick it off the list, and the address and map link
+            come with it. Typing freely still works. */}
+        <div>
+          <label className={`${label} flex items-center gap-1.5`} htmlFor="activity-location">
+            <MapPin className="w-3.5 h-3.5" /> {t('locationVenue')}
+          </label>
+          <LocationInput
+            id="activity-location"
+            value={locationName}
+            onChange={setLocationName}
+            onPick={handlePickPlace}
+            near={trip.destination}
+          />
+          {locationAddress && (
+            <p className="text-[11px] text-muted mt-1.5 leading-relaxed">{locationAddress}</p>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className={label}>{t('daySchedule')}</label>
+            <label className={label} htmlFor="activity-day">{t('daySchedule')}</label>
             <select
+              id="activity-day"
               value={selectedDayId}
               onChange={(e) => setSelectedDayId(e.target.value)}
               className={select}
@@ -128,14 +155,14 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           </div>
 
           <div>
-            <label className={`${label} flex items-center gap-1.5`}>
+            <label className={`${label} flex items-center gap-1.5`} htmlFor="activity-time">
               <Clock className="w-3.5 h-3.5" /> {t('time')}
             </label>
             <input
-              type="text"
+              id="activity-time"
+              type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              placeholder={t('timePlaceholder')}
               className={input}
               required
             />
@@ -143,19 +170,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
         </div>
 
         <div>
-          <label className={label}>{t('activityTitleLabel')}</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t('activityTitlePlaceholder')}
-            className={input}
-            required
-          />
-        </div>
-
-        <div>
-          <label className={label}>{t('category')}</label>
+          <span className={label}>{t('category')}</span>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {(Object.keys(categoryMetaMap) as ActivityCategory[]).map((catKey) => {
               const meta = categoryMetaMap[catKey];
@@ -166,6 +181,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                   type="button"
                   key={catKey}
                   onClick={() => setCategory(catKey)}
+                  aria-pressed={isSelected}
                   className={`flex items-center gap-2 px-2.5 py-2.5 rounded-control text-xs font-medium border transition ${
                     isSelected
                       ? 'bg-brand-tint border-brand-tint text-brand'
@@ -182,89 +198,29 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           </div>
         </div>
 
-        <div className="space-y-3">
-          <div>
-            <label className={`${label} flex items-center gap-1.5`}>
-              <MapPin className="w-3.5 h-3.5" /> {t('locationVenue')}
-            </label>
-            <input
-              type="text"
-              value={locationName}
-              onChange={(e) => setLocationName(e.target.value)}
-              placeholder={t('locationPlaceholder')}
-              className={input}
-            />
-          </div>
-
-          <div>
-            <label className={`${label} flex items-center gap-1.5`}>
-              <Languages className="w-3.5 h-3.5 text-gilt" /> {t('thaiAddressLabel')}
-            </label>
-            <input
-              type="text"
-              value={thaiAddress}
-              onChange={(e) => setThaiAddress(e.target.value)}
-              placeholder="e.g. วัดอรุณราชวราราม (ถนนวังเดิม)"
-              className={`${input} thai-display`}
-            />
-            <p className="text-[11px] text-faint mt-1.5 leading-relaxed">{t('thaiAddressHint')}</p>
-          </div>
-
-          <div>
-            <label className={`${label} flex items-center gap-1.5`}>
-              <Globe className="w-3.5 h-3.5" /> {t('gmapsLinkLabel')}
-            </label>
-            <input
-              type="url"
-              value={googleMapsUrl}
-              onChange={(e) => setGoogleMapsUrl(e.target.value)}
-              placeholder="https://maps.google.com/..."
-              className={`${input} break-all`}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-          <div>
-            <label className={label}>{t('estCostLabel', { cur: trip.currency })}</label>
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={cost}
-              onChange={(e) => setCost(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="0"
-              className={inputMono}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setBooked(!booked)}
-            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-control border text-sm font-medium transition ${
-              booked
-                ? 'bg-gilt-tint border-gilt/25 text-gilt'
-                : 'bg-paper border-hairline text-muted hover:bg-mist'
-            }`}
-          >
-            <span
-              className={`w-5 h-5 rounded-[6px] border flex items-center justify-center shrink-0 ${
-                booked ? 'bg-gilt border-gilt text-white' : 'bg-paper border-hairline text-transparent'
-              }`}
-            >
-              <Check className="w-3.5 h-3.5" />
-            </span>
-            {t('alreadyBooked')}
-          </button>
+        <div>
+          <label className={label} htmlFor="activity-cost">
+            {t('estCostLabel', { cur: trip.currency })}
+          </label>
+          <input
+            id="activity-cost"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            value={cost}
+            onChange={(e) => setCost(e.target.value === '' ? '' : Number(e.target.value))}
+            className={inputMono}
+          />
         </div>
 
         <div>
-          <label className={label}>{t('notesTips')}</label>
+          <label className={label} htmlFor="activity-notes">{t('notesTips')}</label>
           <textarea
+            id="activity-notes"
             rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder={t('notesPlaceholder')}
             className={`${input} resize-none`}
           />
         </div>

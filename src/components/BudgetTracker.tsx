@@ -10,7 +10,8 @@ import {
   Check,
   ChevronDown,
   PiggyBank,
-  Sliders
+  Sliders,
+  UserRound
 } from 'lucide-react';
 import type { Trip, ExpenseItem, ActivityCategory, TripRole, TripKitty } from '../types/travel';
 import { computeKitty, resolveKitty } from '../services/kitty';
@@ -97,6 +98,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   // Payer, date and split all have good defaults, so they stay folded away.
   const [showMore, setShowMore] = useState(false);
   const [kittyEditing, setKittyEditing] = useState(false);
+  const [personalOpen, setPersonalOpen] = useState(false);
   const [meId, setMeId] = useState<string>(() => readMe(trip.id));
 
   const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
@@ -160,6 +162,22 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   }
 
   const getTravelerName = (id: string) => trip.travelers.find(tv => tv.id === id)?.name || 'Unknown';
+
+  // What this trip has cost *you*, on the same basis as the balance above:
+  // pot-covered bills are excluded, since your share of those was the amount
+  // you handed the holder at the start.
+  let myPaid = 0;
+  let myShare = 0;
+  if (meId) {
+    (trip.expenses || []).forEach(exp => {
+      if (kittyState.coveredIds.has(exp.id)) return;
+      if (exp.paidByTravelerId === meId) myPaid += exp.amount;
+      const splitters = exp.splitWithTravelerIds && exp.splitWithTravelerIds.length > 0
+        ? exp.splitWithTravelerIds
+        : trip.travelers.map(tv => tv.id);
+      if (splitters.includes(meId)) myShare += exp.amount / splitters.length;
+    });
+  }
 
   const effectivePaidBy = paidBy || meId || trip.travelers[0]?.id || '';
 
@@ -235,102 +253,123 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   const myBalance = meId ? Math.round(balances[meId] || 0) : 0;
   const mySettlements = meId ? settlements.filter(s => s.from === meId || s.to === meId) : [];
 
-  return (
-    <div className="space-y-4">
-      {/* ---- Hero: what do I owe, or what am I owed ---- */}
-      {showPersonal && (
-        <div className={`${card} p-4 sm:p-5`}>
-          {!meId ? (
-            <div className="space-y-3">
-              <div>
-                <h2 className="text-base font-semibold text-ink">{t('whoAreYou')}</h2>
-                <p className="text-xs text-muted mt-0.5 leading-relaxed">{t('pickYourselfHint')}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {trip.travelers.map(tv => (
-                  <button
-                    key={tv.id}
-                    onClick={() => pickMe(tv.id)}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-control border border-hairline bg-paper hover:bg-mist text-sm font-medium text-ink transition"
-                  >
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />
-                    {tv.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-[11px] text-faint">{t('yourBalance')}</div>
+  const personalBody = (
+    <>
+      {!meId ? (
+        <div className="space-y-3">
+          <div>
+            <h2 className="text-base font-semibold text-ink">{t('whoAreYou')}</h2>
+            <p className="text-xs text-muted mt-0.5 leading-relaxed">{t('pickYourselfHint')}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {trip.travelers.map(tv => (
+              <button
+                key={tv.id}
+                onClick={() => pickMe(tv.id)}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-control border border-hairline bg-paper hover:bg-mist text-sm font-medium text-ink transition"
+              >
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />
+                {tv.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] text-faint">{t('yourBalance')}</div>
 
-                  {/* Direction is carried by an arrow and a sentence, never
-                      by the colour or the sign alone. */}
-                  {myBalance > 0 ? (
-                    <>
-                      <div className="flex items-center gap-1.5 text-brand mt-0.5">
-                        <ArrowDownLeft className="w-4 h-4 shrink-0" />
-                        <span className="text-sm font-semibold">{t('youAreOwed')}</span>
-                      </div>
-                      <div className={`text-2xl font-semibold text-ink mt-1 ${money}`}>
-                        {myBalance.toLocaleString()} {trip.currency}
-                      </div>
-                      <div className={`text-xs text-muted ${money}`}>
-                        ≈ {trip.homeCurrency} {toHome(myBalance)}
-                      </div>
-                    </>
-                  ) : myBalance < 0 ? (
-                    <>
-                      <div className="flex items-center gap-1.5 text-clay mt-0.5">
-                        <ArrowUpRight className="w-4 h-4 shrink-0" />
-                        <span className="text-sm font-semibold">{t('youOwe')}</span>
-                      </div>
-                      <div className={`text-2xl font-semibold text-ink mt-1 ${money}`}>
-                        {Math.abs(myBalance).toLocaleString()} {trip.currency}
-                      </div>
-                      <div className={`text-xs text-muted ${money}`}>
-                        ≈ {trip.homeCurrency} {toHome(Math.abs(myBalance))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-muted mt-1">
-                      <Check className="w-4 h-4 shrink-0" />
-                      <span className="text-sm font-semibold">{t('youAreSettled')}</span>
-                    </div>
-                  )}
-                </div>
-
-                <button onClick={() => setMeId('')} className="text-xs text-faint hover:text-ink underline shrink-0">
-                  {t('changePerson')}
-                </button>
-              </div>
-
-              {/* Settlement lines read as sentences, not a matrix */}
-              {mySettlements.length > 0 && (
-                <div className="space-y-1.5 pt-3 border-t border-hairline">
-                  {mySettlements.map((s, idx) => {
-                    const theyPayMe = s.to === meId;
-                    return (
-                      <div key={idx} className="flex items-center justify-between gap-3 text-sm">
-                        <span className="text-muted min-w-0 truncate">
-                          {theyPayMe
-                            ? t('settleTheyPayYou', { name: getTravelerName(s.from) })
-                            : t('settleYouPay', { name: getTravelerName(s.to) })}
-                        </span>
-                        <span className={`font-semibold shrink-0 ${theyPayMe ? 'text-brand' : 'text-clay'} ${money}`}>
-                          {s.amount.toLocaleString()} {trip.currency}
-                        </span>
-                      </div>
-                    );
-                  })}
+              {/* Direction is carried by an arrow and a sentence, never
+                  by the colour or the sign alone. */}
+              {myBalance > 0 ? (
+                <>
+                  <div className="flex items-center gap-1.5 text-brand mt-0.5">
+                    <ArrowDownLeft className="w-4 h-4 shrink-0" />
+                    <span className="text-sm font-semibold">{t('youAreOwed')}</span>
+                  </div>
+                  <div className={`text-2xl font-semibold text-ink mt-1 ${money}`}>
+                    {myBalance.toLocaleString()} {trip.currency}
+                  </div>
+                  <div className={`text-xs text-muted ${money}`}>
+                    ≈ {trip.homeCurrency} {toHome(myBalance)}
+                  </div>
+                </>
+              ) : myBalance < 0 ? (
+                <>
+                  <div className="flex items-center gap-1.5 text-clay mt-0.5">
+                    <ArrowUpRight className="w-4 h-4 shrink-0" />
+                    <span className="text-sm font-semibold">{t('youOwe')}</span>
+                  </div>
+                  <div className={`text-2xl font-semibold text-ink mt-1 ${money}`}>
+                    {Math.abs(myBalance).toLocaleString()} {trip.currency}
+                  </div>
+                  <div className={`text-xs text-muted ${money}`}>
+                    ≈ {trip.homeCurrency} {toHome(Math.abs(myBalance))}
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-1.5 text-muted mt-1">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span className="text-sm font-semibold">{t('youAreSettled')}</span>
                 </div>
               )}
+            </div>
+
+            <button onClick={() => setMeId('')} className="text-xs text-faint hover:text-ink underline shrink-0">
+              {t('changePerson')}
+            </button>
+          </div>
+
+          {/* What you actually put in, and what the trip cost you */}
+          <div className="grid grid-cols-2 gap-4 pt-3 border-t border-hairline">
+            <div className="min-w-0">
+              <div className="text-[11px] text-faint">{t('personalPaidOut')}</div>
+              <div className={`text-sm font-semibold text-ink mt-0.5 ${money}`}>
+                {Math.round(myPaid).toLocaleString()} {trip.currency}
+              </div>
+              <div className={`text-[11px] text-muted ${money}`}>
+                ≈ {trip.homeCurrency} {toHome(myPaid)}
+              </div>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] text-faint">{t('personalYourShare')}</div>
+              <div className={`text-sm font-semibold text-ink mt-0.5 ${money}`}>
+                {Math.round(myShare).toLocaleString()} {trip.currency}
+              </div>
+              <div className={`text-[11px] text-muted ${money}`}>
+                ≈ {trip.homeCurrency} {toHome(myShare)}
+              </div>
+            </div>
+          </div>
+
+          {/* Settlement lines read as sentences, not a matrix */}
+          {mySettlements.length > 0 && (
+            <div className="space-y-1.5 pt-3 border-t border-hairline">
+              {mySettlements.map((s, idx) => {
+                const theyPayMe = s.to === meId;
+                return (
+                  <div key={idx} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-muted min-w-0 truncate">
+                      {theyPayMe
+                        ? t('settleTheyPayYou', { name: getTravelerName(s.from) })
+                        : t('settleYouPay', { name: getTravelerName(s.to) })}
+                    </span>
+                    <span className={`font-semibold shrink-0 ${theyPayMe ? 'text-brand' : 'text-clay'} ${money}`}>
+                      {s.amount.toLocaleString()} {trip.currency}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
       )}
+    </>
+  );
 
+  return (
+    <div className="space-y-4">
       {/* ---- Shared pot: "have we still got food money?" ---- */}
       {kittyState.enabled ? (
         <div className={`${card} p-4 sm:p-5 space-y-3.5`}>
@@ -447,7 +486,6 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                   step="any"
                   defaultValue={kitty.perPerson || ''}
                   onBlur={(e) => updateKitty({ perPerson: Number(e.target.value) || 0 })}
-                  placeholder="300"
                   className={`${input} ${money}`}
                 />
               </div>
@@ -564,6 +602,44 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         </button>
       ) : null}
 
+      {/* ---- Personal spending: opened on demand, deliberately kept
+              apart from the pot above so the two never blur ---- */}
+      {showPersonal && (
+        <div className={card}>
+          <button
+            type="button"
+            onClick={() => setPersonalOpen(v => !v)}
+            aria-expanded={personalOpen}
+            className="w-full flex items-center justify-between gap-3 p-4 sm:p-5 text-left"
+          >
+            <span className="flex items-center gap-2.5 min-w-0">
+              <UserRound className="w-4 h-4 text-muted shrink-0" />
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-ink">{t('personalSection')}</span>
+                <span className="block text-xs text-muted mt-0.5 truncate">
+                  {!meId
+                    ? t('personalPickHint')
+                    : myBalance > 0
+                      ? t('youAreOwed')
+                      : myBalance < 0
+                        ? t('youOwe')
+                        : t('youAreSettled')}
+                </span>
+              </span>
+            </span>
+            <ChevronDown
+              className={`w-4 h-4 text-faint shrink-0 transition-transform ${personalOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {personalOpen && (
+            <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-hairline pt-4 animate-riseIn">
+              {personalBody}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ---- Group total: supporting detail, plus the add button ---- */}
       <div className={`${card} p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4`}>
         <div className="min-w-0">
@@ -605,7 +681,6 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                 autoFocus
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="0"
                 className={`flex-1 min-w-0 bg-transparent border-0 border-b-2 border-hairline focus:border-brand focus:outline-none text-3xl font-semibold text-ink py-1 ${money}`}
                 required
               />

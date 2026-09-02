@@ -80,7 +80,6 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
               type="text"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
-              placeholder="e.g. Bangkok"
               className={input}
               required
             />
@@ -91,7 +90,6 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
               type="text"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              placeholder="e.g. Thailand"
               className={input}
             />
           </div>
@@ -126,7 +124,6 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
             type="text"
             value={currency}
             onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-            placeholder="THB, JPY, EUR, USD..."
             className={`${inputMono} uppercase`}
           />
         </div>

@@ -3,7 +3,6 @@ import {
   Share2,
   Plus,
   Sliders,
-  Car,
   Printer,
   ChevronDown,
   LogIn,
@@ -25,7 +24,6 @@ interface NavbarProps {
   onOpenNewTripModal: () => void;
   onOpenSettingsModal: () => void;
   onOpenShareModal: () => void;
-  onOpenTaxiCardsModal: () => void;
   onPrint: () => void;
   role: TripRole;
   cloudEnabled: boolean;
@@ -45,7 +43,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenNewTripModal,
   onOpenSettingsModal,
   onOpenShareModal,
-  onOpenTaxiCardsModal,
   onPrint,
   role,
   cloudEnabled,
@@ -57,8 +54,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isAdmin = role === 'admin';
   const isReadOnly = role === 'viewer';
 
-  // Four controls is the ceiling for a phone top bar, so everything that
-  // is not language, taxi cards or share lives behind this one menu.
+  // Three controls is plenty for a phone top bar, so everything that is
+  // not language or share lives behind this one menu.
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -104,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <ChevronDown className="w-4 h-4 text-muted absolute right-2.5 pointer-events-none" />
           </div>
 
-          {/* Quick actions — language, taxi, menu, share */}
+          {/* Quick actions — language, menu, and share for the organiser */}
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
@@ -112,14 +109,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={lang === 'zh' ? 'Switch to English' : '切换为中文'}
             >
               {lang === 'zh' ? 'EN' : '中'}
-            </button>
-
-            <button
-              onClick={onOpenTaxiCardsModal}
-              className={`${iconBtn} text-gilt`}
-              title={t('showDriverTaxiCards')}
-            >
-              <Car className="w-[18px] h-[18px]" />
             </button>
 
             <div className="relative" ref={menuRef}>
@@ -180,13 +169,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            <button
-              onClick={onOpenShareModal}
-              className={iconBtnSolid}
-              title={t('shareTrip')}
-            >
-              <Share2 className="w-[18px] h-[18px]" />
-            </button>
+            {isAdmin && (
+              <button
+                onClick={onOpenShareModal}
+                className={iconBtnSolid}
+                title={t('shareTrip')}
+              >
+                <Share2 className="w-[18px] h-[18px]" />
+              </button>
+            )}
           </div>
         </div>
       </div>
