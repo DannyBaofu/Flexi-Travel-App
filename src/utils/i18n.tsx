@@ -48,7 +48,6 @@ const dict: Record<string, Entry> = {
   deleteActivity: { zh: '删除活动', en: 'Delete Activity' },
   noActivities: { zh: '当日没有符合筛选条件的活动。', en: 'No scheduled activities matching filters for this day.' },
   addFirstActivity: { zh: '添加第一个活动', en: 'Add First Activity' },
-  confirmDeleteActivity: { zh: '确定要从行程中删除此活动吗？', en: 'Delete this activity from your schedule?' },
   // Short enough to sit in a chip on a 375px row
 
   // ---- Transport connector ----
@@ -307,19 +306,14 @@ const dict: Record<string, Entry> = {
   // ---- Signing in from the first screen (a returning user has no navbar) ----
   emptyHaveAccount: { zh: '已经有账号？', en: 'Already have an account?' },
   emptySignIn: { zh: '登录取回你的行程', en: 'Sign in to get your trips back' },
-  emptySignedInAs: { zh: '已登录：{id}', en: 'Signed in as {id}' },
   emptyNoCloudTrips: { zh: '这个账号下还没有行程。', en: 'This account has no trips yet.' },
 
   // ---- Sync state ----
-  syncSaving: { zh: '正在同步…', en: 'Saving…' },
-  syncSaved: { zh: '已同步', en: 'Saved' },
   syncOffline: { zh: '离线 · 改动已存在本机', en: 'Offline · changes saved on this device' },
   syncFailed: { zh: '未同步到大家那里', en: 'Not saved to the group yet' },
   syncRetry: { zh: '重试', en: 'Retry' },
-  syncRetrying: { zh: '重试中…', en: 'Retrying…' },
 
   // ---- Days follow the dates ----
-  daysExtended: { zh: '行程天数已调整为 {n} 天。', en: 'The itinerary now has {n} days.' },
   daysKeptWarning: { zh: '有 {n} 天超出了新的日期范围，但里面还有活动，所以没有删除。请先把活动移走再缩短行程。', en: '{n} day(s) fall outside the new dates but still have activities, so they were kept. Move those activities first if you want the trip shorter.' },
 
   // ---- Undo instead of a confirm dialog ----

@@ -13,7 +13,8 @@ are set.
 
 ## Skills
 
-Three workflows are packaged in `.claude/skills/` — prefer them over improvising:
+Four workflows are packaged in `.claude/skills/` — prefer them over improvising:
+`checkup` (is the whole app healthy: local, live, Supabase, keep-alive, drift),
 `ship` (test → build → lint → commit → push → verify live), `i18n` (adding
 bilingual UI text), `mobile-check` (verifying 375px phone width).
 
