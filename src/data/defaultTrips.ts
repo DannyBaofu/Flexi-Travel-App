@@ -1,40 +1,17 @@
 import type { Trip } from '../types/travel';
+import { buildDays } from '../services/tripDays';
 
-export function createNewTrip(title: string, destination: string, country: string, startDate: string, endDate: string, currency: string = 'USD'): Trip {
-  // Parse date components explicitly to avoid the UTC-midnight shift of
-  // new Date('YYYY-MM-DD') pushing dates a day off in some timezones.
-  const parseLocalDate = (iso: string): Date | null => {
-    const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(iso);
-    if (!match) return null;
-    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  };
-  const validStart = parseLocalDate(startDate);
-  const validEnd = parseLocalDate(endDate);
-  const start = validStart || new Date();
-  let numDays = 3;
-  if (validStart && validEnd) {
-    const diffTime = Math.abs(validEnd.getTime() - validStart.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    numDays = diffDays < 1 ? 3 : Math.min(diffDays, 30);
-  }
-
-  const pad = (n: number) => String(n).padStart(2, '0');
-
-  const days = Array.from({ length: numDays }, (_, i) => {
-    const current = new Date(start);
-    current.setDate(start.getDate() + i);
-    const dayStr = current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const weekday = current.toLocaleDateString('en-US', { weekday: 'long' });
-
-    return {
-      id: `day-${i + 1}-${Date.now()}`,
-      dayNumber: i + 1,
-      dateString: `${current.getFullYear()}-${pad(current.getMonth() + 1)}-${pad(current.getDate())}`,
-      dayOfWeek: `${weekday} (${dayStr})`,
-      title: '',
-      activities: []
-    };
-  });
+export function createNewTrip(
+  title: string,
+  destination: string,
+  country: string,
+  startDate: string,
+  endDate: string,
+  currency: string = 'USD'
+): Trip {
+  // Day generation lives in tripDays.ts so that creating a trip and editing its
+  // dates later build days exactly the same way.
+  const days = buildDays(startDate, endDate);
 
   return {
     id: `trip-${Date.now()}`,

@@ -88,6 +88,19 @@ this Windows machine are harmless noise.
 The itinerary opens on **today** when the trip is running and on day 1 otherwise
 — day index is the day offset from `trip.startDate`, so it needs no new field.
 
+**Days follow the dates.** `reconcileDays` in `tripDays.ts` is the single place
+day lists are grown, trimmed, re-dated and renumbered, and both trip creation and
+the settings modal go through it. It never deletes a day that still has
+activities — losing an afternoon of planning to a mistyped date is far worse than
+carrying one spare day.
+
+**A remote update only merges when local is dirty.** `App.tsx` tracks the last
+unsent push; if there is one, an incoming realtime update goes through
+`mergeRemoteTrip` (union by id, keeping unsent work) instead of replacing the
+trip. When local is clean the remote copy replaces ours outright, which is what
+makes other people's *deletions* stick. Get that condition backwards and you
+either resurrect deleted rows forever or go back to silently eating edits.
+
 **The bundle roughly doubles once the Supabase keys are set**, ~350kB to ~550kB.
 That is not a regression: without keys `isCloudEnabled` folds to `false` at build
 time and the bundler tree-shakes all of `@supabase/supabase-js` away. Compare

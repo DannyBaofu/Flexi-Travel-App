@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
 /**
@@ -111,15 +111,54 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   footer
 }) => {
-  // Escape closes. Cheap, and every friend who has used any other app
-  // expects it.
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Escape closes, Tab stays inside, and focus goes back where it came from.
+  // Without the trap, keyboard and screen-reader users tab straight out into
+  // the page behind a dialog that is visually covering it.
   useEffect(() => {
     if (!isOpen) return;
+
+    const returnFocusTo = document.activeElement as HTMLElement | null;
+
+    const focusables = (): HTMLElement[] =>
+      Array.from(
+        panelRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      ).filter(el => el.offsetParent !== null);
+
+    // Respect an autoFocus already inside the dialog rather than fighting it
+    if (!panelRef.current?.contains(document.activeElement)) {
+      focusables()[0]?.focus();
+    }
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+
+      const items = focusables();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      returnFocusTo?.focus?.();
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -130,6 +169,7 @@ export const Modal: React.FC<ModalProps> = ({
       onClick={onClose}
     >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}

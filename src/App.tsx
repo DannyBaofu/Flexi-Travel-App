@@ -20,6 +20,9 @@ import type { TabId } from './components/TabBar';
 import { btnPrimary, btnSecondary, card, inputMono, label as labelCls } from './components/ui';
 import { AuthModal } from './components/AuthModal';
 import { useI18n } from './utils/i18n';
+import { mergeRemoteTrip } from './services/mergeTrip';
+import { SyncBar } from './components/SyncBar';
+import type { SyncState } from './components/SyncBar';
 import type { User } from '@supabase/supabase-js';
 import { fetchLiveRate } from './services/exchangeRate';
 import {
@@ -57,6 +60,12 @@ export function App() {
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const cloudMode = isCloudEnabled && !!user;
   const pushTimerRef = useRef<number | null>(null);
+
+  // A push that never landed is the app's worst failure: the local copy saved,
+  // so everything looks fine, and a later remote update can quietly overwrite
+  // it. Track it, show it, retry it.
+  const [syncState, setSyncState] = useState<SyncState>('idle');
+  const unsentTripRef = useRef<Trip | null>(null);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<TabId>('itinerary');
@@ -194,17 +203,47 @@ export function App() {
     storageService.setActiveTripId(tripId);
   };
 
+  // Push to the cloud, remembering the trip if it does not get there so the
+  // retry path and the remote-merge path both know local is ahead.
+  const pushTrip = async (trip: Trip) => {
+    unsentTripRef.current = trip;
+    setSyncState('saving');
+    try {
+      await upsertTripCloud(trip);
+      // Only clear if nothing newer queued up behind this push
+      if (unsentTripRef.current === trip) {
+        unsentTripRef.current = null;
+        setSyncState('saved');
+      }
+    } catch (err) {
+      console.error('Cloud push failed:', err);
+      setSyncState(navigator.onLine === false ? 'offline' : 'error');
+    }
+  };
+
+  const retryPush = () => {
+    const pending = unsentTripRef.current;
+    if (pending) void pushTrip(pending);
+  };
+
   // Update trip in state and local storage; mirror to cloud when signed in
   const handleUpdateTrip = (updatedTrip: Trip) => {
     const newTrips = storageService.saveTrip(updatedTrip);
     setTrips(newTrips);
     if (cloudMode && updatedTrip.myRole !== 'viewer') {
+      unsentTripRef.current = updatedTrip;
       if (pushTimerRef.current) window.clearTimeout(pushTimerRef.current);
-      pushTimerRef.current = window.setTimeout(() => {
-        upsertTripCloud(updatedTrip).catch(err => console.error('Cloud push failed:', err));
-      }, 600);
+      pushTimerRef.current = window.setTimeout(() => void pushTrip(updatedTrip), 600);
     }
   };
+
+  // Coming back online is the most likely moment for a stuck push to succeed
+  useEffect(() => {
+    const onOnline = () => retryPush();
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Create new trip
   const handleCreateTrip = (newTrip: Trip) => {
@@ -237,7 +276,13 @@ export function App() {
         if (current?.updatedAt && remoteTrip.updatedAt && remoteTrip.updatedAt <= current.updatedAt) {
           return prev;
         }
-        const merged: Trip = { ...remoteTrip, myRole: current?.myRole };
+        // If this browser is still holding an edit that never reached the
+        // server, take the remote copy but carry that work across; otherwise
+        // the remote copy is authoritative and replaces ours outright.
+        const hasUnsent = unsentTripRef.current?.id === remoteTrip.id;
+        const merged: Trip = hasUnsent && current
+          ? mergeRemoteTrip(current, remoteTrip)
+          : { ...remoteTrip, myRole: current?.myRole };
         const next = current
           ? prev.map(pt => (pt.id === remoteTrip.id ? merged : pt))
           : [merged, ...prev];
@@ -371,6 +416,28 @@ export function App() {
               <p className="text-xs text-muted mt-2">{t('joiningTrip')}</p>
             )}
           </form>
+
+          {isCloudEnabled && (
+            user ? (
+              <p className="text-xs text-muted text-center leading-relaxed">
+                {t('emptyNoCloudTrips')}
+                {' '}
+                <button onClick={handleSignOut} className="text-brand font-medium underline">
+                  {t('signOut')}
+                </button>
+              </p>
+            ) : (
+              <p className="text-xs text-muted text-center">
+                {t('emptyHaveAccount')}{' '}
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="text-brand font-medium underline"
+                >
+                  {t('emptySignIn')}
+                </button>
+              </p>
+            )
+          )}
         </div>
 
         <NewTripModal
@@ -404,6 +471,8 @@ export function App() {
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onSignOut={handleSignOut}
       />
+
+      {cloudMode && <SyncBar state={syncState} onRetry={retryPush} />}
 
       {(joinError || joinBlockedNoCloud) && (
         <div className="bg-clay-tint border-b border-clay/20 px-4 py-2 text-xs text-clay no-print flex items-center justify-center gap-3">

@@ -28,3 +28,8 @@ dist-ssr
 
 # Playwright MCP scratch output
 .playwright-mcp/
+
+# Stray browser-check screenshots
+*.png
+!src/assets/*.png
+!public/**/*.png

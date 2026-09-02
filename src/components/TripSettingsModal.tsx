@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Sliders, Calendar, DollarSign, Image, Users, Plus, Trash2 } from 'lucide-react';
 import type { Trip, Traveler } from '../types/travel';
 import { useI18n } from '../utils/i18n';
+import { reconcileDays } from '../services/tripDays';
 import {
   Modal,
   btnPrimary,
@@ -86,8 +87,18 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Days used to be generated once and never revisited, so changing the
+    // dates left the itinerary at its old length and each day carrying its
+    // old date. Reconcile, and say so when a planned day had to be kept.
+    const { days, keptWithActivities } = reconcileDays(trip.days || [], startDate, endDate);
+    if (keptWithActivities > 0) {
+      window.alert(t('daysKeptWarning', { n: keptWithActivities }));
+    }
+
     onSave({
       ...trip,
+      days,
       title: title.trim(),
       destination: destination.trim(),
       country: country.trim(),

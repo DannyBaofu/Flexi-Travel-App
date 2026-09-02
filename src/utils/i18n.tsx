@@ -231,7 +231,7 @@ const dict: Record<string, Entry> = {
 
   // ---- Empty state ----
   emptyTitle: { zh: '还没有行程', en: 'No trips yet' },
-  emptyHint: { zh: '创建你的第一个行程，开始安排每天的活动、预算和行李清单。', en: 'Create your first trip to start planning days, budget and packing.' },
+  emptyHint: { zh: '创建你的第一个行程，开始安排每天的活动和费用。', en: 'Create your first trip and start planning the days and the money.' },
   createFirstTrip: { zh: '创建第一个行程', en: 'Create Your First Trip' },
 
   // ---- Bottom tab bar (short labels — four across a 375px screen) ----
@@ -303,6 +303,24 @@ const dict: Record<string, Entry> = {
   personalPickHint: { zh: '选一下你是谁，就能看到你的花费', en: 'Pick who you are to see your own spending' },
   personalPaidOut: { zh: '你垫付的', en: 'You paid out' },
   personalYourShare: { zh: '你应分摊', en: 'Your share' },
+
+  // ---- Signing in from the first screen (a returning user has no navbar) ----
+  emptyHaveAccount: { zh: '已经有账号？', en: 'Already have an account?' },
+  emptySignIn: { zh: '登录取回你的行程', en: 'Sign in to get your trips back' },
+  emptySignedInAs: { zh: '已登录：{id}', en: 'Signed in as {id}' },
+  emptyNoCloudTrips: { zh: '这个账号下还没有行程。', en: 'This account has no trips yet.' },
+
+  // ---- Sync state ----
+  syncSaving: { zh: '正在同步…', en: 'Saving…' },
+  syncSaved: { zh: '已同步', en: 'Saved' },
+  syncOffline: { zh: '离线 · 改动已存在本机', en: 'Offline · changes saved on this device' },
+  syncFailed: { zh: '未同步到大家那里', en: 'Not saved to the group yet' },
+  syncRetry: { zh: '重试', en: 'Retry' },
+  syncRetrying: { zh: '重试中…', en: 'Retrying…' },
+
+  // ---- Days follow the dates ----
+  daysExtended: { zh: '行程天数已调整为 {n} 天。', en: 'The itinerary now has {n} days.' },
+  daysKeptWarning: { zh: '有 {n} 天超出了新的日期范围，但里面还有活动，所以没有删除。请先把活动移走再缩短行程。', en: '{n} day(s) fall outside the new dates but still have activities, so they were kept. Move those activities first if you want the trip shorter.' },
 
   // ---- Shared trip / passcode ----
   sharedTrip: { zh: '共享行程', en: 'Shared Trip' }
