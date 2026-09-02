@@ -147,11 +147,33 @@ you. Use the invite link unless you specifically need the offline copy.
 
 ## Keeping the free project awake
 
-Free Supabase projects pause after 7 days with no traffic. The repo already has
-`.github/workflows/supabase-keepalive.yml`, which pings the database every 3 days.
-To switch it on, add the same two values as **repository secrets** on GitHub:
+Free Supabase projects **pause after 7 consecutive days with no requests**. A
+paused project keeps all its data, but it stops answering until you restore it
+by hand from the dashboard — which is a bad thing to discover mid-trip.
 
-GitHub repo → **Settings** → **Secrets and variables** → **Actions** →
-**New repository secret**, named `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+There is no special "keep alive" endpoint. Any ordinary request resets the
+7-day clock, so the repo just makes one tiny read every 3 days:
+`.github/workflows/supabase-keepalive.yml`.
 
-Until you do, the workflow just exits quietly.
+**It needs nothing configured.** The workflow falls back to the project URL and
+the anon key, which the deployed site already publishes — every `VITE_*`
+variable is compiled into the JavaScript each visitor downloads, so that key is
+public by design and row-level security is what actually protects the data.
+
+Two things to check once, on GitHub:
+
+1. **Actions tab → enable workflows** if it asks. Scheduled jobs never run
+   otherwise.
+2. **Actions → Supabase Keep-Alive → Run workflow.** It should go green in a
+   few seconds. Do this rather than waiting three days to find out.
+
+### The trap worth knowing
+
+**GitHub disables scheduled workflows on a repository with no activity for 60
+days.** So the keep-alive can quietly go dormant, and the database pauses a week
+later. If you stop committing for two months, push anything — or open the
+Actions tab and re-enable it.
+
+Prefer secrets over the fallback? Add `SUPABASE_URL` and `SUPABASE_ANON_KEY`
+under **Settings → Secrets and variables → Actions**; they take priority
+automatically and you can delete the hard-coded values from the workflow.

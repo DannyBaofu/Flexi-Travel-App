@@ -1,14 +1,18 @@
 name: Supabase Keep-Alive
 
-# Prevents the free-tier Supabase project from pausing after 7 days of
-# inactivity by making one tiny REST request every 3 days.
-# Configure repo secrets SUPABASE_URL and SUPABASE_ANON_KEY to activate;
-# until then the job exits quietly.
+# Free Supabase projects pause after 7 consecutive days with no requests.
+# There is no special "keepalive" endpoint — any ordinary request resets the
+# clock, so this makes one tiny read every 3 days. Two spare days of slack
+# because GitHub's scheduler is best-effort and can run late or skip a slot.
+#
+# Pausing is not the same as losing data: a paused project keeps everything,
+# but it stops answering until it is restored by hand from the dashboard. This
+# job exists so nobody has to discover that in Bangkok.
 
 on:
   schedule:
     - cron: '17 3 */3 * *' # every ~3 days at 03:17 UTC
-  workflow_dispatch:
+  workflow_dispatch: # lets you run it now from the Actions tab
 
 jobs:
   ping:
@@ -16,14 +20,30 @@ jobs:
     steps:
       - name: Ping Supabase REST API
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # Secrets win if they are set. The fallbacks are the same two values
+          # the deployed site already publishes: VITE_* variables are compiled
+          # into the JavaScript every visitor downloads, so the anon key is
+          # public by design and row-level security is what actually guards the
+          # data. Hard-coding it here exposes nothing new and means the
+          # keep-alive works with nothing left to configure.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://epuluwfbcigkqhwkzaht.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwdWx1d2ZiY2lna3Fod2t6YWh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyNjY5ODksImV4cCI6MjEwMzg0Mjk4OX0.Dqx4c3R8_gANdmjy7rU_dMoEVXPeAl2ucC10CX0uldY' }}
         run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "Supabase secrets not configured yet - skipping keep-alive."
-            exit 0
-          fi
-          curl -sf "$SUPABASE_URL/rest/v1/trips?select=id&limit=1" \
+          set -euo pipefail
+
+          status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
+            "$SUPABASE_URL/rest/v1/trips?select=id&limit=1" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" > /dev/null
-          echo "Supabase pinged - project stays active."
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+
+          echo "REST responded $status"
+
+          # 200 is a healthy empty read under row-level security. 401/404 mean
+          # the project answered but something is misconfigured — still counts
+          # as activity, but worth knowing about, so fail loudly.
+          if [ "$status" != "200" ]; then
+            echo "::error::Supabase answered $status, expected 200. The project is awake but the URL, key or table may be wrong."
+            exit 1
+          fi
+
+          echo "Project pinged — the 7-day idle clock is reset."
