@@ -9,12 +9,12 @@ import {
   ArrowUpRight,
   Check,
   ChevronDown,
-  PiggyBank,
-  Sliders,
   UserRound
 } from 'lucide-react';
 import type { Trip, ExpenseItem, ActivityCategory, TripRole, TripKitty } from '../types/travel';
 import { computeKitty, resolveKitty } from '../services/kitty';
+import { KittyCard } from './KittyCard';
+import { ExpenseForm } from './ExpenseForm';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { useI18n } from '../utils/i18n';
 import {
@@ -22,17 +22,13 @@ import {
   cardFlat,
   btnPrimary,
   btnPrimarySm,
-  btnGhost,
-  btnDanger,
-  iconBtn,
-  input,
-  label,
   money
 } from './ui';
 
 interface BudgetTrackerProps {
   trip: Trip;
   onUpdateTrip: (updatedTrip: Trip) => void;
+  onOfferUndo: (tripId: string, message: string, restore: (current: Trip) => Trip) => void;
   role: TripRole;
 }
 
@@ -81,6 +77,7 @@ const yesterdayISO = () => {
 export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   trip,
   onUpdateTrip,
+  onOfferUndo,
   role
 }) => {
   const { lang, t } = useI18n();
@@ -110,8 +107,6 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   const updateKitty = (patch: Partial<TripKitty>) =>
     onUpdateTrip({ ...trip, kitty: { ...kitty, ...patch } });
 
-  const toggleInList = <T,>(list: T[], value: T): T[] =>
-    list.includes(value) ? list.filter(v => v !== value) : [...list, value];
 
   const totalSpent = (trip.expenses || []).reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
@@ -225,7 +220,18 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
 
   const handleDeleteExpense = (expId: string) => {
     if (!isAdmin) return;
+    const removed = (trip.expenses || []).find(e => e.id === expId);
+    if (!removed) return;
+    const position = (trip.expenses || []).indexOf(removed);
+
     onUpdateTrip({ ...trip, expenses: (trip.expenses || []).filter(e => e.id !== expId) });
+
+    onOfferUndo(trip.id, t('deletedExpense', { name: removed.title }), current => {
+      const expenses = [...(current.expenses || [])];
+      if (expenses.some(e => e.id === expId)) return current;
+      expenses.splice(Math.min(position, expenses.length), 0, removed);
+      return { ...current, expenses };
+    });
   };
 
   const toggleSplitter = (travelerId: string) => {
@@ -370,237 +376,20 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* ---- Shared pot: "have we still got food money?" ---- */}
-      {kittyState.enabled ? (
-        <div className={`${card} p-4 sm:p-5 space-y-3.5`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[11px] text-faint flex items-center gap-1.5">
-                <PiggyBank className="w-3.5 h-3.5" />
-                {t('kittyRemaining')}
-              </div>
-              <div
-                className={`text-2xl font-semibold mt-1 ${
-                  kittyState.exhausted ? 'text-clay' : 'text-ink'
-                } ${money}`}
-              >
-                {trip.homeCurrency} {Math.round(kittyState.remainingHome).toLocaleString()}
-              </div>
-              {/* The number that matters at the stall is the local one */}
-              <div className={`text-xs text-muted ${money}`}>
-                ≈ {trip.currency} {Math.round(kittyState.remainingHome * rate).toLocaleString()}
-              </div>
-            </div>
-
-            {isAdmin && (
-              <button
-                onClick={() => setKittyEditing(v => !v)}
-                className={iconBtn}
-                title={t('kittySettings')}
-              >
-                <Sliders className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          <div>
-            <div className="w-full bg-mist rounded-full h-2 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  kittyState.exhausted
-                    ? 'bg-clay'
-                    : kittyState.runningLow
-                      ? 'bg-gilt'
-                      : 'bg-brand'
-                }`}
-                style={{ width: `${kittyState.usedPercent}%` }}
-              />
-            </div>
-            <div className={`flex items-center justify-between gap-3 text-[11px] text-muted mt-1.5 ${money}`}>
-              <span className="truncate">
-                {t('kittyUsedOf', {
-                  used: `${trip.homeCurrency} ${Math.round(kittyState.spentHome).toLocaleString()}`,
-                  total: `${trip.homeCurrency} ${Math.round(kittyState.potTotalHome).toLocaleString()}`
-                })}
-              </span>
-              <span className="shrink-0">{kittyState.usedPercent}%</span>
-            </div>
-          </div>
-
-          {/* Running out is the whole point of the card, so it is said plainly */}
-          {kittyState.exhausted ? (
-            <p className="text-xs text-clay bg-clay-tint rounded-control px-3 py-2.5 leading-relaxed">
-              {t('kittyExhausted')}
-            </p>
-          ) : kittyState.runningLow ? (
-            <p className="text-xs text-gilt bg-gilt-tint rounded-control px-3 py-2.5 leading-relaxed">
-              {t('kittyLow')}
-            </p>
-          ) : null}
-
-          {kittyState.uncoveredCount > 0 && (
-            <p className="text-xs text-muted leading-relaxed">
-              {kittyState.uncoveredCount === 1
-                ? t('kittySplitBackOne')
-                : t('kittySplitBack', { n: kittyState.uncoveredCount })}
-            </p>
-          )}
-
-          <div className="pt-3 border-t border-hairline text-xs text-muted flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className={money}>
-              {t('kittyPotLine', {
-                n: trip.travelers.length,
-                per: `${trip.homeCurrency} ${kitty.perPerson.toLocaleString()}`
-              })}
-            </span>
-            <span className="text-hairline">·</span>
-            <span className="truncate">
-              {kitty.holderTravelerId
-                ? t('kittyHeldBy', { name: getTravelerName(kitty.holderTravelerId) })
-                : t('kittyNoHolder')}
-            </span>
-            <span className="text-hairline">·</span>
-            <span className={kittyState.unpaidTravelerIds.length > 0 ? 'text-gilt' : ''}>
-              {kittyState.unpaidTravelerIds.length === 0
-                ? t('kittyAllCollected')
-                : t('kittyWaitingOn', {
-                    names: kittyState.unpaidTravelerIds
-                      .map(getTravelerName)
-                      .join(lang === 'zh' ? '\u3001' : ', ')
-                  })}
-            </span>
-          </div>
-
-          {/* Setting the pot up is splitter internals, so it is the admin's */}
-          {isAdmin && kittyEditing && (
-            <div className="pt-3 border-t border-hairline space-y-3.5 animate-riseIn">
-              <div>
-                <label className={label} htmlFor="kitty-per-person">
-                  {t('kittyPerPerson', { cur: trip.homeCurrency })}
-                </label>
-                <input
-                  id="kitty-per-person"
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="any"
-                  defaultValue={kitty.perPerson || ''}
-                  onBlur={(e) => updateKitty({ perPerson: Number(e.target.value) || 0 })}
-                  className={`${input} ${money}`}
-                />
-              </div>
-
-              <div>
-                <span className={label}>{t('kittyHolder')}</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {trip.travelers.map(tv => {
-                    const on = kitty.holderTravelerId === tv.id;
-                    return (
-                      <button
-                        type="button"
-                        key={tv.id}
-                        onClick={() => updateKitty({ holderTravelerId: tv.id })}
-                        aria-pressed={on}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
-                          on
-                            ? 'bg-brand-tint border-brand-tint text-brand'
-                            : 'bg-paper border-hairline text-muted hover:bg-mist'
-                        }`}
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />
-                        {tv.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <span className={label}>{t('kittyCovers')}</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {(Object.keys(categoryMetaMap) as ActivityCategory[]).map(cat => {
-                    const meta = categoryMetaMap[cat];
-                    const Icon = meta.icon;
-                    const on = kitty.categories.includes(cat);
-                    return (
-                      <button
-                        type="button"
-                        key={cat}
-                        onClick={() => {
-                          const next = toggleInList(kitty.categories, cat);
-                          // A pot that covers nothing would silently stop working
-                          if (next.length > 0) updateKitty({ categories: next });
-                        }}
-                        aria-pressed={on}
-                        className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-control text-xs font-semibold border transition ${
-                          on
-                            ? 'bg-brand-tint border-brand-tint text-brand'
-                            : 'bg-paper border-hairline text-muted hover:bg-mist'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5 shrink-0" />
-                        {lang === 'zh' ? meta.labelZh : meta.label.split(' ')[0]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <span className={label}>{t('kittyWhoPaidIn')}</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {trip.travelers.map(tv => {
-                    const on = kitty.paidInTravelerIds.includes(tv.id);
-                    return (
-                      <button
-                        type="button"
-                        key={tv.id}
-                        onClick={() =>
-                          updateKitty({ paidInTravelerIds: toggleInList(kitty.paidInTravelerIds, tv.id) })
-                        }
-                        aria-pressed={on}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
-                          on
-                            ? 'bg-brand-tint border-brand-tint text-brand'
-                            : 'bg-paper border-hairline text-muted hover:bg-mist'
-                        }`}
-                      >
-                        {on
-                          ? <Check className="w-3.5 h-3.5 shrink-0" />
-                          : <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />}
-                        {tv.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <button type="button" onClick={turnOffKitty} className={`${btnDanger} w-full`}>
-                {t('kittyTurnOff')}
-              </button>
-            </div>
-          )}
-        </div>
-      ) : isAdmin ? (
-        <button
-          onClick={() => {
-            updateKitty({
-              enabled: true,
-              holderTravelerId: kitty.holderTravelerId || meId || trip.travelers[0]?.id
-            });
-            setKittyEditing(true);
-          }}
-          className={`${card} w-full p-4 flex items-center gap-3 text-left hover:bg-mist transition`}
-        >
-          <span className="w-10 h-10 rounded-control bg-brand-tint text-brand flex items-center justify-center shrink-0">
-            <PiggyBank className="w-5 h-5" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-semibold text-ink">{t('kittyStart')}</span>
-            <span className="block text-xs text-muted mt-0.5 leading-relaxed">{t('kittyStartHint')}</span>
-          </span>
-        </button>
-      ) : null}
+      <KittyCard
+        trip={trip}
+        kitty={kitty}
+        state={kittyState}
+        isAdmin={isAdmin}
+        meId={meId}
+        rate={rate}
+        editing={kittyEditing}
+        onToggleEditing={() => setKittyEditing(v => !v)}
+        onOpenEditing={() => setKittyEditing(true)}
+        onUpdate={updateKitty}
+        onTurnOff={turnOffKitty}
+        getTravelerName={getTravelerName}
+      />
 
       {/* ---- Personal spending: opened on demand, deliberately kept
               apart from the pot above so the two never blur ---- */}
@@ -664,185 +453,31 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         )}
       </div>
 
-      {/* ---- Add expense: amount, category, save. Everything else has a
-              sensible default and lives behind "more options". ---- */}
       {isAdding && (
-        <form onSubmit={handleAddExpense} className={`${card} p-4 sm:p-5 space-y-5 animate-riseIn`}>
-          {/* The one thing you actually have to type */}
-          <div>
-            <label className={label} htmlFor="expense-amount">{t('expenseAmountQ')}</label>
-            <div className="flex items-baseline gap-2">
-              <input
-                id="expense-amount"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="any"
-                autoFocus
-                value={amount}
-                onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className={`flex-1 min-w-0 bg-transparent border-0 border-b-2 border-hairline focus:border-brand focus:outline-none text-3xl font-semibold text-ink py-1 ${money}`}
-                required
-              />
-              <span className="text-base font-semibold text-muted shrink-0">{trip.currency}</span>
-            </div>
-            {/* Fixed height so the layout does not jump as you type */}
-            <div className={`text-xs text-muted mt-2 h-4 ${money}`}>
-              {amount !== '' && Number(amount) > 0
-                ? `\u2248 ${trip.homeCurrency} ${toHome(Number(amount))}`
-                : ''}
-            </div>
-          </div>
-
-          {/* Tapping a chip beats opening a nine-item dropdown on a phone */}
-          <div>
-            <span className={label}>{t('expenseWhatFor')}</span>
-            <div className="flex flex-wrap gap-1.5">
-              {(Object.keys(categoryMetaMap) as ActivityCategory[]).map(cat => {
-                const meta = categoryMetaMap[cat];
-                const Icon = meta.icon;
-                const on = category === cat;
-                return (
-                  <button
-                    type="button"
-                    key={cat}
-                    onClick={() => setCategory(cat)}
-                    aria-pressed={on}
-                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-control text-xs font-semibold border transition ${
-                      on
-                        ? 'bg-brand-tint border-brand-tint text-brand'
-                        : 'bg-paper border-hairline text-muted hover:bg-mist'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5 shrink-0" />
-                    {lang === 'zh' ? meta.labelZh : meta.label.split(' ')[0]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <label className={label} htmlFor="expense-note">{t('expenseNoteOptional')}</label>
-            <input
-              id="expense-note"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('expensePlaceholder')}
-              className={input}
-            />
-          </div>
-
-          {/* Payer, date and split: shown as one line, opened only if wrong */}
-          <div className="border-t border-hairline pt-3">
-            <button
-              type="button"
-              onClick={() => setShowMore(v => !v)}
-              aria-expanded={showMore}
-              className="w-full flex items-center justify-between gap-3 text-left min-h-[36px]"
-            >
-              <span className="text-xs text-muted min-w-0 truncate">
-                {describePayer(effectivePaidBy)}
-                {' \u00b7 '}
-                {describeDate(date)}
-                {isAdmin && splitWith.length !== trip.travelers.length
-                  ? ` \u00b7 ${t('splitByN', { n: splitWith.length })}`
-                  : ''}
-              </span>
-              <span className="text-xs font-semibold text-brand shrink-0 inline-flex items-center gap-1">
-                {t('expenseMoreOptions')}
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showMore ? 'rotate-180' : ''}`} />
-              </span>
-            </button>
-
-            {showMore && (
-              <div className="mt-3 space-y-3.5">
-                {/* Who paid is the admin's call; a member logs their own */}
-                {isAdmin && (
-                  <div>
-                    <span className={label}>{t('paidBy')}</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {trip.travelers.map(tv => {
-                        const on = effectivePaidBy === tv.id;
-                        return (
-                          <button
-                            type="button"
-                            key={tv.id}
-                            onClick={() => setPaidBy(tv.id)}
-                            aria-pressed={on}
-                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
-                              on
-                                ? 'bg-brand-tint border-brand-tint text-brand'
-                                : 'bg-paper border-hairline text-muted hover:bg-mist'
-                            }`}
-                          >
-                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />
-                            {tv.name}{tv.id === meId ? ` (${t('youLabel')})` : ''}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className={label} htmlFor="expense-date">{t('date')}</label>
-                  <input
-                    id="expense-date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className={input}
-                  />
-                </div>
-
-                {isAdmin && (
-                  <div>
-                    <span className={label}>{t('splitWithLabel')}</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {trip.travelers.map(tv => {
-                        const isSelected = splitWith.includes(tv.id);
-                        return (
-                          <button
-                            type="button"
-                            key={tv.id}
-                            onClick={() => toggleSplitter(tv.id)}
-                            aria-pressed={isSelected}
-                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
-                              isSelected
-                                ? 'bg-brand-tint border-brand-tint text-brand'
-                                : 'bg-paper border-hairline text-muted hover:bg-mist'
-                            }`}
-                          >
-                            {isSelected
-                              ? <Check className="w-3.5 h-3.5 shrink-0" />
-                              : <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />}
-                            {tv.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Save is visibly the thing to press */}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => { setIsAdding(false); setShowMore(false); }}
-              className={`${btnGhost} flex-1`}
-            >
-              {t('cancel')}
-            </button>
-            <button type="submit" className={`${btnPrimary} flex-[2]`}>
-              {t('saveExpense')}
-            </button>
-          </div>
-        </form>
+        <ExpenseForm
+          trip={trip}
+          isAdmin={isAdmin}
+          meId={meId}
+          toHome={toHome}
+          amount={amount}
+          setAmount={setAmount}
+          title={title}
+          setTitle={setTitle}
+          category={category}
+          setCategory={setCategory}
+          date={date}
+          setDate={setDate}
+          effectivePaidBy={effectivePaidBy}
+          setPaidBy={setPaidBy}
+          splitWith={splitWith}
+          toggleSplitter={toggleSplitter}
+          showMore={showMore}
+          setShowMore={setShowMore}
+          describePayer={describePayer}
+          describeDate={describeDate}
+          onSubmit={handleAddExpense}
+          onCancel={() => { setIsAdding(false); setShowMore(false); }}
+        />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">

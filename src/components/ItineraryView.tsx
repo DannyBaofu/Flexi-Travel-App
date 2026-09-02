@@ -38,6 +38,7 @@ interface ItineraryViewProps {
   onUpdateTrip: (updatedTrip: Trip) => void;
   onOpenAddActivityModal: (dayId: string) => void;
   onOpenEditActivityModal: (dayId: string, activity: ActivityItem) => void;
+  onOfferUndo: (tripId: string, message: string, restore: (current: Trip) => Trip) => void;
   role: TripRole;
 }
 
@@ -87,6 +88,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   onUpdateTrip,
   onOpenAddActivityModal,
   onOpenEditActivityModal,
+  onOfferUndo,
   role
 }) => {
   const { lang, t } = useI18n();
@@ -141,12 +143,30 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
   const handleDeleteActivity = (dayId: string, activityId: string) => {
     if (!isAdmin) return;
-    if (!window.confirm(t('confirmDeleteActivity'))) return;
-    const updatedDays = trip.days.map(day => {
-      if (day.id !== dayId) return day;
-      return { ...day, activities: day.activities.filter(a => a.id !== activityId) };
-    });
+
+    const sourceDay = trip.days.find(d => d.id === dayId);
+    const activity = sourceDay?.activities.find(a => a.id === activityId);
+    if (!sourceDay || !activity) return;
+    const position = sourceDay.activities.indexOf(activity);
+
+    const updatedDays = trip.days.map(day =>
+      day.id === dayId
+        ? { ...day, activities: day.activities.filter(a => a.id !== activityId) }
+        : day
+    );
     onUpdateTrip({ ...trip, days: updatedDays });
+
+    // Put it back where it was, not on the end of the day
+    onOfferUndo(trip.id, t('deletedActivity', { name: activity.title }), current => ({
+      ...current,
+      days: current.days.map(day => {
+        if (day.id !== dayId) return day;
+        if (day.activities.some(a => a.id === activityId)) return day;
+        const restored = [...day.activities];
+        restored.splice(Math.min(position, restored.length), 0, activity);
+        return { ...day, activities: restored };
+      })
+    }));
   };
 
   const handleDuplicateActivity = (dayId: string, activity: ActivityItem) => {

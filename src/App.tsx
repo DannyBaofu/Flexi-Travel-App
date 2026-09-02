@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Calendar, Compass } from 'lucide-react';
 import type { Trip, ActivityItem, TripRole } from './types/travel';
 import { storageService } from './services/storage';
@@ -8,20 +8,26 @@ import { Navbar } from './components/Navbar';
 import { TripBanner } from './components/TripBanner';
 import { ItineraryView } from './components/ItineraryView';
 import { BudgetTracker } from './components/BudgetTracker';
-import { ActivityModal } from './components/ActivityModal';
-import { ShareModal } from './components/ShareModal';
-import { TripSettingsModal } from './components/TripSettingsModal';
-import { NewTripModal } from './components/NewTripModal';
-import { PasscodePromptModal } from './components/PasscodePromptModal';
 import { PrintItineraryView } from './components/PrintItineraryView';
 import { PhrasesTab } from './components/PhrasesTab';
 import { TopTabs, BottomTabs } from './components/TabBar';
+
+// Dialogs are opened rarely and some are heavy — ShareModal alone pulls in the
+// QR library. Splitting them out keeps the first paint to what every session
+// actually needs.
+const ActivityModal = lazy(() => import('./components/ActivityModal').then(m => ({ default: m.ActivityModal })));
+const ShareModal = lazy(() => import('./components/ShareModal').then(m => ({ default: m.ShareModal })));
+const TripSettingsModal = lazy(() => import('./components/TripSettingsModal').then(m => ({ default: m.TripSettingsModal })));
+const NewTripModal = lazy(() => import('./components/NewTripModal').then(m => ({ default: m.NewTripModal })));
+const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const PasscodePromptModal = lazy(() => import('./components/PasscodePromptModal').then(m => ({ default: m.PasscodePromptModal })));
 import type { TabId } from './components/TabBar';
 import { btnPrimary, btnSecondary, card, inputMono, label as labelCls } from './components/ui';
-import { AuthModal } from './components/AuthModal';
 import { useI18n } from './utils/i18n';
 import { mergeRemoteTrip } from './services/mergeTrip';
 import { SyncBar } from './components/SyncBar';
+import { UndoToast } from './components/UndoToast';
+import type { PendingUndo } from './components/UndoToast';
 import type { SyncState } from './components/SyncBar';
 import type { User } from '@supabase/supabase-js';
 import { fetchLiveRate } from './services/exchangeRate';
@@ -66,6 +72,13 @@ export function App() {
   // it. Track it, show it, retry it.
   const [syncState, setSyncState] = useState<SyncState>('idle');
   const unsentTripRef = useRef<Trip | null>(null);
+
+  const [pendingUndo, setPendingUndo] = useState<PendingUndo | null>(null);
+  // Undo acts on the trip as it stands when Undo is pressed, not on the copy
+  // captured when the delete happened — otherwise undoing a delete would also
+  // revert anything edited in between.
+  const tripsRef = useRef(trips);
+  tripsRef.current = trips;
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<TabId>('itinerary');
@@ -209,11 +222,18 @@ export function App() {
     unsentTripRef.current = trip;
     setSyncState('saving');
     try {
-      await upsertTripCloud(trip);
+      const settled = await upsertTripCloud(trip);
       // Only clear if nothing newer queued up behind this push
       if (unsentTripRef.current === trip) {
         unsentTripRef.current = null;
         setSyncState('saved');
+      }
+      // A clash was resolved during the write, so what landed on the server is
+      // not what we sent. Adopt it, or this browser keeps showing a version
+      // nobody else has. Saved directly rather than through handleUpdateTrip,
+      // which would push it straight back.
+      if (settled !== trip) {
+        setTrips(storageService.saveTrip({ ...settled, myRole: trip.myRole }));
       }
     } catch (err) {
       console.error('Cloud push failed:', err);
@@ -348,6 +368,17 @@ export function App() {
 
   // A hand-typed code joins through exactly the same path as an invite link:
   // set it pending, and the effects above handle sign-in and the join itself.
+  /** Delete now, offer a way back for a few seconds. */
+  const offerUndo = (tripId: string, message: string, restore: (current: Trip) => Trip) => {
+    setPendingUndo({
+      message,
+      undo: () => {
+        const live = tripsRef.current.find(tr => tr.id === tripId);
+        if (live) handleUpdateTrip(restore(live));
+      }
+    });
+  };
+
   const handleJoinByCode = (e: React.FormEvent) => {
     e.preventDefault();
     const code = joinCodeInput.trim().toUpperCase();
@@ -440,16 +471,18 @@ export function App() {
           )}
         </div>
 
-        <NewTripModal
-          isOpen={isNewTripModalOpen}
-          onClose={() => setIsNewTripModalOpen(false)}
-          onCreateTrip={handleCreateTrip}
-        />
-
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          onClose={() => setIsAuthModalOpen(false)}
-        />
+        <Suspense fallback={null}>
+          {isNewTripModalOpen && (
+            <NewTripModal
+              isOpen
+              onClose={() => setIsNewTripModalOpen(false)}
+              onCreateTrip={handleCreateTrip}
+            />
+          )}
+          {isAuthModalOpen && (
+            <AuthModal isOpen onClose={() => setIsAuthModalOpen(false)} />
+          )}
+        </Suspense>
       </div>
     );
   }
@@ -511,6 +544,7 @@ export function App() {
             onUpdateTrip={handleUpdateTrip}
             onOpenAddActivityModal={handleOpenAddActivity}
             onOpenEditActivityModal={handleOpenEditActivity}
+            onOfferUndo={offerUndo}
             role={role}
           />
         )}
@@ -520,6 +554,7 @@ export function App() {
             key={activeTrip.id}
             trip={activeTrip}
             onUpdateTrip={handleUpdateTrip}
+            onOfferUndo={offerUndo}
             role={role}
           />
         )}
@@ -535,66 +570,76 @@ export function App() {
       {/* Phone: the four tabs sit within the thumb arc, not at the top */}
       <BottomTabs active={activeTab} onChange={setActiveTab} />
 
+      <UndoToast pending={pendingUndo} onDismiss={() => setPendingUndo(null)} />
+
       {/* Print / PDF Document Layout (Only shown in print mode) */}
       <PrintItineraryView trip={activeTrip} />
 
-      {/* Modals */}
-      <ActivityModal
-        isOpen={isActivityModalOpen}
-        onClose={() => setIsActivityModalOpen(false)}
-        onSave={handleSaveActivity}
-        activityToEdit={activityToEdit}
-        currentDayId={activityTargetDayId || activeTrip.days[0]?.id || ''}
-        trip={activeTrip}
-      />
+      {/* Dialogs are mounted only while open: a lazy component still has to
+          download before it can render, even to render nothing. */}
+      <Suspense fallback={null}>
+        {isActivityModalOpen && (
+          <ActivityModal
+            isOpen
+            onClose={() => setIsActivityModalOpen(false)}
+            onSave={handleSaveActivity}
+            activityToEdit={activityToEdit}
+            currentDayId={activityTargetDayId || activeTrip.days[0]?.id || ''}
+            trip={activeTrip}
+          />
+        )}
 
-      <ShareModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        trip={activeTrip}
-        role={role}
-        cloudMode={cloudMode}
-        onImportTrip={(imported) => {
-          handleCreateTrip(imported);
-        }}
-      />
+        {isShareModalOpen && (
+          <ShareModal
+            isOpen
+            onClose={() => setIsShareModalOpen(false)}
+            trip={activeTrip}
+            role={role}
+            cloudMode={cloudMode}
+            onImportTrip={(imported) => handleCreateTrip(imported)}
+          />
+        )}
 
-      <TripSettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        trip={activeTrip}
-        onSave={handleUpdateTrip}
-        onDeleteTrip={handleDeleteTrip}
-      />
+        {isSettingsModalOpen && (
+          <TripSettingsModal
+            isOpen
+            onClose={() => setIsSettingsModalOpen(false)}
+            trip={activeTrip}
+            onSave={handleUpdateTrip}
+            onDeleteTrip={handleDeleteTrip}
+          />
+        )}
 
-      <NewTripModal
-        isOpen={isNewTripModalOpen}
-        onClose={() => setIsNewTripModalOpen(false)}
-        onCreateTrip={handleCreateTrip}
-      />
+        {isNewTripModalOpen && (
+          <NewTripModal
+            isOpen
+            onClose={() => setIsNewTripModalOpen(false)}
+            onCreateTrip={handleCreateTrip}
+          />
+        )}
 
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
+        {isAuthModalOpen && (
+          <AuthModal isOpen onClose={() => setIsAuthModalOpen(false)} />
+        )}
 
-      <PasscodePromptModal
-        isOpen={isPasscodePromptOpen}
-        expectedPinHash={pendingSharePayload?.pinHash}
-        tripTitle={pendingSharePayload?.trip?.title || t('sharedTrip')}
-        onSuccess={() => {
-          if (pendingSharePayload) {
-            applySharedTrip(pendingSharePayload);
-          }
-          setIsPasscodePromptOpen(false);
-          setPendingSharePayload(null);
-        }}
-        onCancel={() => {
-          setIsPasscodePromptOpen(false);
-          setPendingSharePayload(null);
-          sharingService.clearShareHash();
-        }}
-      />
+        {isPasscodePromptOpen && (
+          <PasscodePromptModal
+            isOpen
+            expectedPinHash={pendingSharePayload?.pinHash}
+            tripTitle={pendingSharePayload?.trip?.title || t('sharedTrip')}
+            onSuccess={() => {
+              if (pendingSharePayload) applySharedTrip(pendingSharePayload);
+              setIsPasscodePromptOpen(false);
+              setPendingSharePayload(null);
+            }}
+            onCancel={() => {
+              setIsPasscodePromptOpen(false);
+              setPendingSharePayload(null);
+              sharingService.clearShareHash();
+            }}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

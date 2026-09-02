@@ -1,5 +1,6 @@
 import type { RealtimeChannel, Session, User } from '@supabase/supabase-js';
 import type { Trip, TripRole } from '../types/travel';
+import { mergeRemoteTrip } from './mergeTrip';
 import { supabase, isCloudEnabled } from './supabase';
 
 export { isCloudEnabled };
@@ -88,16 +89,50 @@ function tripDocument(trip: Trip): Omit<Trip, 'myRole'> {
   return doc;
 }
 
+/**
+ * The `updated_at` this browser last saw for each trip, used as a compare-and-set
+ * token on write.
+ *
+ * The whole trip is one JSON document, so a plain UPDATE writes everything —
+ * including the parts of the document this browser fetched *before* someone
+ * else's change landed. Two people editing different things a minute apart
+ * would each push a complete document and the second would erase the first,
+ * with both of them "in sync" and neither warned.
+ */
+const serverVersions = new Map<string, string>();
+
+export function rememberServerVersion(tripId: string, updatedAt?: string | null): void {
+  if (updatedAt) serverVersions.set(tripId, updatedAt);
+}
+
+async function readTripRow(tripId: string): Promise<{ trip: Trip; updatedAt: string } | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('trips')
+    .select('data, updated_at')
+    .eq('id', tripId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data?.data) return null;
+  return { trip: data.data as Trip, updatedAt: data.updated_at as string };
+}
+
 export async function fetchMyTrips(): Promise<Trip[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('trip_members')
     .select('role, trips ( id, data, updated_at )');
   if (error) throw error;
-  const rows = (data || []) as unknown as { role: TripRole; trips: { data: Trip } | null }[];
+  const rows = (data || []) as unknown as {
+    role: TripRole;
+    trips: { id: string; data: Trip; updated_at: string } | null;
+  }[];
   return rows
     .filter(r => r.trips?.data)
-    .map(r => ({ ...(r.trips!.data), myRole: r.role }));
+    .map(r => {
+      rememberServerVersion(r.trips!.id, r.trips!.updated_at);
+      return { ...r.trips!.data, myRole: r.role };
+    });
 }
 
 export async function createTripCloud(trip: Trip): Promise<void> {
@@ -115,15 +150,55 @@ export async function createTripCloud(trip: Trip): Promise<void> {
     .from('trip_members')
     .upsert({ trip_id: trip.id, user_id: uid, role: 'admin' });
   if (memberError) throw memberError;
+
+  const created = await readTripRow(trip.id);
+  rememberServerVersion(trip.id, created?.updatedAt);
 }
 
-export async function upsertTripCloud(trip: Trip): Promise<void> {
-  if (!supabase) return;
-  const { error } = await supabase
-    .from('trips')
-    .update({ data: tripDocument(trip) })
-    .eq('id', trip.id);
-  if (error) throw error;
+/**
+ * Write the trip, but only over the version this browser last saw.
+ *
+ * On a clash the server copy is fetched, our work is merged onto it and the
+ * write is retried once. Returns whatever now stands on the server, which the
+ * caller should adopt — after a merge it is not the trip that went in.
+ */
+export async function upsertTripCloud(trip: Trip): Promise<Trip> {
+  if (!supabase) return trip;
+  const client = supabase;
+
+  let expected = serverVersions.get(trip.id);
+  if (!expected) {
+    // First write this session: learn the current version before overwriting,
+    // otherwise the very first save of every session is an unguarded clobber.
+    const current = await readTripRow(trip.id);
+    if (!current) throw new Error('TRIP_NOT_ON_SERVER');
+    expected = current.updatedAt;
+  }
+
+  let candidate = trip;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data, error } = await client
+      .from('trips')
+      .update({ data: tripDocument(candidate) })
+      .eq('id', trip.id)
+      .eq('updated_at', expected)
+      .select('updated_at');
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      rememberServerVersion(trip.id, data[0].updated_at as string);
+      return candidate;
+    }
+
+    // Nothing matched: someone wrote between our read and our write.
+    const current = await readTripRow(trip.id);
+    if (!current) throw new Error('TRIP_NOT_ON_SERVER');
+    candidate = mergeRemoteTrip(candidate, { ...current.trip, myRole: trip.myRole });
+    expected = current.updatedAt;
+  }
+
+  throw new Error('SYNC_CONFLICT');
 }
 
 export async function deleteTripCloud(tripId: string): Promise<void> {
@@ -142,8 +217,11 @@ export function subscribeTrip(tripId: string, onRemoteChange: (trip: Trip) => vo
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'trips', filter: `id=eq.${tripId}` },
       (payload) => {
-        const next = (payload.new as { data?: Trip })?.data;
-        if (next) onRemoteChange(next);
+        const row = payload.new as { data?: Trip; updated_at?: string };
+        // Record the version we are being shown, so the next write compares
+        // against it rather than against something already superseded.
+        rememberServerVersion(tripId, row?.updated_at);
+        if (row?.data) onRemoteChange(row.data);
       }
     )
     .subscribe();

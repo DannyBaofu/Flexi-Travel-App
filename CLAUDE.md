@@ -78,7 +78,13 @@ Piping Python through a bash heredoc breaks on the Thai and Chinese strings in
 this repo (`unexpected EOF`). Write patch scripts to the scratchpad directory and
 run them by path.
 
-`oxlint` reports five known warnings: `react(set-state-in-effect)` in
+Component tests need a DOM, so they carry a `// @vitest-environment jsdom`
+docblock; everything else runs in node. Testing Library's automatic cleanup only
+registers with vitest globals, which are off — component test files must call
+`afterEach(cleanup)` themselves or one test's DOM leaks into the next and
+role-permission assertions pass or fail for the wrong reason.
+
+`oxlint` reports six known warnings: `react(set-state-in-effect)` in
 `ActivityModal`, `ShareModal` and `TripSettingsModal` (each syncs form state to a
 prop when the modal opens), the same rule in `LocationInput` (a debounced fetch,
 which is exactly the external-system case the rule carves out), plus
@@ -93,6 +99,13 @@ day lists are grown, trimmed, re-dated and renumbered, and both trip creation an
 the settings modal go through it. It never deletes a day that still has
 activities — losing an afternoon of planning to a mistyped date is far worse than
 carrying one spare day.
+
+**Writes are compare-and-set.** `upsertTripCloud` sends the `updated_at` this
+browser last saw and retries once through `mergeRemoteTrip` if the row moved
+underneath it. Without that guard, two people editing different things a minute
+apart each push a whole document and the second silently erases the first — with
+both of them "in sync" and neither warned. `serverVersions` in `cloudSync.ts` is
+what makes it work; anything that writes trips must keep it current.
 
 **A remote update only merges when local is dirty.** `App.tsx` tracks the last
 unsent push; if there is one, an incoming realtime update goes through

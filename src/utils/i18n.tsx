@@ -322,6 +322,11 @@ const dict: Record<string, Entry> = {
   daysExtended: { zh: '行程天数已调整为 {n} 天。', en: 'The itinerary now has {n} days.' },
   daysKeptWarning: { zh: '有 {n} 天超出了新的日期范围，但里面还有活动，所以没有删除。请先把活动移走再缩短行程。', en: '{n} day(s) fall outside the new dates but still have activities, so they were kept. Move those activities first if you want the trip shorter.' },
 
+  // ---- Undo instead of a confirm dialog ----
+  undo: { zh: '撤销', en: 'Undo' },
+  deletedActivity: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },
+  deletedExpense: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },
+
   // ---- Shared trip / passcode ----
   sharedTrip: { zh: '共享行程', en: 'Shared Trip' }
 };
