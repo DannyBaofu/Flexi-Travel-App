@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import {
-  Copy,
-  Check,
-  Share2,
-  Download,
-  Upload,
-  Eye,
-  Edit3,
-  Crown,
-  AlertTriangle
-} from 'lucide-react';
+import { Copy, Check, Share2, Download, Upload, AlertTriangle } from 'lucide-react';
 import type { Trip, TripRole } from '../types/travel';
 import { sharingService } from '../services/sharing';
 import { createInvite, buildInviteUrl, isCloudEnabled } from '../services/cloudSync';
@@ -56,7 +46,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 }) => {
   const { t } = useI18n();
   const isAdmin = role === 'admin';
-  const [shareRole, setShareRole] = useState<TripRole>(isAdmin ? 'member' : 'viewer');
   const [inviteUrl, setInviteUrl] = useState('');
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -64,8 +53,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
 
-  // Non-admins may only hand out read-only links
-  const effectiveShareRole: TripRole = isAdmin ? shareRole : 'viewer';
+
 
   useEffect(() => {
     if (isOpen) {
@@ -75,13 +63,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       setImportError(null);
       setImportSuccess(false);
     }
-  }, [isOpen, trip, effectiveShareRole]);
+  }, [isOpen, trip]);
 
   const handleCreateInvite = async () => {
     setInviteBusy(true);
     setInviteError(null);
     try {
-      const code = await createInvite(trip.id, effectiveShareRole);
+      const code = await createInvite(trip.id);
       setInviteUrl(buildInviteUrl(code));
     } catch (err: any) {
       setInviteError(err?.message || String(err));
@@ -120,12 +108,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     reader.readAsText(file);
   };
 
-  const permissionOptions: { value: TripRole; icon: typeof Eye; labelKey: string; descKey: string }[] = [
-    { value: 'admin', icon: Crown, labelKey: 'shareAsAdmin', descKey: 'shareAsAdminDesc' },
-    { value: 'member', icon: Edit3, labelKey: 'shareAsMember', descKey: 'shareAsMemberDesc' },
-    { value: 'viewer', icon: Eye, labelKey: 'viewerReadOnly', descKey: 'viewerDesc' }
-  ];
-
   return (
     <Modal
       isOpen={isOpen}
@@ -142,52 +124,22 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       }
     >
       <div className="p-5 space-y-6">
-        {/* ---- What the link lets them do ---- */}
-        <section className="space-y-3">
-          <h3 className={sectionHeading}>{t('sharingPermissions')}</h3>
-
-          {isAdmin ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {permissionOptions.map((opt) => {
-                const Icon = opt.icon;
-                const isSelected = shareRole === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setShareRole(opt.value)}
-                    className={`p-3 rounded-control border text-left flex items-start gap-2.5 transition ${
-                      isSelected
-                        ? 'bg-brand-tint border-brand-tint text-brand'
-                        : 'bg-paper border-hairline text-muted hover:bg-mist'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 mt-0.5 shrink-0" />
-                    <span className="min-w-0">
-                      <span className={`block text-sm font-semibold ${isSelected ? 'text-brand' : 'text-ink'}`}>
-                        {t(opt.labelKey)}
-                      </span>
-                      <span className="block text-xs text-muted mt-0.5">{t(opt.descKey)}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="px-3 py-2.5 bg-mist rounded-control text-xs text-muted flex items-center gap-2">
-              <Eye className="w-4 h-4 shrink-0" />
-              {t('memberShareNote')}
-            </p>
-          )}
-        </section>
 
         {/* ---- The invite link ---- */}
         {cloudMode ? (
           <section className="space-y-3 pt-5 border-t border-hairline">
             <h3 className={sectionHeading}>{t('inviteSection')}</h3>
             <p className="text-xs text-muted leading-relaxed">{t('inviteHint')}</p>
+            {isAdmin && (
+              <p className="text-[11px] text-faint leading-relaxed">{t('inviteRosterHint')}</p>
+            )}
 
-            {inviteUrl ? (
+            {!isAdmin ? (
+              <p className="px-3 py-2.5 bg-gilt-tint rounded-control text-xs text-gilt leading-relaxed flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
+                <span>{t('inviteAdminOnly')}</span>
+              </p>
+            ) : inviteUrl ? (
               <div className={`${card} p-4 space-y-3`}>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={chipBrand}>{t('inviteShortBadge', { n: inviteUrl.length })}</span>

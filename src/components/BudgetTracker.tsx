@@ -17,6 +17,7 @@ import { KittyCard } from './KittyCard';
 import { ExpenseForm } from './ExpenseForm';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { useI18n } from '../utils/i18n';
+import { readMe, writeMe } from '../services/me';
 import {
   card,
   cardFlat,
@@ -31,33 +32,6 @@ interface BudgetTrackerProps {
   onOfferUndo: (tripId: string, message: string, restore: (current: Trip) => Trip) => void;
   role: TripRole;
 }
-
-/**
- * Which traveler is *this* browser's owner. Local-only, like `myRole` —
- * it describes the device, not the trip, so it never touches the Trip
- * shape and needs no storage migration.
- */
-const ME_KEY = 'travelsync-me';
-
-const readMe = (tripId: string): string => {
-  try {
-    const raw = localStorage.getItem(ME_KEY);
-    return raw ? (JSON.parse(raw)[tripId] ?? '') : '';
-  } catch {
-    return '';
-  }
-};
-
-const writeMe = (tripId: string, travelerId: string) => {
-  try {
-    const raw = localStorage.getItem(ME_KEY);
-    const map = raw ? JSON.parse(raw) : {};
-    map[tripId] = travelerId;
-    localStorage.setItem(ME_KEY, JSON.stringify(map));
-  } catch {
-    /* storage unavailable — the picker just won't stick */
-  }
-};
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const toISO = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -96,7 +70,16 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   const [showMore, setShowMore] = useState(false);
   const [kittyEditing, setKittyEditing] = useState(false);
   const [personalOpen, setPersonalOpen] = useState(false);
-  const [meId, setMeId] = useState<string>(() => readMe(trip.id));
+  const [localMe, setLocalMe] = useState<string>(() => readMe(trip.id));
+
+  /**
+   * On a cloud trip this question is already answered: you claimed a seat to
+   * get in, and that seat is who you are. Letting the budget tab disagree with
+   * the server would put someone else's balance under your name, so the claim
+   * wins and the free picker is only for trips that live in this browser.
+   */
+  const claimedSeat = trip.myTravelerId;
+  const meId = claimedSeat || localMe;
 
   const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
   const toHome = (n: number) => Math.round(n / rate).toLocaleString();
@@ -249,7 +232,8 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   };
 
   const pickMe = (id: string) => {
-    setMeId(id);
+    if (claimedSeat) return;
+    setLocalMe(id);
     writeMe(trip.id, id);
   };
 
@@ -322,9 +306,15 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
               )}
             </div>
 
-            <button onClick={() => setMeId('')} className="text-xs text-faint hover:text-ink underline shrink-0">
-              {t('changePerson')}
-            </button>
+            {claimedSeat ? (
+              <span className="text-[11px] text-faint shrink-0 text-right leading-relaxed max-w-[9rem]">
+                {t('meLockedHint', { name: getTravelerName(claimedSeat) })}
+              </span>
+            ) : (
+              <button onClick={() => setLocalMe('')} className="text-xs text-faint hover:text-ink underline shrink-0">
+                {t('changePerson')}
+              </button>
+            )}
           </div>
 
           {/* What you actually put in, and what the trip cost you */}

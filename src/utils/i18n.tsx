@@ -98,7 +98,7 @@ const dict: Record<string, Entry> = {
   // ---- Expand/collapse ----
 
   // ---- Document ----
-  docTitle: { zh: 'TravelSync - 行程规划与分享', en: 'TravelSync - Customizable Trip Planner & Sharing' },
+  docTitle: { zh: 'TravelSync', en: 'TravelSync' },
 
   // ---- Activity modal ----
   editActivity: { zh: '编辑活动', en: 'Edit Activity' },
@@ -179,20 +179,53 @@ const dict: Record<string, Entry> = {
   shareAsMemberDesc: { zh: '可编辑活动、勾选清单、记录支出', en: 'Can edit activities, tick checklists, log expenses' },
   memberShareNote: { zh: '只有管理员可以创建可编辑的分享链接，您可以分享只读链接。', en: 'Only the admin can create editable share links. You can share a read-only link.' },
 
+  // ---- Seats: the roster, and claiming your name off it ----
+  seatRoleAdmin: { zh: '管理员', en: 'Admin' },
+  seatRoleMember: { zh: '可编辑', en: 'Can edit' },
+  seatRoleViewer: { zh: '只读', en: 'View only' },
+
+  seatPickerTitle: { zh: '你是哪一位？', en: 'Who are you?' },
+  seatPickerSubtitle: { zh: '加入「{trip}」', en: 'Joining {trip}' },
+  seatPickerHint: { zh: '点选你的名字就能加入，不用密码。', en: 'Tap your name to join. No password needed.' },
+  seatPickerEmpty: { zh: '组织者还没有添加名单。请让他先在「行程设置」里加上你的名字。', en: 'The organiser has not added any names yet. Ask them to add yours in Trip Settings.' },
+  seatTakenBadge: { zh: '已被认领', en: 'Taken' },
+  seatYouBadge: { zh: '这是你', en: 'This is you' },
+  seatNotYouHint: { zh: '你的名字被别人认领了？请组织者在行程设置里释放它。', en: 'Your name already taken? Ask the organiser to release it in Trip Settings.' },
+  seatJoining: { zh: '加入中…', en: 'Joining…' },
+  seatPickerLater: { zh: '稍后再说', en: 'Not now' },
+  seatErrorTaken: { zh: '这个名字刚被人认领了，请选另一个。', en: 'That name was just taken — pick another.' },
+  seatErrorInvalid: { zh: '邀请链接无效或已失效。', en: 'That invite link is not valid any more.' },
+  seatErrorFailed: { zh: '加入失败：{msg}', en: 'Could not join: {msg}' },
+  seatPickYours: { zh: '选择你的名字', en: 'Pick your name' },
+
+  rosterStatusFree: { zh: '未认领', en: 'Not claimed' },
+  rosterStatusTaken: { zh: '已认领', en: 'Claimed' },
+  rosterYou: { zh: '你', en: 'You' },
+  rosterRelease: { zh: '释放', en: 'Release' },
+  rosterReleaseConfirm: { zh: '释放「{name}」的名额？对方会失去访问权限，之后任何持有邀请链接的人都可以重新认领这个名字。', en: 'Release {name}\u2019s seat? They lose access, and anyone holding the invite link can claim the name again.' },
+  rosterPermission: { zh: '权限', en: 'Permission' },
+  rosterCloudHint: { zh: '先在这里加好旅伴的名字和权限，再把邀请链接发给他们——他们打开后自己认领名字即可。', en: 'Add names and permissions here first, then send the invite link — everyone claims their own name when they open it.' },
+  rosterActionFailed: { zh: '操作失败：{msg}', en: 'That did not work: {msg}' },
+
+  meLockedHint: { zh: '在这趟行程中你是「{name}」。', en: 'You are {name} on this trip.' },
+
+  inviteAdminOnly: { zh: '只有组织者（管理员）可以创建邀请链接。', en: 'Only the organiser can create the invite link.' },
+  inviteRosterHint: { zh: '一条链接发给所有人。他们打开后从名单里选出自己，就以那个身份加入，权限由你在行程设置里决定。', en: 'One link for everyone. They open it, pick themselves off the roster, and join as that person — with the permission you set in Trip Settings.' },
+
   // ---- Cloud sync & auth ----
   signIn: { zh: '登录', en: 'Sign In' },
   signOut: { zh: '退出登录', en: 'Sign Out' },
-  signInTitle: { zh: '登录云同步', en: 'Sign in to Cloud Sync' },
-  signInSubtitle: { zh: '登录后行程可实时同步给所有旅伴', en: 'Sign in to sync trips live with all travelers' },
+  signInTitle: { zh: '组织者登录', en: 'Organiser sign-in' },
+  signInSubtitle: { zh: '自己取一个 ID 和密码，行程就能实时同步', en: 'Choose your own ID and password to sync trips live' },
   authTabSignIn: { zh: '登录', en: 'Sign In' },
   authTabFirstTime: { zh: '首次使用', en: 'First Time' },
   authIdLabel: { zh: '账号 ID', en: 'Account ID' },
   authIdPlaceholder: { zh: '例如：danny', en: 'e.g. danny' },
-  authIdHint: { zh: '由行程组织者提供，3–20 个字符，仅限小写字母、数字、. _ -', en: 'Given to you by the trip organizer. 3–20 characters: lowercase letters, numbers, . _ -' },
+  authIdHint: { zh: '自己取一个，3–20 个字符，仅限小写字母、数字、. _ -', en: 'Choose your own. 3–20 characters: lowercase letters, numbers, . _ -' },
   authPasswordLabel: { zh: '密码', en: 'Password' },
-  authPasswordPlaceholder: { zh: '输入组织者给你的密码', en: 'Enter the password you were given' },
-  authSignInHint: { zh: '用行程组织者给你的账号 ID 和密码登录，登录后行程会实时同步。', en: 'Sign in with the ID and password the trip organizer gave you. Your trip then syncs live.' },
-  authFirstTimeHint: { zh: '第一次使用请在这里建立账号：填入组织者给你的账号 ID 和密码即可，无需邮箱。', en: 'First time here? Set up your account with the exact ID and password the organizer gave you. No email needed.' },
+  authPasswordPlaceholder: { zh: '至少 6 个字符', en: 'At least 6 characters' },
+  authSignInHint: { zh: '用你自己的账号 ID 和密码登录，行程会实时同步到所有设备。', en: 'Sign in with your own ID and password. Your trips then sync to every device.' },
+  authFirstTimeHint: { zh: '第一次使用？自己取一个账号 ID 和密码即可，无需邮箱。旅伴不需要账号，他们直接用邀请链接认领名字。', en: 'First time? Pick any ID and password — no email needed. Your travellers do not need accounts; they claim a name from the invite link.' },
   authSignInBtn: { zh: '登录', en: 'Sign In' },
   authCreateBtn: { zh: '建立账号并登录', en: 'Create Account & Sign In' },
   authWorking: { zh: '处理中…', en: 'Working…' },
@@ -208,7 +241,8 @@ const dict: Record<string, Entry> = {
   inviteSection: { zh: '实时协作邀请（云同步）', en: 'Live Collaboration Invite (Cloud)' },
   createInviteBtn: { zh: '创建邀请链接', en: 'Create Invite Link' },
   creatingInvite: { zh: '创建中…', en: 'Creating…' },
-  inviteHint: { zh: '朋友打开链接并登录后，即可实时同步这份行程 — 管理员的修改会即时出现在所有人手机上。', en: 'Friends who open this link and sign in will sync this trip live — admin edits appear on everyone’s phone instantly.' },
+  inviteHint: { zh: '朋友打开链接后选出自己的名字，就能实时同步这份行程 — 任何人的修改都会即时出现在所有人手机上。', en: 'Friends open the link, pick their name, and this trip syncs live — every edit appears on everyone’s phone instantly.' },
+  inviteViewerCannotInvite: { zh: '你目前是只读成员，无法邀请其他人。请让管理员分享链接。', en: 'You have read-only access, so you cannot invite others. Ask an admin to share the link.' },
   inviteRequiresLogin: { zh: '登录后（右上角）即可创建实时邀请链接。', en: 'Sign in (top right) to create live invite links.' },
   joiningTrip: { zh: '正在加入行程…', en: 'Joining trip…' },
   joinFailed: { zh: '加入行程失败：{msg}', en: 'Failed to join trip: {msg}' },
@@ -378,9 +412,9 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch { /* storage unavailable */ }
   };
 
-  // Keep the browser tab title and <html lang> in sync with the UI language
+  // Keep <html lang> in sync with the UI language. The tab title is App's to
+  // set, because it names the trip you are looking at rather than the app.
   useEffect(() => {
-    document.title = dict.docTitle[lang];
     document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
   }, [lang]);
 

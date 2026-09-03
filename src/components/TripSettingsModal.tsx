@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sliders, Calendar, DollarSign, Image, Users, Plus, Trash2 } from 'lucide-react';
-import type { Trip, Traveler } from '../types/travel';
+import type { Trip, Traveler, TripRole, SeatClaim } from '../types/travel';
 import { useI18n } from '../utils/i18n';
 import { reconcileDays } from '../services/tripDays';
+import { fetchSeatClaims, releaseSeat, setSeatRole } from '../services/cloudSync';
 import {
   Modal,
   btnPrimary,
@@ -18,6 +19,8 @@ interface TripSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   trip: Trip;
+  role: TripRole;
+  cloudMode: boolean;
   onSave: (updatedTrip: Trip) => void;
   onDeleteTrip: (tripId: string) => void;
 }
@@ -40,9 +43,12 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
   isOpen,
   onClose,
   trip,
+  role,
+  cloudMode,
   onSave,
   onDeleteTrip
 }) => {
+  const isAdmin = role === 'admin';
   const { t } = useI18n();
   const [title, setTitle] = useState(trip.title);
   const [destination, setDestination] = useState(trip.destination);
@@ -55,6 +61,8 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
   const [coverImage, setCoverImage] = useState(trip.coverImage);
   const [travelers, setTravelers] = useState<Traveler[]>(trip.travelers || []);
   const [newTravelerName, setNewTravelerName] = useState('');
+  const [claims, setClaims] = useState<SeatClaim[]>([]);
+  const [seatError, setSeatError] = useState<string | null>(null);
 
   useEffect(() => {
     setTitle(trip.title);
@@ -69,20 +77,72 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
     setTravelers(trip.travelers || []);
   }, [trip, isOpen]);
 
+  // Who currently holds each name. Only the server knows, and only for a trip
+  // that is actually in the cloud.
+  useEffect(() => {
+    if (!isOpen || !cloudMode) return;
+    let cancelled = false;
+    fetchSeatClaims(trip.id)
+      .then(rows => { if (!cancelled) setClaims(rows); })
+      .catch(e => console.error('Could not read seat claims:', e));
+    return () => { cancelled = true; };
+  }, [isOpen, cloudMode, trip.id]);
+
   const handleAddTraveler = () => {
     if (!newTravelerName.trim()) return;
     const newTraveler: Traveler = {
       id: `t-${Date.now()}`,
       name: newTravelerName.trim(),
-      avatarColor: AVATAR_COLORS[travelers.length % AVATAR_COLORS.length]
+      avatarColor: AVATAR_COLORS[travelers.length % AVATAR_COLORS.length],
+      role: 'member'
     };
     setTravelers([...travelers, newTraveler]);
     setNewTravelerName('');
   };
 
+  const describeFailure = (e: unknown) =>
+    t('rosterActionFailed', { msg: (e as { message?: string })?.message || String(e) });
+
   const handleRemoveTraveler = (id: string) => {
     if (travelers.length <= 1) return; // Keep at least one traveler
     setTravelers(travelers.filter(tv => tv.id !== id));
+
+    // Taking the name off the roster has to take the access with it, or the
+    // person keeps a live membership for a trip they are no longer on.
+    if (cloudMode && claims.some(c => c.travelerId === id)) {
+      setClaims(prev => prev.filter(c => c.travelerId !== id));
+      releaseSeat(trip.id, id).catch(e => setSeatError(describeFailure(e)));
+    }
+  };
+
+  /**
+   * An unclaimed seat's role is only an intention, saved with the trip. A
+   * claimed one is a permission somebody is holding right now, so it changes
+   * on the server immediately rather than waiting for Save.
+   */
+  const handleRoleChange = async (travelerId: string, nextRole: TripRole) => {
+    setTravelers(prev => prev.map(tv => (tv.id === travelerId ? { ...tv, role: nextRole } : tv)));
+    if (!cloudMode || !claims.some(c => c.travelerId === travelerId)) return;
+    try {
+      await setSeatRole(trip.id, travelerId, nextRole);
+      setClaims(prev =>
+        prev.map(c => (c.travelerId === travelerId ? { ...c, role: nextRole } : c))
+      );
+      setSeatError(null);
+    } catch (e) {
+      setSeatError(describeFailure(e));
+    }
+  };
+
+  const handleRelease = async (traveler: Traveler) => {
+    if (!window.confirm(t('rosterReleaseConfirm', { name: traveler.name }))) return;
+    try {
+      await releaseSeat(trip.id, traveler.id);
+      setClaims(prev => prev.filter(c => c.travelerId !== traveler.id));
+      setSeatError(null);
+    } catch (e) {
+      setSeatError(describeFailure(e));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -264,30 +324,90 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
             <Users className="w-3.5 h-3.5" /> {t('travelersCompanions')}
           </h3>
 
-          <div className="flex flex-wrap gap-2">
-            {travelers.map((traveler) => (
-              <div
-                key={traveler.id}
-                className="flex items-center gap-2 bg-mist border border-hairline pl-3 pr-1.5 py-1.5 rounded-control text-sm"
-              >
-                <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: traveler.avatarColor }}
-                />
-                <span className="text-ink font-medium">{traveler.name}</span>
-                {travelers.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTraveler(traveler.id)}
-                    className="w-6 h-6 inline-flex items-center justify-center rounded-full text-faint hover:text-clay hover:bg-clay-tint transition"
-                    title={t('deleteItem')}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+          {cloudMode && isAdmin && (
+            <p className="text-[11px] text-faint leading-relaxed">{t('rosterCloudHint')}</p>
+          )}
+
+          <ul className="space-y-2">
+            {travelers.map((traveler) => {
+              const claim = claims.find(c => c.travelerId === traveler.id);
+              // Admin is only offered where it can actually be granted: a seat
+              // nobody holds is clamped to member/viewer when it is claimed.
+              const roleOptions: TripRole[] = claim
+                ? ['admin', 'member', 'viewer']
+                : ['member', 'viewer'];
+
+              return (
+                <li
+                  key={traveler.id}
+                  className="bg-mist border border-hairline rounded-control px-3 py-2.5 space-y-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: traveler.avatarColor }}
+                    />
+                    <span className="text-sm font-medium text-ink truncate flex-1 min-w-0">
+                      {traveler.name}
+                    </span>
+
+                    {cloudMode && (
+                      <span
+                        className={`text-[11px] shrink-0 ${claim ? 'text-brand font-medium' : 'text-faint'}`}
+                      >
+                        {claim
+                          ? claim.isMe ? t('rosterYou') : t('rosterStatusTaken')
+                          : t('rosterStatusFree')}
+                      </span>
+                    )}
+
+                    {travelers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTraveler(traveler.id)}
+                        className="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full text-faint hover:text-clay hover:bg-clay-tint transition"
+                        title={t('deleteItem')}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {isAdmin && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted shrink-0">{t('rosterPermission')}</span>
+                      <select
+                        value={claim?.role ?? traveler.role ?? 'member'}
+                        onChange={(e) => handleRoleChange(traveler.id, e.target.value as TripRole)}
+                        className={`${input} py-1.5 text-xs flex-1 min-w-0`}
+                      >
+                        {roleOptions.map(opt => (
+                          <option key={opt} value={opt}>
+                            {t(opt === 'admin' ? 'seatRoleAdmin' : opt === 'viewer' ? 'seatRoleViewer' : 'seatRoleMember')}
+                          </option>
+                        ))}
+                      </select>
+                      {claim && !claim.isMe && (
+                        <button
+                          type="button"
+                          onClick={() => handleRelease(traveler)}
+                          className={`${btnSecondarySm} shrink-0`}
+                        >
+                          {t('rosterRelease')}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          {seatError && (
+            <p className="px-3 py-2.5 bg-clay-tint rounded-control text-xs text-clay leading-relaxed">
+              {seatError}
+            </p>
+          )}
 
           <div className="flex gap-2">
             <input

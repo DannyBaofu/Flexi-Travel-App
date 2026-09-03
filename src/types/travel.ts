@@ -65,6 +65,34 @@ export interface Traveler {
   name: string;
   avatarColor: string;
   isOwner?: boolean;
+  /**
+   * What this seat grants whoever claims it. Absent on travellers added before
+   * seats existed — `storage.ts` backfills those to 'member'.
+   *
+   * This is the *intended* role and nothing more. The trip document is
+   * member-writable, so the server clamps it to member/viewer on claim and
+   * keeps the enforced role in `trip_members`; 'admin' here is only ever a
+   * reflection of a promotion an admin already made.
+   */
+  role?: TripRole;
+}
+
+/** One name on the roster, as offered to somebody holding an invite code. */
+export interface TripSeat {
+  travelerId: string;
+  name: string;
+  avatarColor: string;
+  role: TripRole;
+  claimed: boolean;
+  /** Claimed by the account asking — "this is you", not "taken by someone". */
+  mine: boolean;
+}
+
+/** Who holds a seat on a trip this browser is already a member of. */
+export interface SeatClaim {
+  travelerId: string;
+  role: TripRole;
+  isMe: boolean;
 }
 
 export interface ExpenseItem {
@@ -122,6 +150,9 @@ export interface Trip {
   createdAt: string;
   updatedAt: string;
   // Role of this browser's user for this trip. Undefined = locally created = admin.
-  // Set when a trip arrives via a share link, from the link's permission level.
+  // Set from the membership row, which is where the enforced role lives.
   myRole?: TripRole;
+  // Which traveller on the roster this browser's user is, from the claimed
+  // seat. Local-only in exactly the way myRole is, and stripped before storing.
+  myTravelerId?: string;
 }

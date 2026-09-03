@@ -1,4 +1,4 @@
-import type { Trip } from '../types/travel';
+import type { Trip, TripRole } from '../types/travel';
 import { resolveKitty } from './kitty';
 
 const TRIPS_STORAGE_KEY = 'travelsync_trips_v1';
@@ -49,6 +49,22 @@ function backfillKitty(trips: Trip[]): Trip[] {
   });
 }
 
+// Travellers saved before seats existed have no `role`. The trip's owner is
+// its admin; everyone else defaults to the role the house rule assumes —
+// member, which adds and edits but does not delete.
+function backfillTravelerRoles(trips: Trip[]): Trip[] {
+  return trips.map(trip => {
+    const travelers = trip.travelers || [];
+    if (travelers.every(tv => tv.role)) return trip;
+    return {
+      ...trip,
+      travelers: travelers.map(tv =>
+        tv.role ? tv : { ...tv, role: (tv.isOwner ? 'admin' : 'member') as TripRole }
+      )
+    };
+  });
+}
+
 export const storageService = {
   // Returns whatever the user actually has. An empty list is a valid state —
   // the app shows a "create your first trip" screen rather than inventing data.
@@ -58,7 +74,7 @@ export const storageService = {
       if (!stored) return [];
       const parsed = JSON.parse(stored);
       if (!Array.isArray(parsed)) return [];
-      return backfillKitty(purgeSeededSample(parsed));
+      return backfillTravelerRoles(backfillKitty(purgeSeededSample(parsed)));
     } catch (e) {
       console.error('Error loading trips from storage:', e);
       return [];

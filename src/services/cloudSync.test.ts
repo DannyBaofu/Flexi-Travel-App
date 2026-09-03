@@ -6,8 +6,10 @@ import {
   emailToId,
   normalizeInviteCode,
   buildInviteUrl,
-  parseJoinCodeFromUrl
+  parseJoinCodeFromUrl,
+  mergeSeats
 } from './cloudSync';
+import type { Traveler, SeatClaim } from '../types/travel';
 
 describe('account IDs', () => {
   it('lowercases and trims what the traveller typed', () => {
@@ -92,5 +94,43 @@ describe('invite links', () => {
 
   it('normalizes a code a friend typed by hand', () => {
     expect(normalizeInviteCode(' ab3f7k ')).toBe('AB3F7K');
+  });
+});
+
+describe('mergeSeats', () => {
+  const roster: Traveler[] = [
+    { id: 't1', name: 'Danny', avatarColor: '#3930DB', role: 'admin' },
+    { id: 't2', name: 'Wei Ming', avatarColor: '#B42318', role: 'viewer' },
+    { id: 't3', name: 'Ah Fong', avatarColor: '#0F766E' }
+  ];
+
+  it('marks a seat taken, and says which one is mine', () => {
+    const claims: SeatClaim[] = [
+      { travelerId: 't1', role: 'admin', isMe: true },
+      { travelerId: 't2', role: 'member', isMe: false }
+    ];
+    const seats = mergeSeats(roster, claims);
+
+    expect(seats.map(s => s.claimed)).toEqual([true, true, false]);
+    expect(seats.map(s => s.mine)).toEqual([true, false, false]);
+  });
+
+  it('reports the role the server enforces, not the one the document intends', () => {
+    // t2's seat says 'viewer', but whoever holds it was promoted to member.
+    // Showing the document's intention here would tell an admin they had
+    // restricted somebody they had not.
+    const seats = mergeSeats(roster, [{ travelerId: 't2', role: 'member', isMe: false }]);
+    expect(seats.find(s => s.travelerId === 't2')!.role).toBe('member');
+  });
+
+  it('falls back to the seat, then to member, when nobody holds it', () => {
+    const seats = mergeSeats(roster, []);
+    expect(seats.find(s => s.travelerId === 't2')!.role).toBe('viewer');
+    // No role on the traveller at all — an older trip, before seats existed.
+    expect(seats.find(s => s.travelerId === 't3')!.role).toBe('member');
+  });
+
+  it('survives a trip with no travellers rather than throwing', () => {
+    expect(mergeSeats([], [])).toEqual([]);
   });
 });

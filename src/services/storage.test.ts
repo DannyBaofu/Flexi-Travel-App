@@ -71,3 +71,35 @@ describe('storageService.deleteTrip', () => {
     expect(storageService.getTrips()).toEqual([]);
   });
 });
+
+describe('storageService.getTrips — traveller roles', () => {
+  it('gives older travellers a role, with the owner as admin', () => {
+    const older = {
+      id: 'trip-1',
+      title: 'Bangkok',
+      days: [],
+      travelers: [
+        { id: 't1', name: 'Danny', avatarColor: '#3930DB', isOwner: true },
+        { id: 't2', name: 'Wei Ming', avatarColor: '#B42318' }
+      ]
+    };
+    store.set(TRIPS_KEY, JSON.stringify([older]));
+    store.set(PURGE_KEY, '1');
+
+    const [loaded] = storageService.getTrips();
+    expect(loaded.travelers.map(tv => tv.role)).toEqual(['admin', 'member']);
+  });
+
+  it('leaves a role that was set deliberately alone', () => {
+    const saved = {
+      id: 'trip-1',
+      title: 'Bangkok',
+      days: [],
+      travelers: [{ id: 't1', name: 'Danny', avatarColor: '#3930DB', role: 'viewer' }]
+    };
+    store.set(TRIPS_KEY, JSON.stringify([saved]));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips()[0].travelers[0].role).toBe('viewer');
+  });
+});

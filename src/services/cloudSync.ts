@@ -1,5 +1,5 @@
 import type { RealtimeChannel, Session, User } from '@supabase/supabase-js';
-import type { Trip, TripRole } from '../types/travel';
+import type { Trip, Traveler, TripRole, TripSeat, SeatClaim } from '../types/travel';
 import { mergeRemoteTrip } from './mergeTrip';
 import { supabase, isCloudEnabled } from './supabase';
 
@@ -76,6 +76,26 @@ export async function signUpWithId(id: string, password: string): Promise<void> 
   if (!data.session) throw new Error(CONFIRM_EMAIL_ON);
 }
 
+/**
+ * A guest needs an account only so the server can tell one person from
+ * another — not so they can remember a password. Anonymous sign-in gives them
+ * one without a keystroke, which is what makes "tap your name" the whole
+ * join flow.
+ *
+ * Returns false if the project has anonymous sign-ins switched off, in which
+ * case the caller falls back to asking for an ID and password. The seat picker
+ * is the same either way; only the step before it changes.
+ */
+export async function signInAnonymously(): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.auth.signInAnonymously();
+  if (error) {
+    console.warn('Anonymous sign-in unavailable:', error.message);
+    return false;
+  }
+  return true;
+}
+
 export async function signOut(): Promise<void> {
   if (!supabase) return;
   await supabase.auth.signOut();
@@ -84,8 +104,8 @@ export async function signOut(): Promise<void> {
 // ---------- Trips ----------
 
 // Strip the local-only role marker before storing the trip document
-function tripDocument(trip: Trip): Omit<Trip, 'myRole'> {
-  const { myRole: _myRole, ...doc } = trip;
+function tripDocument(trip: Trip): Omit<Trip, 'myRole' | 'myTravelerId'> {
+  const { myRole: _myRole, myTravelerId: _myTravelerId, ...doc } = trip;
   return doc;
 }
 
@@ -119,19 +139,34 @@ async function readTripRow(tripId: string): Promise<{ trip: Trip; updatedAt: str
 
 export async function fetchMyTrips(): Promise<Trip[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('trip_members')
-    .select('role, trips ( id, data, updated_at )');
-  if (error) throw error;
+    .select('role, traveler_id, trips ( id, data, updated_at )');
+
+  if (error) {
+    // No seat column yet: this project has not run the latest schema.sql.
+    // Trips still load; the app simply does not know who is who until it does.
+    const fallback = await supabase
+      .from('trip_members')
+      .select('role, trips ( id, data, updated_at )');
+    if (fallback.error) throw error;
+    data = fallback.data as typeof data;
+  }
+
   const rows = (data || []) as unknown as {
     role: TripRole;
+    traveler_id: string | null;
     trips: { id: string; data: Trip; updated_at: string } | null;
   }[];
   return rows
     .filter(r => r.trips?.data)
     .map(r => {
       rememberServerVersion(r.trips!.id, r.trips!.updated_at);
-      return { ...r.trips!.data, myRole: r.role };
+      return {
+        ...r.trips!.data,
+        myRole: r.role,
+        myTravelerId: r.traveler_id ?? undefined
+      };
     });
 }
 
@@ -146,10 +181,27 @@ export async function createTripCloud(trip: Trip): Promise<void> {
     .insert({ id: trip.id, owner_id: uid, data: tripDocument(trip) });
   if (error && error.code !== '23505') throw error; // 23505 = already exists
 
+  // The creator holds a seat like everyone else, so the budget tab knows who
+  // they are and their name cannot be claimed by somebody opening the link.
+  const ownerSeat = (trip.travelers || []).find(tv => tv.isOwner) ?? (trip.travelers || [])[0];
+
   const { error: memberError } = await supabase
     .from('trip_members')
-    .upsert({ trip_id: trip.id, user_id: uid, role: 'admin' });
-  if (memberError) throw memberError;
+    .upsert({
+      trip_id: trip.id,
+      user_id: uid,
+      role: 'admin',
+      traveler_id: ownerSeat?.id ?? null
+    });
+
+  if (memberError) {
+    // Same reason as fetchMyTrips: the database may predate seats. Creating
+    // the trip still has to work, or nothing else can.
+    const fallback = await supabase
+      .from('trip_members')
+      .upsert({ trip_id: trip.id, user_id: uid, role: 'admin' });
+    if (fallback.error) throw memberError;
+  }
 
   const created = await readTripRow(trip.id);
   rememberServerVersion(trip.id, created?.updatedAt);
@@ -240,21 +292,161 @@ function randomCode(length = 6): string {
   return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
 }
 
-export async function createInvite(tripId: string, role: TripRole): Promise<string> {
+/**
+ * One link per trip, not one per role. The link opens the door; the seat
+ * claimed behind it decides what the person may do.
+ */
+export async function createInvite(tripId: string): Promise<string> {
   if (!supabase) throw new Error('Cloud disabled');
   const code = randomCode();
   const { error } = await supabase
     .from('trip_invites')
-    .insert({ code, trip_id: tripId, role });
+    .insert({ code, trip_id: tripId, role: 'member' });
   if (error) throw error;
   return code;
 }
 
-export async function joinTripByCode(code: string): Promise<string> {
+// ---------- Seats ----------
+
+export interface InviteRoster {
+  tripId: string;
+  tripTitle: string;
+  seats: TripSeat[];
+}
+
+interface RosterRow {
+  t_id: string;
+  t_title: string;
+  seat_id: string | null;
+  seat_name: string;
+  seat_color: string;
+  seat_role: TripRole;
+  is_claimed: boolean;
+  is_mine: boolean;
+}
+
+/**
+ * The names behind an invite code, for somebody who holds the code but is not
+ * on the trip yet. An empty `seats` means the organiser has not added anybody —
+ * a real state with its own message, which is why the server returns the trip
+ * row even when the roster is empty rather than nothing at all.
+ */
+export async function fetchInviteRoster(code: string): Promise<InviteRoster> {
   if (!supabase) throw new Error('Cloud disabled');
-  const { data, error } = await supabase.rpc('join_trip', { p_code: normalizeInviteCode(code) });
+  const { data, error } = await supabase.rpc('invite_roster', {
+    p_code: normalizeInviteCode(code)
+  });
+  if (error) throw error;
+
+  const rows = (data || []) as RosterRow[];
+  if (rows.length === 0) throw new Error('INVALID_INVITE');
+
+  return {
+    tripId: rows[0].t_id,
+    tripTitle: rows[0].t_title,
+    seats: rows
+      .filter(r => r.seat_id)
+      .map(r => ({
+        travelerId: r.seat_id!,
+        name: r.seat_name,
+        avatarColor: r.seat_color,
+        role: r.seat_role,
+        claimed: r.is_claimed,
+        mine: r.is_mine
+      }))
+  };
+}
+
+/**
+ * Take a named seat. Returns the trip id now joined.
+ *
+ * `code` is only needed by somebody who is not on the trip yet; an existing
+ * member picking their name late, or swapping it, has nothing to prove.
+ */
+export async function claimSeat(
+  tripId: string,
+  travelerId: string,
+  code?: string
+): Promise<string> {
+  if (!supabase) throw new Error('Cloud disabled');
+  const { data, error } = await supabase.rpc('claim_seat', {
+    p_trip_id: tripId,
+    p_traveler_id: travelerId,
+    p_code: code ? normalizeInviteCode(code) : null
+  });
   if (error) throw error;
   return data as string;
+}
+
+/**
+ * The roster as the picker wants it, for a trip this browser is already on:
+ * the names from the trip document, with who holds each one from the server.
+ *
+ * Pure so it can be tested without a network — the merge rule is the part
+ * worth getting right. A claimed seat reports the role actually enforced on
+ * the server, not the one the trip document merely intends.
+ */
+export function mergeSeats(travelers: Traveler[], claims: SeatClaim[]): TripSeat[] {
+  return (travelers || []).map(tv => {
+    const claim = claims.find(c => c.travelerId === tv.id);
+    return {
+      travelerId: tv.id,
+      name: tv.name,
+      avatarColor: tv.avatarColor,
+      role: claim?.role ?? tv.role ?? 'member',
+      claimed: Boolean(claim),
+      mine: claim?.isMe ?? false
+    };
+  });
+}
+
+/** Who holds which seat on a trip this browser is already a member of. */
+export async function fetchSeatClaims(tripId: string): Promise<SeatClaim[]> {
+  if (!supabase) return [];
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  const { data, error } = await supabase
+    .from('trip_members')
+    .select('traveler_id, role, user_id')
+    .eq('trip_id', tripId);
+  if (error) {
+    // Nobody holds a seat on a database that has no seats. An empty roster
+    // reads as "not claimed yet", which is the truth of it.
+    console.warn('Seat claims unavailable:', error.message);
+    return [];
+  }
+  return (data || [])
+    .filter(r => r.traveler_id)
+    .map(r => ({
+      travelerId: r.traveler_id as string,
+      role: r.role as TripRole,
+      isMe: r.user_id === uid
+    }));
+}
+
+/** Admin only. Frees the seat so it can be claimed again. */
+export async function releaseSeat(tripId: string, travelerId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.rpc('release_seat', {
+    p_trip_id: tripId,
+    p_traveler_id: travelerId
+  });
+  if (error) throw error;
+}
+
+/** Admin only. Changes what the seat's holder may do, right now. */
+export async function setSeatRole(
+  tripId: string,
+  travelerId: string,
+  role: TripRole
+): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.rpc('set_seat_role', {
+    p_trip_id: tripId,
+    p_traveler_id: travelerId,
+    p_role: role
+  });
+  if (error) throw error;
 }
 
 // ---------- Invite URL helpers ----------

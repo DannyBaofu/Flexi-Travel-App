@@ -63,6 +63,21 @@ reordering, trip settings, the expense splitter internals, and invites. `viewer`
 is read-only. Every component takes a `role` prop — new UI needs a deliberate
 answer for all three roles.
 
+**A role comes from a seat, and a seat is a name on the roster.** The admin
+writes the roster in Trip Settings — a name and a permission each — and sends
+one link. Whoever opens it picks their own name off `SeatPickerModal`, and that
+claim is what joins them. `trip_members.traveler_id` binds account to name, with
+a partial unique index making "one seat, one holder" a database rule rather than
+a hope.
+
+The enforced role lives in `trip_members` and nowhere else. `Traveler.role` in
+the trip document is only what the seat *intends* for whoever claims it next,
+because the document is member-writable: `claim_seat` clamps it to
+member/viewer, so nobody can edit a free seat to `admin` and claim their way up.
+Admin is granted only through `set_seat_role`, which checks the caller is one.
+Claiming also never changes the role of somebody already on the trip — swapping
+which name you are is not a way to change what you may do.
+
 **No ticket references in code**, comments, or test titles. Commit messages
 only. Commits end with the `Co-Authored-By: Claude Fable 5` trailer.
 
@@ -120,8 +135,10 @@ That is not a regression: without keys `isCloudEnabled` folds to `false` at buil
 time and the bundler tree-shakes all of `@supabase/supabase-js` away. Compare
 like for like before chasing a size jump.
 
-Sharing is **one short cloud invite** (`/j/AB3F7K`, ~35 chars, requires sign-in,
-grants a role), and only an admin ever sees the button. The old snapshot link —
+Sharing is **one short cloud invite** (`/j/AB3F7K`, ~35 chars), and only an
+admin ever sees the button. The link no longer carries a role — it opens the
+door, and the seat claimed behind it decides everything. It is also only useful
+until the roster is full: once every name is claimed it grants nothing. The old snapshot link —
 the whole trip LZ-compressed into the URL hash, ~13,000 characters for a 6-day
 trip — is no longer generated; `sharing.ts` still *parses* incoming ones so links
 already sent keep working, and `PasscodePromptModal` still exists for the PIN
@@ -137,11 +154,24 @@ Invites live at a **path**, not a hash, which is why `vite.config.ts` must keep
 `base: '/'`. A relative base makes `/j/AB3F7K` request `/j/assets/...`, Vercel's
 catch-all rewrite returns index.html for it, and the page renders blank.
 
-**Auth is ID + password, not email.** Friends get a short ID from the organiser
-and `cloudSync.ts` maps it onto `<id>@travellor.app` because Supabase needs an
-email. No mail is ever sent there, so the project must have **Confirm email
-off** — `signUpWithId` detects that case and throws `CONFIRM_EMAIL_ON`. Show
-`emailToId(user.email)` in the UI, never the raw email.
+**Guests never type a credential.** Opening an invite takes an anonymous
+Supabase account silently, so tapping your name is the whole join. That needs
+**Anonymous sign-ins ON** in the project; with it off `signInAnonymously()`
+returns false and the flow falls back to the ID + password modal, with the same
+seat picker after it. Don't "simplify" that fallback away — it is what keeps the
+app working on a project that never flipped the switch.
+
+**ID + password is the organiser's own sign-in**, not something handed to
+friends. `cloudSync.ts` maps the ID onto `<id>@travellor.app` because Supabase
+needs an email. No mail is ever sent there, so the project must have **Confirm
+email off** — `signUpWithId` detects that case and throws `CONFIRM_EMAIL_ON`.
+Show `emailToId(user.email)` in the UI, never the raw email.
+
+**RLS policies are subject to RLS.** A sub-select on another table inside a
+policy is filtered by *that* table's policies, which is why `member_role` and
+`trip_owner` are `security definer` and why an owner check must go through one.
+Writing `exists (select 1 from trips ...)` directly into a policy is the bug
+that made trip creation silently fail to write its own membership row.
 
 ## Data model notes
 
@@ -154,9 +184,12 @@ permission and is stripped before the trip is stored or shared.
 
 Two other things are deliberately *not* on the Trip, for the same reason: the UI
 language (`travelsync-lang`) and which traveller is "me" for the budget tab's
-personal balance (`travelsync-me`, a `tripId → travelerId` map). Both describe
-the device, not the trip, so they stay in their own `localStorage` keys and need
-no storage migration. `travelsync-me` also supplies the **default payer** when
+personal balance (`travelsync-me`, a `tripId → travelerId` map, now in
+`services/me.ts` so `App` can write it too). Both describe the device, not the
+trip, so they stay in their own `localStorage` keys and need no storage
+migration. On a cloud trip `travelsync-me` is a *mirror* of the claimed seat
+rather than a free choice — `trip.myTravelerId` wins, or the budget tab would
+happily show one person's balance under another's name. `travelsync-me` also supplies the **default payer** when
 logging an expense, which is what lets that form ask for an amount and nothing
 else — its date likewise defaults to *today*, not to `trip.startDate`.
 

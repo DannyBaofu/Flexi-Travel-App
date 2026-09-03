@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Calendar, Compass } from 'lucide-react';
-import type { Trip, ActivityItem, TripRole } from './types/travel';
+import type { Trip, ActivityItem, TripRole, TripSeat } from './types/travel';
 import { storageService } from './services/storage';
 import { sharingService, resolveShareRole } from './services/sharing';
 import type { SharePayload } from './services/sharing';
@@ -21,6 +21,7 @@ const TripSettingsModal = lazy(() => import('./components/TripSettingsModal').th
 const NewTripModal = lazy(() => import('./components/NewTripModal').then(m => ({ default: m.NewTripModal })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const PasscodePromptModal = lazy(() => import('./components/PasscodePromptModal').then(m => ({ default: m.PasscodePromptModal })));
+const SeatPickerModal = lazy(() => import('./components/SeatPickerModal').then(m => ({ default: m.SeatPickerModal })));
 import type { TabId } from './components/TabBar';
 import { btnPrimary, btnSecondary, card, inputMono, label as labelCls } from './components/ui';
 import { useI18n } from './utils/i18n';
@@ -41,10 +42,26 @@ import {
   upsertTripCloud,
   deleteTripCloud,
   subscribeTrip,
-  joinTripByCode,
+  signInAnonymously,
+  fetchInviteRoster,
+  fetchSeatClaims,
+  claimSeat,
+  mergeSeats,
   parseJoinCodeFromUrl,
   clearJoinHash
 } from './services/cloudSync';
+import { writeMe } from './services/me';
+
+/**
+ * The server raises bare codes so the UI can say something a traveller
+ * understands. Anything unrecognised keeps its own text rather than being
+ * flattened into a shrug.
+ */
+const seatErrorKey = (raw: string): string | null => {
+  if (raw.includes('SEAT_TAKEN')) return 'seatErrorTaken';
+  if (raw.includes('INVALID_INVITE') || raw.includes('UNKNOWN_SEAT')) return 'seatErrorInvalid';
+  return null;
+};
 
 export function App() {
   const { t } = useI18n();
@@ -64,6 +81,18 @@ export function App() {
   const [joinBlockedNoCloud, setJoinBlockedNoCloud] = useState(false);
   // Typed by hand on the first screen, for a friend given the code verbally
   const [joinCodeInput, setJoinCodeInput] = useState('');
+  /**
+   * The "who are you?" prompt. Raised either by an invite link (the code comes
+   * with it) or for somebody already on a trip who has no name against it.
+   */
+  const [seatPrompt, setSeatPrompt] = useState<{
+    tripId: string;
+    tripTitle: string;
+    seats: TripSeat[];
+    code?: string;
+  } | null>(null);
+  const [seatBusyId, setSeatBusyId] = useState<string | null>(null);
+  const [seatError, setSeatError] = useState<string | null>(null);
   const cloudMode = isCloudEnabled && !!user;
   const pushTimerRef = useRef<number | null>(null);
 
@@ -126,11 +155,17 @@ export function App() {
     return off;
   }, []);
 
-  // An invite link needs a signed-in user
+  // An invite link needs an identity, but a guest should never have to invent
+  // one: an anonymous account is taken silently so that tapping your name is
+  // the entire join. Projects with anonymous sign-ins switched off fall back
+  // to the ID + password modal, and the seat picker after it is identical.
   useEffect(() => {
-    if (pendingJoinCode && isCloudEnabled && !user) {
-      setIsAuthModalOpen(true);
-    }
+    if (!pendingJoinCode || !isCloudEnabled || user) return;
+    let cancelled = false;
+    signInAnonymously().then(ok => {
+      if (!cancelled && !ok) setIsAuthModalOpen(true);
+    });
+    return () => { cancelled = true; };
   }, [pendingJoinCode, user]);
 
   // On sign-in: pull cloud trips, upload local admin trips that are not there yet
@@ -163,23 +198,59 @@ export function App() {
     return () => { cancelled = true; };
   }, [cloudMode]);
 
-  // Join a trip from an invite link once signed in
+  // Arrived on an invite link: fetch the roster the organiser wrote and ask
+  // which of those names they are. Claiming one is what joins the trip.
   useEffect(() => {
     if (!cloudMode || !pendingJoinCode) return;
+    const code = pendingJoinCode;
+    let cancelled = false;
     (async () => {
       try {
-        const tripId = await joinTripByCode(pendingJoinCode);
-        const cloudTrips = await fetchMyTrips();
-        storageService.saveTrips(cloudTrips);
-        setTrips(cloudTrips);
-        setActiveTripId(tripId);
-        storageService.setActiveTripId(tripId);
+        const roster = await fetchInviteRoster(code);
+        if (cancelled) return;
+        setSeatPrompt({ ...roster, code });
+        setSeatError(null);
       } catch (e: any) {
-        setJoinError(e?.message || String(e));
+        const raw = e?.message || String(e);
+        if (!cancelled) setJoinError(seatErrorKey(raw) ? t('seatErrorInvalid') : raw);
       }
-      setPendingJoinCode(null);
+      if (!cancelled) setPendingJoinCode(null);
     })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloudMode, pendingJoinCode]);
+
+  const handlePickSeat = async (travelerId: string) => {
+    if (!seatPrompt) return;
+    setSeatBusyId(travelerId);
+    setSeatError(null);
+    try {
+      const tripId = await claimSeat(seatPrompt.tripId, travelerId, seatPrompt.code);
+      const cloudTrips = await fetchMyTrips();
+      storageService.saveTrips(cloudTrips);
+      setTrips(cloudTrips);
+      setActiveTripId(tripId);
+      storageService.setActiveTripId(tripId);
+      // The budget tab asks the same question for its own reasons. Answering
+      // it here means claiming a seat settles "who are you?" everywhere at
+      // once, and keeps holding while the browser is offline.
+      writeMe(tripId, travelerId);
+      setSeatPrompt(null);
+    } catch (e: any) {
+      const raw = e?.message || String(e);
+      const key = seatErrorKey(raw);
+      setSeatError(key ? t(key) : t('seatErrorFailed', { msg: raw }));
+      // A seat lost to somebody faster is only visible on a fresh roster.
+      if (key === 'seatErrorTaken' && seatPrompt.code) {
+        try {
+          const roster = await fetchInviteRoster(seatPrompt.code);
+          setSeatPrompt(prev => (prev ? { ...prev, seats: roster.seats } : prev));
+        } catch { /* keep the stale list rather than emptying the modal */ }
+      }
+    } finally {
+      setSeatBusyId(null);
+    }
+  };
 
   const applySharedTrip = (payload: SharePayload) => {
     const grantedRole = resolveShareRole(payload);
@@ -210,6 +281,31 @@ export function App() {
   // Role of this user for the active trip: locally created trips = admin
   const role: TripRole = activeTrip?.myRole || 'admin';
 
+  // On a trip but with no name against it — every membership made before seats
+  // existed, and the organiser's own trips from before this version. Same
+  // picker, no code needed because they already belong here.
+  useEffect(() => {
+    if (!cloudMode || seatPrompt || !activeTrip) return;
+    if (!activeTrip.myRole || activeTrip.myTravelerId) return;
+    const trip = activeTrip;
+    let cancelled = false;
+    (async () => {
+      try {
+        const claims = await fetchSeatClaims(trip.id);
+        if (cancelled) return;
+        setSeatPrompt({
+          tripId: trip.id,
+          tripTitle: trip.title,
+          seats: mergeSeats(trip.travelers, claims)
+        });
+      } catch (e) {
+        console.error('Could not read the roster:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloudMode, activeTrip?.id, activeTrip?.myRole, activeTrip?.myTravelerId, seatPrompt]);
+
   // Switch trip
   const handleSelectTrip = (tripId: string) => {
     setActiveTripId(tripId);
@@ -222,7 +318,17 @@ export function App() {
     unsentTripRef.current = trip;
     setSyncState('saving');
     try {
-      const settled = await upsertTripCloud(trip);
+      let settled: Trip;
+      try {
+        settled = await upsertTripCloud(trip);
+      } catch (err: any) {
+        // The trip is not in the cloud at all — its creation failed earlier,
+        // most likely offline. Put it there first, then save on top of it, so
+        // a trip cannot stay stranded local-only with no way back.
+        if (err?.message !== 'TRIP_NOT_ON_SERVER') throw err;
+        await createTripCloud(trip);
+        settled = await upsertTripCloud(trip);
+      }
       // Only clear if nothing newer queued up behind this push
       if (unsentTripRef.current === trip) {
         unsentTripRef.current = null;
@@ -272,7 +378,14 @@ export function App() {
     setActiveTripId(newTrip.id);
     storageService.setActiveTripId(newTrip.id);
     if (cloudMode) {
-      createTripCloud(newTrip).catch(err => console.error('Cloud create failed:', err));
+      createTripCloud(newTrip).catch(err => {
+        console.error('Cloud create failed:', err);
+        // A trip that never reached the cloud has no membership row behind it,
+        // so sharing and syncing it both fail later with nothing on screen to
+        // explain why. Show it now, and leave it where retry can pick it up.
+        unsentTripRef.current = newTrip;
+        setSyncState(navigator.onLine === false ? 'offline' : 'error');
+      });
     }
   };
 
@@ -391,6 +504,12 @@ export function App() {
     setPendingJoinCode(code);
   };
 
+  // Name the tab after the trip. With several trips open in several tabs, the
+  // app's own name on all of them tells you nothing.
+  useEffect(() => {
+    document.title = activeTrip?.title?.trim() || t('docTitle');
+  }, [activeTrip?.title, t]);
+
   // No trips at all. Offer both doors plainly: start one, or join a shared one.
   if (!activeTrip) {
     return (
@@ -481,6 +600,17 @@ export function App() {
           )}
           {isAuthModalOpen && (
             <AuthModal isOpen onClose={() => setIsAuthModalOpen(false)} />
+          )}
+          {seatPrompt && (
+            <SeatPickerModal
+              isOpen
+              tripTitle={seatPrompt.tripTitle}
+              seats={seatPrompt.seats}
+              busySeatId={seatBusyId}
+              error={seatError}
+              onPick={handlePickSeat}
+              onCancel={() => { setSeatPrompt(null); setSeatError(null); }}
+            />
           )}
         </Suspense>
       </div>
@@ -605,6 +735,8 @@ export function App() {
             isOpen
             onClose={() => setIsSettingsModalOpen(false)}
             trip={activeTrip}
+            role={role}
+            cloudMode={cloudMode}
             onSave={handleUpdateTrip}
             onDeleteTrip={handleDeleteTrip}
           />
@@ -620,6 +752,18 @@ export function App() {
 
         {isAuthModalOpen && (
           <AuthModal isOpen onClose={() => setIsAuthModalOpen(false)} />
+        )}
+
+        {seatPrompt && (
+          <SeatPickerModal
+            isOpen
+            tripTitle={seatPrompt.tripTitle}
+            seats={seatPrompt.seats}
+            busySeatId={seatBusyId}
+            error={seatError}
+            onPick={handlePickSeat}
+            onCancel={() => { setSeatPrompt(null); setSeatError(null); }}
+          />
         )}
 
         {isPasscodePromptOpen && (
