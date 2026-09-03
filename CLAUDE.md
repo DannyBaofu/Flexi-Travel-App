@@ -56,17 +56,33 @@ the three tabs live at the *bottom* on phones (`BottomTabs`) and at the top from
 on purpose — the label says what the field is, and a fake example is one more
 thing to read past.
 
-**Permissions follow one rule:** additive or reversible actions belong to
-`member`; destructive or structural ones belong to `admin`. So members add and
-edit activities, tick checklists, and log expenses; admins own deletes,
-reordering, trip settings, the expense splitter internals, and invites. `viewer`
-is read-only. Every component takes a `role` prop — new UI needs a deliberate
-answer for all three roles.
+**Permissions follow one rule:** planning the trip belongs to everyone on it;
+*owning* the trip belongs to the organiser. Travellers add, edit, reorder,
+duplicate and delete activities, log and delete expenses, and run the shared
+pot — everything with an undo behind it. `admin` keeps only the structural
+things: trip settings, the roster and its permissions, sharing, and deleting the
+trip. `viewer` is read-only.
+
+So inside the tab components the test is `canEdit = role !== 'viewer'`, **not**
+`role === 'admin'` — `ItineraryView`, `BudgetTracker`, `ExpenseForm` and
+`KittyCard` all take that shape, and `KittyCard`/`ExpenseForm` name the prop
+`canEdit` for the same reason. Reaching for `isAdmin` in one of those is the
+mistake to catch in review. Every component still takes a `role` prop, and new
+UI needs a deliberate answer for all three.
+
+**The top bar is two different bars.** An organiser gets Trip Settings, Print
+and Share; a traveller gets the language switch, their own trips, creating a
+trip, and the way out. There is no "you are a member" banner — announcing a
+permission that no longer differs from anyone else's was just noise. The
+read-only banner stays, because that one explains why controls are missing.
 
 **A role comes from a seat, and a seat is a name on the roster.** The admin
-writes the roster in Trip Settings — a name and a permission each — and sends
-one link. Whoever opens it picks their own name off `SeatPickerModal`, and that
-claim is what joins them. `trip_members.traveler_id` binds account to name, with
+writes the roster in Trip Settings — a name and a permission each, every name
+renameable including their own — and sends one link. Whoever opens it picks
+their own name off `SeatPickerModal`, and that claim is what joins them. The
+picker deliberately does *not* print what each seat grants: that is between the
+traveller and the organiser, and it turned the list into a permissions table
+when all it has to ask is which name is yours. `trip_members.traveler_id` binds account to name, with
 a partial unique index making "one seat, one holder" a database rule rather than
 a hope.
 

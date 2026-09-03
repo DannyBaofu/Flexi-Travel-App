@@ -103,6 +103,10 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
   const describeFailure = (e: unknown) =>
     t('rosterActionFailed', { msg: (e as { message?: string })?.message || String(e) });
 
+  const handleRenameTraveler = (id: string, name: string) => {
+    setTravelers(prev => prev.map(tv => (tv.id === id ? { ...tv, name } : tv)));
+  };
+
   const handleRemoveTraveler = (id: string) => {
     if (travelers.length <= 1) return; // Keep at least one traveler
     setTravelers(travelers.filter(tv => tv.id !== id));
@@ -347,9 +351,13 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: traveler.avatarColor }}
                     />
-                    <span className="text-sm font-medium text-ink truncate flex-1 min-w-0">
-                      {traveler.name}
-                    </span>
+                    <input
+                      type="text"
+                      value={traveler.name}
+                      onChange={(e) => handleRenameTraveler(traveler.id, e.target.value)}
+                      aria-label={t('travelerNameLabel')}
+                      className={`${input} py-1.5 text-sm font-medium flex-1 min-w-0`}
+                    />
 
                     {cloudMode && (
                       <span

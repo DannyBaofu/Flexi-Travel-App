@@ -8,8 +8,7 @@ import {
   LogIn,
   LogOut,
   MoreHorizontal,
-  Lock,
-  Users
+  Lock
 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import type { Trip, TripRole } from '../types/travel';
@@ -134,17 +133,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </button>
                   )}
 
+                  {/* Organising the trip is a different job from being on it.
+                      Settings, sharing and printing belong to whoever set it
+                      up; a traveller's bar stays down to the language switch,
+                      their own trips, and the way out. */}
                   {isAdmin && (
-                    <button className={menuItem} onClick={run(onOpenSettingsModal)}>
-                      <Sliders className="w-4 h-4 text-muted shrink-0" />
-                      {t('tripSettings')}
-                    </button>
-                  )}
+                    <>
+                      <button className={menuItem} onClick={run(onOpenSettingsModal)}>
+                        <Sliders className="w-4 h-4 text-muted shrink-0" />
+                        {t('tripSettings')}
+                      </button>
 
-                  <button className={menuItem} onClick={run(onPrint)}>
-                    <Printer className="w-4 h-4 text-muted shrink-0" />
-                    {t('printTitle')}
-                  </button>
+                      <button className={menuItem} onClick={run(onPrint)}>
+                        <Printer className="w-4 h-4 text-muted shrink-0" />
+                        {t('printTitle')}
+                      </button>
+                    </>
+                  )}
 
                   {cloudEnabled && (
                     <>
@@ -188,12 +193,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="bg-mist border-b border-hairline px-4 py-1.5 flex items-center justify-center gap-1.5 text-xs font-medium text-muted">
           <Lock className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">{t('readOnlyBanner')}</span>
-        </div>
-      )}
-      {role === 'member' && (
-        <div className="bg-brand-tint px-4 py-1.5 flex items-center justify-center gap-1.5 text-xs font-medium text-brand-deep">
-          <Users className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">{t('memberBanner')}</span>
         </div>
       )}
     </header>

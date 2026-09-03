@@ -34,7 +34,8 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
       country.trim() || destination.trim(),
       startDate,
       endDate,
-      currency.trim().toUpperCase() || 'USD'
+      currency.trim().toUpperCase() || 'USD',
+      t('travelerMeDefault')
     );
     onCreateTrip(trip);
     onClose();

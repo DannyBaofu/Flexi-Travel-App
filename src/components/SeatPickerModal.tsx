@@ -15,9 +15,6 @@ interface SeatPickerModalProps {
   onCancel: () => void;
 }
 
-const roleKey = (role: TripSeat['role']) =>
-  role === 'viewer' ? 'seatRoleViewer' : role === 'admin' ? 'seatRoleAdmin' : 'seatRoleMember';
-
 /**
  * The whole join flow: the organiser wrote the roster, and you say which of
  * those names is you. No password, because the invite link is the secret and
@@ -90,13 +87,8 @@ export const SeatPickerModal: React.FC<SeatPickerModalProps> = ({
                         style={{ backgroundColor: seat.avatarColor || undefined }}
                       />
 
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold text-ink truncate">
-                          {seat.name}
-                        </span>
-                        <span className="block text-[11px] text-muted mt-0.5">
-                          {t(roleKey(seat.role))}
-                        </span>
+                      <span className="min-w-0 flex-1 text-sm font-semibold text-ink truncate">
+                        {seat.name}
                       </span>
 
                       {claiming ? (

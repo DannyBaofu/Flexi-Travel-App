@@ -99,13 +99,13 @@ describe('SeatPickerModal', () => {
     expect(seatButton('Wei Ming').disabled).toBe(true);
   });
 
-  it('shows what each seat grants, so nobody claims the wrong one', () => {
+  it('does not announce what each seat grants — that is between them and the organiser', () => {
     renderPicker([
       seat({ name: 'Danny', role: 'member' }),
       seat({ travelerId: 't2', name: 'Grandma', role: 'viewer' })
     ]);
 
-    expect(screen.getByText('Can edit')).toBeTruthy();
-    expect(screen.getByText('View only')).toBeTruthy();
+    expect(screen.queryByText('Can edit')).toBeNull();
+    expect(screen.queryByText('View only')).toBeNull();
   });
 });

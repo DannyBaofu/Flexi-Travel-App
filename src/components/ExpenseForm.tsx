@@ -7,7 +7,7 @@ import { card, btnPrimary, btnGhost, input, label, money } from './ui';
 
 interface ExpenseFormProps {
   trip: Trip;
-  isAdmin: boolean;
+  canEdit: boolean;
   meId: string;
   /** Amount converted to the home currency, for the live line under the field. */
   toHome: (n: number) => string;
@@ -43,7 +43,7 @@ interface ExpenseFormProps {
  */
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   trip,
-  isAdmin,
+  canEdit,
   meId,
   toHome,
   amount,
@@ -148,7 +148,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             {describePayer(effectivePaidBy)}
             {' \u00b7 '}
             {describeDate(date)}
-            {isAdmin && splitWith.length !== trip.travelers.length
+            {canEdit && splitWith.length !== trip.travelers.length
               ? ` \u00b7 ${t('splitByN', { n: splitWith.length })}`
               : ''}
           </span>
@@ -161,7 +161,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
         {showMore && (
           <div className="mt-3 space-y-3.5">
             {/* Who paid is the admin's call; a member logs their own */}
-            {isAdmin && (
+            {canEdit && (
               <div>
                 <span className={label}>{t('paidBy')}</span>
                 <div className="flex flex-wrap gap-1.5">
@@ -199,7 +199,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               />
             </div>
 
-            {isAdmin && (
+            {canEdit && (
               <div>
                 <span className={label}>{t('splitWithLabel')}</span>
                 <div className="flex flex-wrap gap-1.5">

@@ -10,7 +10,7 @@ interface KittyCardProps {
   trip: Trip;
   kitty: TripKitty;
   state: KittyState;
-  isAdmin: boolean;
+  canEdit: boolean;
   meId: string;
   rate: number;
   editing: boolean;
@@ -32,7 +32,7 @@ export const KittyCard: React.FC<KittyCardProps> = ({
   trip,
   kitty,
   state: kittyState,
-  isAdmin,
+  canEdit,
   meId,
   rate,
   editing: kittyEditing,
@@ -71,7 +71,7 @@ export const KittyCard: React.FC<KittyCardProps> = ({
           </div>
         </div>
 
-        {isAdmin && (
+        {canEdit && (
           <button
             onClick={() => onToggleEditing()}
             className={iconBtn}
@@ -151,7 +151,7 @@ export const KittyCard: React.FC<KittyCardProps> = ({
       </div>
 
       {/* Setting the pot up is splitter internals, so it is the admin's */}
-      {isAdmin && kittyEditing && (
+      {canEdit && kittyEditing && (
         <div className="pt-3 border-t border-hairline space-y-3.5 animate-riseIn">
           <div>
             <label className={label} htmlFor="kitty-per-person">
@@ -260,7 +260,7 @@ export const KittyCard: React.FC<KittyCardProps> = ({
         </div>
       )}
     </div>
-  ) : isAdmin ? (
+  ) : canEdit ? (
     <button
       onClick={() => {
         updateKitty({

@@ -121,8 +121,13 @@ describe('BudgetTracker — what each role may do', () => {
     expect(onOfferUndo).toHaveBeenCalledTimes(1);
   });
 
-  it('gives a member no delete control at all', () => {
+  it('lets a traveller delete an expense too — their spending, their mistake to fix', () => {
     renderBudget(withExpense, 'member');
+    expect(screen.getAllByRole('button', { name: /删除支出/ })).toHaveLength(1);
+  });
+
+  it('keeps the delete control away from a viewer', () => {
+    renderBudget(withExpense, 'viewer');
     expect(screen.queryAllByRole('button', { name: /删除支出/ })).toHaveLength(0);
   });
 
@@ -169,8 +174,13 @@ describe('BudgetTracker — the shared fund', () => {
     expect(screen.getAllByText('公基金').length).toBeGreaterThan(0);
   });
 
-  it('hides the fund settings from a member', () => {
+  it('opens the fund settings to a traveller, not just the organiser', () => {
     renderBudget(withKitty, 'member');
+    expect(screen.getAllByRole('button', { name: /基金设置/ }).length).toBeGreaterThan(0);
+  });
+
+  it('hides the fund settings from a viewer', () => {
+    renderBudget(withKitty, 'viewer');
     expect(screen.queryAllByRole('button', { name: /基金设置/ })).toHaveLength(0);
   });
 });

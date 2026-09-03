@@ -7,7 +7,8 @@ export function createNewTrip(
   country: string,
   startDate: string,
   endDate: string,
-  currency: string = 'USD'
+  currency: string = 'USD',
+  ownerName: string = 'Me'
 ): Trip {
   // Day generation lives in tripDays.ts so that creating a trip and editing its
   // dates later build days exactly the same way.
@@ -25,7 +26,7 @@ export function createNewTrip(
     homeCurrency: 'MYR',
     exchangeRate: 1,
     travelers: [
-      { id: 't1', name: 'You (Organizer)', avatarColor: '#3930DB', isOwner: true }
+      { id: 't1', name: ownerName, avatarColor: '#3930DB', isOwner: true, role: 'admin' }
     ],
     shareSettings: {
       isPublic: true,

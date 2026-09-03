@@ -169,15 +169,14 @@ const dict: Record<string, Entry> = {
   printCurrency: { zh: '货币', en: 'Currency' },
 
   // ---- Roles ----
-  memberBanner: {
-    zh: '旅伴模式 · 可添加活动、记支出、勾清单',
-    en: 'Member · add activities, log expenses, tick items'
-  },
   shareAsAdmin: { zh: '管理员（完全控制）', en: 'Admin (Full Control)' },
   shareAsAdminDesc: { zh: '行程设置、删除、旅伴管理等全部权限', en: 'Full access: settings, deletions, manage travelers' },
   shareAsMember: { zh: '旅伴（基础编辑）', en: 'Member (Basic Edits)' },
   shareAsMemberDesc: { zh: '可编辑活动、勾选清单、记录支出', en: 'Can edit activities, tick checklists, log expenses' },
   memberShareNote: { zh: '只有管理员可以创建可编辑的分享链接，您可以分享只读链接。', en: 'Only the admin can create editable share links. You can share a read-only link.' },
+
+  travelerNameLabel: { zh: '旅伴姓名', en: 'Traveller name' },
+  travelerMeDefault: { zh: '我', en: 'Me' },
 
   // ---- Seats: the roster, and claiming your name off it ----
   seatRoleAdmin: { zh: '管理员', en: 'Admin' },

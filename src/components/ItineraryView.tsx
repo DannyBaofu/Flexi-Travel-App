@@ -92,7 +92,9 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   role
 }) => {
   const { lang, t } = useI18n();
-  const isAdmin = role === 'admin';
+  // Reordering, duplicating and deleting an activity are ordinary trip
+  // planning, so every traveller gets them. Only a viewer is held back.
+  const canEdit = role !== 'viewer';
   const isReadOnly = role === 'viewer';
 
   const todayIndex = useMemo(
@@ -125,7 +127,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   };
 
   const handleMoveActivity = (dayId: string, activityIndex: number, direction: 'up' | 'down') => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
     const targetDay = trip.days.find(d => d.id === dayId);
     if (!targetDay) return;
 
@@ -142,7 +144,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   };
 
   const handleDeleteActivity = (dayId: string, activityId: string) => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
 
     const sourceDay = trip.days.find(d => d.id === dayId);
     const activity = sourceDay?.activities.find(a => a.id === activityId);
@@ -170,7 +172,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   };
 
   const handleDuplicateActivity = (dayId: string, activity: ActivityItem) => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
     const duplicated: ActivityItem = {
       ...activity,
       id: `act-${Date.now()}`,
@@ -489,7 +491,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
                               {!isReadOnly && (
                                 <div className="flex items-center gap-0.5 -ml-1.5">
-                                  {isAdmin && (
+                                  {canEdit && (
                                     <>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleMoveActivity(day.id, actIdx, 'up'); }}
@@ -523,7 +525,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                   >
                                     <Edit3 className="w-4 h-4" />
                                   </button>
-                                  {isAdmin && (
+                                  {canEdit && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleDeleteActivity(day.id, activity.id); }}
                                       className={`${actionBtn} hover:text-clay hover:bg-clay-tint`}

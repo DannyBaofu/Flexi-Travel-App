@@ -55,7 +55,9 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   role
 }) => {
   const { lang, t } = useI18n();
-  const isAdmin = role === 'admin';
+  // The shared pot, the splitter and removing a mistyped expense are all
+  // things the person who spent the money needs. Only a viewer is held back.
+  const canEdit = role !== 'viewer';
   const isReadOnly = role === 'viewer';
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState('');
@@ -202,7 +204,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   };
 
   const handleDeleteExpense = (expId: string) => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
     const removed = (trip.expenses || []).find(e => e.id === expId);
     if (!removed) return;
     const position = (trip.expenses || []).indexOf(removed);
@@ -370,7 +372,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         trip={trip}
         kitty={kitty}
         state={kittyState}
-        isAdmin={isAdmin}
+        canEdit={canEdit}
         meId={meId}
         rate={rate}
         editing={kittyEditing}
@@ -446,7 +448,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
       {isAdding && (
         <ExpenseForm
           trip={trip}
-          isAdmin={isAdmin}
+          canEdit={canEdit}
           meId={meId}
           toHome={toHome}
           amount={amount}
@@ -473,7 +475,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div className="lg:col-span-5 space-y-4">
           {/* Full settlement matrix stays an admin tool */}
-          {isAdmin && (
+          {canEdit && (
             <div className={`${card} p-4 sm:p-5 space-y-3`}>
               <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
                 <Users className="w-4 h-4 text-muted" /> {t('groupSettlement')}
@@ -621,7 +623,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                           </div>
                         </div>
 
-                        {isAdmin && (
+                        {canEdit && (
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
                             className="w-10 h-10 inline-flex items-center justify-center rounded-control text-faint hover:text-clay hover:bg-clay-tint transition"
