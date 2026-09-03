@@ -1,112 +1,117 @@
-# TravelSync - Customizable Travel Schedule & Online Sharing Web App
+# TravelSync
 
-A travel schedule and itinerary web application designed for group trips, travel buddies, and solo adventurers. It features day-by-day scheduling, budget tracking with group expense splitting, packing checklists, offline mobile support, and **safe online sharing via compressed links, PIN protection, and QR codes**.
+TravelSync is a mobile-first trip planner for small groups travelling together. It is designed around shared itinerary planning, live budget tracking, and optional cloud sync for friends who are already on the same trip.
 
-Pre-loaded with a curated **Bangkok 6-Day Explorer (5th - 10th)** itinerary with authentic recommendations, Thai taxi cards, maps, and timings.
+The app runs in browser storage by default, and it can optionally connect to Supabase for real-time collaboration and invite-based sharing.
 
----
+## What this project includes
 
-## 🌟 Key Features
+- Multi-day itinerary planning with activity cards and day-by-day structure
+- Budget tracking with expense logging and shared-fund support
+- Home currency / trip currency conversion with live FX refresh
+- Invite-based sharing with role handling for admin, member, and viewer
+- Local snapshot share support for older share links and offline fallback
+- Trip settings, trip creation, and role-aware editing permissions
+- Mobile-friendly layout tuned for phone screens
 
-- 📅 **Day-by-Day Timeline Planner**:
-  - Time slots, categories (Flight, Hotel, Food, Sightseeing, Shopping, Transport, Nightlife, Relax), Google Maps links, Thai local addresses for taxi drivers, cost estimations, and booking status.
-  - Reordering, duplicating, editing, and single-day vs all-days overview.
+## Stack
 
-- 🇹🇭 **Bangkok (5th - 10th) Curated Itinerary Included**:
-  - **Day 1 (5th)**: BKK Airport arrival, Sukhumvit check-in, Chao Phraya river boat, sunset Wat Arun, Tichuca 46th-floor rooftop bar.
-  - **Day 2 (6th)**: Grand Palace & Emerald Buddha, Wat Pho reclining Buddha & traditional massage, Michelin Krua Apsorn lunch, Ari cafe hopping, Yaowarat Chinatown street food crawl.
-  - **Day 3 (7th)**: Platinum Fashion wholesale mall, CentralWorld, Go-Ang Pratunam chicken rice, Siam Square youth street, Jodd Fairs night market (Volcano ribs).
-  - **Day 4 (8th)**: Wat Paknam 69m giant golden Buddha, ICONSIAM & SOOKSIAM indoor floating market, river park, Chao Phraya Princess luxury dinner cruise.
-  - **Day 5 (9th)**: Maeklong Railway market (train passing through stalls), Damnoen Saduak floating market paddleboat, 2-hour Thai herbal aroma spa, Supanniga Eating Room riverside farewell dinner.
-  - **Day 6 (10th)**: Big C Supercenter souvenir shopping (ChaTraMue tea, dried mango, Thai snacks), Som Tam Nua lunch, airport departure.
+- React 19
+- TypeScript
+- Vite 8
+- Tailwind CSS v4
+- Supabase for optional cloud sync
+- Vitest + Testing Library for tests
 
-- 🚗 **"Show Driver" Thai Taxi Cards**:
-  - Large Thai script flashcards with addresses and nearest BTS/MRT stations to easily show Bangkok taxi, Grab, Bolt, or Tuk-tuk drivers.
-  - Useful Thai phrases with phonetic pronunciations (e.g. *Please turn on meter*, *Stop here*).
+## Getting started
 
-- 🔒 **Safe Online Sharing & Collaboration**:
-  - **Zero-Backend Instant Share Link**: Trip state is compressed into the URL hash using LZ-String. Anyone opening the link gets the full itinerary instantly.
-  - **PIN / Passcode Protection**: Restrict viewing or editing with a custom 4-digit security PIN.
-  - **Viewer (Read-Only) vs Collaborative Edit Mode**: Control whether friends can edit activities or only browse.
-  - **Mobile QR Code**: Friends can scan the QR code with their phone camera to load the trip on mobile.
-  - **Export & Import JSON**: 1-click full trip backup and restore.
+### Install dependencies
 
-- 💰 **Budget & Group Expense Splitter**:
-  - Multi-currency support (THB, USD, SGD, MYR, EUR, JPY, GBP, etc.) with real-time conversion rates.
-  - Expense ledger with category breakdown charts.
-  - Smart debt settlement algorithm (*Who Owes Who*) with net balances.
-
-- 🎒 **Packing & Document Checklist**:
-  - Pre-trip passport validity, e-SIM, Grab/Bolt apps, temple attire, medications, and power bank reminders with celebration confetti!
-
-- 🖨️ **Print & PDF Export**:
-  - Clean, high-contrast physical print / PDF layout for offline emergency backup.
-
----
-
-## 🚀 Getting Started
-
-### 1. Start Development Server
 ```bash
 npm install
+```
+
+### Run locally
+
+```bash
 npm run dev
 ```
-Open your browser at `http://localhost:5173`.
 
-### 2. Build for Production
+The app runs on the default Vite port:
+
+```text
+http://localhost:5173
+```
+
+### Production build
+
 ```bash
 npm run build
 ```
-The output will be in the `dist/` directory, ready to be deployed to Vercel, Netlify, Cloudflare Pages, or GitHub Pages.
 
----
+### Test and lint
 
-## 📱 How to Share with Friends
+```bash
+npm run test
+npm run lint
+```
 
-**With cloud sync on (recommended):** Sign in → **Share Trip** → pick Admin /
-Member / Viewer → **Create Invite Link**. You get a ~35-character link like
-`/j/AB3F7K` that fits in a QR code, and everything stays in sync afterwards.
+## Optional cloud sync setup
 
-**Without cloud sync:** the **Snapshot Share** box packs the whole trip into the
-URL. It needs no login and works offline, but the link runs to thousands of
-characters (too long for a QR code and for some messaging apps) and it sends a
-frozen copy — your friend's later edits never come back to you.
+The app works without any Supabase keys in local-only mode. If you want invite links, shared trip syncing, and cloud-backed trip storage, add the following env vars:
 
-The optional **PIN / Passcode** on snapshot links is a convenience lock, not real
-security: the check happens in the browser and the link carries everything needed
-to open it. Use cloud invites for anything you actually want restricted.
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
-## Cloud Sync (Supabase)
+There is an example file in the repo:
 
-Optional realtime backend: friends sign in, open a tiny invite link, and every
-edit appears on everyone's phone instantly. **Without keys the app runs in
-local-only mode** — each browser keeps its own private copy, nothing is saved to
-a server, and sharing falls back to the long snapshot links.
+```bash
+cp .env.example .env
+```
 
-**Full walkthrough: [SETUP-CLOUD.md](SETUP-CLOUD.md).** The short version:
+Then fill in your Supabase project values.
 
-1. Create a free project at https://supabase.com (no credit card).
-2. SQL Editor → paste and run `supabase/schema.sql`.
-3. Authentication → Email → turn **Confirm email OFF** (required, see below).
-4. Project Settings → API: copy the Project URL and the `anon` public key.
-5. Add both as `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` in Vercel →
-   Project Settings → Environment Variables, then **redeploy**. Copy
-   `.env.example` to `.env` with the same values for local dev.
+See [SETUP-CLOUD.md](SETUP-CLOUD.md) for the full configuration steps.
 
-### Login: ID and password
+## Auth model
 
-Friends do not use email. The organiser hands out a short ID and a password
-(`danny` / `bkk2026`), and the app maps that onto an internal address
-`danny@travellor.app` so Supabase has something to identify. No mail is ever
-sent there, which is why **Confirm email must be off** — otherwise accounts are
-created but can never be confirmed. First-time users register themselves on the
-"First Time" tab with the exact credentials they were given; after everyone has
-registered, close signups in Supabase.
+This app does not use email-based sign-in for friends. Instead, the flow is based on an ID and password, which the app converts internally to a travel email format so Supabase can authenticate the account.
 
-### Roles and invites
+Important:
 
-Whoever creates a trip is its admin. Admins create invite links (admin / member /
-viewer) from the Share dialog — `https://travellor.vercel.app/j/AB3F7K`, about 35
-characters. Friends open the link, sign in, and are joined with that role. Row
-Level Security enforces membership and write permissions server-side, so an
-invite code is the only way into a trip.
+- Email confirmation must be turned off in Supabase for this login flow to work
+- The project uses a custom ID domain such as `danny@travellor.app`
+- The app should never expose the raw email in the UI; it shows the mapped ID instead
+
+## Sharing model
+
+TravelSync supports two kinds of sharing:
+
+1. Cloud invite links
+   - Short, shareable links such as `/j/AB3F7K`
+   - Live sync between signed-in users
+   - Role-based access: admin, member, viewer
+
+2. Snapshot share links
+   - Older URL-based trip payloads for offline or fallback sharing
+   - Still parsed for compatibility, but not the primary path for live collaborative editing
+
+## Repo conventions
+
+This repository expects:
+
+- Chinese as the default UI language, with English toggle support
+- Semantic theme tokens instead of raw Tailwind color names
+- No user-visible strings hardcoded in components; text is handled through the i18n layer
+- Mobile-first UI behavior with phone widths around 375px in mind
+- Local storage persistence for trip state unless cloud sync is configured
+
+## Notes
+
+- Trips persist in browser local storage unless Supabase is enabled
+- Cloud sync is wired in but remains dormant until the environment variables are set
+- The default app is intentionally usable without billing or backend setup
+
+## License
+
+This project does not currently define a project license in the repository. If you plan to distribute or publish it, add a license file before shipping externally.
