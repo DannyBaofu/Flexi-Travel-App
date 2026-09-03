@@ -139,16 +139,27 @@ async function readTripRow(tripId: string): Promise<{ trip: Trip; updatedAt: str
 
 export async function fetchMyTrips(): Promise<Trip[]> {
   if (!supabase) return [];
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return [];
+
+  // Filtered to this account's own membership row, deliberately. The
+  // members_select policy lets any member read the whole roster — the seat
+  // picker needs that — and its USING clause never looks at the row's
+  // user_id, so an unfiltered read returns one row per *member*: the same
+  // trip several times over, each copy carrying somebody else's role.
   let { data, error } = await supabase
     .from('trip_members')
-    .select('role, traveler_id, trips ( id, data, updated_at )');
+    .select('role, traveler_id, trips ( id, data, updated_at )')
+    .eq('user_id', uid);
 
   if (error) {
     // No seat column yet: this project has not run the latest schema.sql.
     // Trips still load; the app simply does not know who is who until it does.
     const fallback = await supabase
       .from('trip_members')
-      .select('role, trips ( id, data, updated_at )');
+      .select('role, trips ( id, data, updated_at )')
+      .eq('user_id', uid);
     if (fallback.error) throw error;
     data = fallback.data as typeof data;
   }
@@ -208,11 +219,33 @@ export async function createTripCloud(trip: Trip): Promise<void> {
 }
 
 /**
+ * Why a compare-and-set write matched no rows.
+ *
+ * PostgREST answers zero rows and no error for two very different things: a
+ * row that moved between our read and our write, and a row the server refused
+ * to let us write — an UPDATE filtered out by a row-level security policy is
+ * reported exactly like a lost race. Retrying is right for the first and
+ * pointless for the second, so they have to be told apart.
+ *
+ * The trips_touch trigger bumps updated_at on every accepted write, so a
+ * timestamp that has not moved is proof that nothing landed. Compared as
+ * strings on purpose: two spellings of the same instant then read as 'raced',
+ * which retries once and succeeds, rather than as 'refused', which gives up.
+ */
+export function failedWriteReason(expected: string, current: string): 'raced' | 'refused' {
+  return current === expected ? 'refused' : 'raced';
+}
+
+/**
  * Write the trip, but only over the version this browser last saw.
  *
  * On a clash the server copy is fetched, our work is merged onto it and the
  * write is retried once. Returns whatever now stands on the server, which the
  * caller should adopt — after a merge it is not the trip that went in.
+ *
+ * Throws WRITE_FORBIDDEN when the server would not take the write at all,
+ * which is not a clash and must never be retried, and SYNC_CONFLICT only
+ * after losing two genuine races in a row.
  */
 export async function upsertTripCloud(trip: Trip): Promise<Trip> {
   if (!supabase) return trip;
@@ -243,9 +276,13 @@ export async function upsertTripCloud(trip: Trip): Promise<Trip> {
       return candidate;
     }
 
-    // Nothing matched: someone wrote between our read and our write.
+    // Nothing matched: either someone wrote between our read and our write,
+    // or this account may read the trip but not write it.
     const current = await readTripRow(trip.id);
     if (!current) throw new Error('TRIP_NOT_ON_SERVER');
+    if (failedWriteReason(expected, current.updatedAt) === 'refused') {
+      throw new Error('WRITE_FORBIDDEN');
+    }
     candidate = mergeRemoteTrip(candidate, { ...current.trip, myRole: trip.myRole });
     expected = current.updatedAt;
   }

@@ -32,6 +32,15 @@ describe('storageService.getTrips', () => {
     expect(store.get(TRIPS_KEY)).toBeUndefined();
   });
 
+  it('collapses a trip that got saved twice into one entry', () => {
+    // An unfiltered roster read used to return one row per member, so a trip
+    // with three people on it arrived three times and went to storage that
+    // way. Heal it on read: the picker cannot show one id twice.
+    store.set(TRIPS_KEY, JSON.stringify([trip('trip-1', 'Bangkok'), trip('trip-1', 'Bangkok')]));
+    store.set(PURGE_KEY, '1');
+    expect(storageService.getTrips().map(t => t.id)).toEqual(['trip-1']);
+  });
+
   it('returns the user’s own trips untouched', () => {
     store.set(TRIPS_KEY, JSON.stringify([trip('trip-123', 'Penang')]));
     store.set(PURGE_KEY, '1');
@@ -60,6 +69,15 @@ describe('one-time sample purge', () => {
     // user later creates something that happens to share the prefix
     store.set(TRIPS_KEY, JSON.stringify([trip('trip-bkk-new')]));
     expect(storageService.getTrips().map(t => t.id)).toEqual(['trip-bkk-new']);
+  });
+});
+
+describe('storageService.saveTrips', () => {
+  it('never writes the same trip twice, keeping the first copy', () => {
+    storageService.saveTrips([trip('trip-1', 'Bangkok'), trip('trip-1', 'Penang')]);
+    const written = JSON.parse(store.get(TRIPS_KEY)!) as Trip[];
+    expect(written).toHaveLength(1);
+    expect(written[0].title).toBe('Bangkok');
   });
 });
 

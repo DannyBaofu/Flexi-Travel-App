@@ -7,7 +7,8 @@ import {
   normalizeInviteCode,
   buildInviteUrl,
   parseJoinCodeFromUrl,
-  mergeSeats
+  mergeSeats,
+  failedWriteReason
 } from './cloudSync';
 import type { Traveler, SeatClaim } from '../types/travel';
 
@@ -94,6 +95,29 @@ describe('invite links', () => {
 
   it('normalizes a code a friend typed by hand', () => {
     expect(normalizeInviteCode(' ab3f7k ')).toBe('AB3F7K');
+  });
+});
+
+describe('failedWriteReason', () => {
+  it('calls an unmoved timestamp a refusal, because nothing was written', () => {
+    // A viewer's UPDATE is filtered out by the policy and comes back as zero
+    // rows and no error. Retrying that reads as a clash and ends in
+    // SYNC_CONFLICT, which blames the wrong thing and never stops.
+    expect(failedWriteReason('2026-09-03T06:46:19.604Z', '2026-09-03T06:46:19.604Z'))
+      .toBe('refused');
+  });
+
+  it('calls a moved timestamp a race, which is worth one retry', () => {
+    expect(failedWriteReason('2026-09-03T06:46:19.604Z', '2026-09-03T06:47:02.115Z'))
+      .toBe('raced');
+  });
+
+  it('errs towards retrying when the same instant is spelled two ways', () => {
+    // Realtime payloads and PostgREST do not always format timestamptz
+    // identically. Reading that as a race costs one wasted retry that then
+    // succeeds; reading it as a refusal would abandon a legitimate write.
+    expect(failedWriteReason('2026-09-03T06:46:19.604Z', '2026-09-03T06:46:19.604+00:00'))
+      .toBe('raced');
   });
 });
 

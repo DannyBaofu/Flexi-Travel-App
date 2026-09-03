@@ -341,8 +341,30 @@ export function App() {
       if (settled !== trip) {
         setTrips(storageService.saveTrip({ ...settled, myRole: trip.myRole }));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Cloud push failed:', err);
+      if (err?.message === 'WRITE_FORBIDDEN') {
+        // The server takes no writes from this account on this trip, so there
+        // is nothing to retry and offering it would only fail again. What is
+        // actually wrong is this browser's idea of its own role — correct it
+        // from what the server just enforced, and the read-only banner
+        // explains the controls going away.
+        //
+        // Only the role changes. Going through saveTrip would stamp a fresh
+        // updatedAt on a document the server never accepted, and the realtime
+        // handler skips anything older than what it already holds — so the
+        // authoritative copy would be turned away as stale.
+        if (unsentTripRef.current === trip) unsentTripRef.current = null;
+        setSyncState('idle');
+        setTrips(prev => {
+          const next = prev.map(pt =>
+            pt.id === trip.id ? { ...pt, myRole: 'viewer' as TripRole } : pt
+          );
+          storageService.saveTrips(next);
+          return next;
+        });
+        return;
+      }
       setSyncState(navigator.onLine === false ? 'offline' : 'error');
     }
   };

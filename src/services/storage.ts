@@ -34,6 +34,22 @@ function purgeSeededSample(trips: Trip[]): Trip[] {
   return cleaned;
 }
 
+// One entry per trip id, first copy wins. Duplicates are always a bug
+// further upstream, but they must not survive in storage: `saveTrip` replaces
+// only the first match, so a second copy would linger as a stale twin of the
+// same trip — two rows in the trip picker with one id between them, and React
+// warning about the shared key — for as long as the browser kept it.
+function dedupeById(trips: Trip[]): Trip[] {
+  const seen = new Set<string>();
+  const unique: Trip[] = [];
+  for (const trip of trips) {
+    if (seen.has(trip.id)) continue;
+    seen.add(trip.id);
+    unique.push(trip);
+  }
+  return unique;
+}
+
 // Trips saved before the shared pot existed have no `kitty`. Give them the
 // default (switched off) on read so every code path downstream can rely on the
 // field being there.
@@ -74,7 +90,7 @@ export const storageService = {
       if (!stored) return [];
       const parsed = JSON.parse(stored);
       if (!Array.isArray(parsed)) return [];
-      return backfillTravelerRoles(backfillKitty(purgeSeededSample(parsed)));
+      return backfillTravelerRoles(backfillKitty(dedupeById(purgeSeededSample(parsed))));
     } catch (e) {
       console.error('Error loading trips from storage:', e);
       return [];
@@ -83,7 +99,7 @@ export const storageService = {
 
   saveTrips(trips: Trip[]) {
     try {
-      localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(trips));
+      localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(dedupeById(trips)));
     } catch (e) {
       console.error('Error saving trips to storage:', e);
     }
