@@ -27,6 +27,10 @@ This creates the three tables (`trips`, `trip_members`, `trip_invites`), turns o
 row-level security so people only see trips they were invited to, and enables the
 realtime feed that makes edits appear on everyone's phone.
 
+**Re-run this same file after pulling changes.** It is written to be safe to run
+again — every policy and function is replaced rather than duplicated — and it is
+the only way schema changes reach your database. Nothing deploys them for you.
+
 ## Step 3 — Turn OFF email confirmation ⚠️
 
 **This step is not optional.** Your friends sign in with an ID like `danny`, which
@@ -41,7 +45,20 @@ there, so if Supabase insists on confirming the address, nobody can ever log in.
 If you miss this, the app will tell you: creating an account shows
 *"Account created, but the cloud still requires email confirmation."*
 
-## Step 4 — Copy your two keys
+## Step 4 — Turn ON anonymous sign-ins
+
+This is what lets your friends join by tapping their name instead of being
+handed a password.
+
+1. Sidebar → **Authentication** → **Sign In / Providers**.
+2. Find **Anonymous sign-ins** and turn it **ON**.
+3. Save.
+
+If you skip this the app still works — it falls back to asking each friend for
+an ID and password, and the name-picking step after it is the same — but you are
+back to inventing and distributing passwords, which is the thing this replaces.
+
+## Step 5 — Copy your two keys
 
 1. Sidebar → **Project Settings** → **API Keys** (or **Data API**).
 2. Copy these two values:
@@ -51,7 +68,7 @@ If you miss this, the app will tell you: creating an account shows
 Use the **anon / public** key. Never the `service_role` key — that one bypasses
 all security and must never go into a website.
 
-## Step 5 — Paste them into Vercel
+## Step 6 — Paste them into Vercel
 
 1. Go to <https://vercel.com> → your **travellor** project → **Settings** →
    **Environment Variables**.
@@ -59,8 +76,8 @@ all security and must never go into a website.
 
    | Name | Value |
    |---|---|
-   | `VITE_SUPABASE_URL` | your Project URL from step 4 |
-   | `VITE_SUPABASE_ANON_KEY` | your anon/public key from step 4 |
+   | `VITE_SUPABASE_URL` | your Project URL from step 5 |
+   | `VITE_SUPABASE_ANON_KEY` | your anon/public key from step 5 |
 
 3. Go to the **Deployments** tab → newest deployment → **⋯** → **Redeploy**.
 
@@ -72,7 +89,7 @@ just saving the variables changes nothing.
 Copy `.env.example` to `.env` and fill in the same two values. `.env` is
 gitignored, so your keys never reach GitHub.
 
-## Step 6 — Check it worked
+## Step 7 — Check it worked
 
 Open <https://travellor.vercel.app> and look at the top-right of the navbar.
 
@@ -82,36 +99,28 @@ Open <https://travellor.vercel.app> and look at the top-right of the navbar.
 
 ---
 
-## Handing out accounts to your friends
+## Your own account
 
-There is no email and no password reset. You pick an ID and a password for each
-person and tell them directly (WhatsApp, in person, whatever).
+You need one; your friends do not. Tap **Sign In** → **First Time** → pick any ID
+and password and create it. IDs are 3–20 characters, lowercase letters, numbers,
+`.` `_` `-`; passwords at least 6 characters. There is no email and no password
+reset, so use something you will remember — this account owns your trips.
 
-| Friend | ID | Password |
-|---|---|---|
-| You | `danny` | *pick one* |
-| Friend 2 | `weiming` | *pick one* |
-| Friend 3 | `sarah` | *pick one* |
+Your friends never see that screen. They tap their name on the invite and the app
+gives them an anonymous account of their own.
 
-Rules for IDs: 3–20 characters, lowercase letters, numbers, `.` `_` `-`.
-Passwords must be at least 6 characters.
+### Lock the door once you are registered
 
-**First time each person logs in**, they tap **Sign In** → the **"First Time"**
-tab → type the ID and password you gave them → **Create Account & Sign In**.
-Every time after that they use the **"Sign In"** tab.
-
-### Lock the door once everyone is in
-
-Anyone who finds your site can create an account until you stop them. They still
-cannot see any of your trips without an invite code — row-level security blocks
-that at the database — but once all your friends have registered you should close
-signups anyway:
+Anyone who finds your site can create an ID until you stop them. They still
+cannot see any of your trips — row-level security blocks that at the database,
+and the roster only lets somebody claim a name you wrote yourself. Still, once
+you have your account there is no reason to leave it open:
 
 Supabase → **Authentication** → **Sign In / Providers** → **Email** →
 turn **Allow new users to sign up** **OFF**.
 
-If someone forgets their password, you can reset it in Supabase →
-**Authentication** → **Users** → click the user → **Reset password**.
+Leave **Anonymous sign-ins** ON — that is what your travellers use, and it is a
+different switch.
 
 ---
 
@@ -119,21 +128,36 @@ If someone forgets their password, you can reset it in Supabase →
 
 Once you are signed in:
 
-1. Open the trip → **Share Trip**.
-2. Choose the permission level: **Admin**, **Member** or **Viewer**.
-3. Click **Create Invite Link**.
-4. You get something like `https://travellor.vercel.app/j/AB3F7K` — about 35
+1. Open the trip → **Trip Settings** → **Travellers**. Add everyone by name, and
+   set each one's permission. This is the important step: nobody can join as a
+   name you have not written down.
+2. Open the trip → **Share Trip** → **Create Invite Link**.
+3. You get something like `https://travellor.vercel.app/j/AB3F7K` — about 35
    characters, fits in a QR code, survives WhatsApp.
-5. Send that link, or read the 6-character code out loud.
+4. Send the **same link to everybody**, or read the 6-character code out loud.
 
-Your friend opens it, signs in with their ID, and lands straight in the trip with
-the role you chose. From then on every edit syncs live to everyone.
+Each friend opens it and is asked *who are you?* They tap their own name and are
+in, with the permission you gave that name. Names already claimed show greyed out,
+so two people cannot become the same traveller. From then on every edit syncs live
+to everyone.
 
 **Permissions**, unchanged from the rest of the app:
 
 - **Admin** — everything: trip settings, deleting, reordering, invites
 - **Member** — add and edit activities, tick the checklist, log expenses
 - **Viewer** — read-only
+
+Admin is not offered when you add a name, because a seat can never hand out admin
+— that is what stops somebody promoting themselves. Promote a person after they
+have claimed their name, from the same Travellers list.
+
+### When somebody needs their name back
+
+A traveller's account lives in the browser they claimed it in. If they clear their
+data or move to a new phone, they will see their own name greyed out as taken.
+Fix it in **Trip Settings** → **Travellers** → **Release** next to their name,
+then send them the link again. Releasing also removes that person's access, which
+is how you take somebody off a trip.
 
 ### The other kind of link
 

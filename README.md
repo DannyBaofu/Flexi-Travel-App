@@ -9,7 +9,7 @@ The app runs in browser storage by default, and it can optionally connect to Sup
 - Multi-day itinerary planning with activity cards and day-by-day structure
 - Budget tracking with expense logging and shared-fund support
 - Home currency / trip currency conversion with live FX refresh
-- Invite-based sharing with role handling for admin, member, and viewer
+- Invite-based sharing where each traveller claims their own name from a roster the organiser writes
 - Local snapshot share support for older share links and offline fallback
 - Trip settings, trip creation, and role-aware editing permissions
 - Mobile-friendly layout tuned for phone screens
@@ -75,13 +75,17 @@ See [SETUP-CLOUD.md](SETUP-CLOUD.md) for the full configuration steps.
 
 ## Auth model
 
-This app does not use email-based sign-in for friends. Instead, the flow is based on an ID and password, which the app converts internally to a travel email format so Supabase can authenticate the account.
+Travellers never type a credential. Opening an invite link takes an anonymous Supabase account in the background, so joining a trip is one tap on your own name.
+
+The organiser is the exception. They sign in with an ID and a password of their own choosing, which the app maps internally to an email format so Supabase has something to authenticate. That account owns the trips, so unlike a traveller's it has to survive a change of device.
 
 Important:
 
-- Email confirmation must be turned off in Supabase for this login flow to work
+- Anonymous sign-ins should be turned on in Supabase. With them off the app falls back to asking travellers for an ID and password, and everything after that step is unchanged
+- Email confirmation must be turned off in Supabase for the organiser login to work
 - The project uses a custom ID domain such as `danny@travellor.app`
 - The app should never expose the raw email in the UI; it shows the mapped ID instead
+- There is no password reset. A traveller who loses their device asks the organiser to release their name, then claims it again
 
 ## Sharing model
 
@@ -89,8 +93,11 @@ TravelSync supports two kinds of sharing:
 
 1. Cloud invite links
    - Short, shareable links such as `/j/AB3F7K`
-   - Live sync between signed-in users
-   - Role-based access: admin, member, viewer
+   - One link for the whole trip, sent to everybody
+   - The organiser writes the roster in Trip Settings, a name and a permission each, and whoever opens the link claims their own name from it
+   - The seat carries the permission, so the link grants nothing by itself. Once every name is claimed the link is spent
+   - Live sync between everyone holding a seat
+   - Roles are admin, member and viewer, enforced server-side by row-level security
 
 2. Snapshot share links
    - Older URL-based trip payloads for offline or fallback sharing
