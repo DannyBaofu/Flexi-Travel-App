@@ -679,12 +679,17 @@ export function App() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 sm:pb-8 no-print">
-        {/* Destination Hero Banner */}
-        <TripBanner
-          trip={activeTrip}
-          onOpenSettings={() => setIsSettingsModalOpen(true)}
-          role={role}
-        />
+        {/* The banner belongs to the plan, where the cover photo and the dates
+            are the context you are working against. On budget and phrases it
+            is 300px of scenery between you and the thing you opened the tab
+            for, so it stays behind. */}
+        {activeTab === 'itinerary' && (
+          <TripBanner
+            trip={activeTrip}
+            onOpenSettings={() => setIsSettingsModalOpen(true)}
+            role={role}
+          />
+        )}
 
         <TopTabs active={activeTab} onChange={setActiveTab} />
 
