@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { Calendar, Compass } from 'lucide-react';
 import type { Trip, ActivityItem, TripRole, TripSeat } from './types/travel';
 import { storageService } from './services/storage';
 import { Navbar } from './components/Navbar';
@@ -9,6 +8,7 @@ import { BudgetTracker } from './components/BudgetTracker';
 import { PrintItineraryView } from './components/PrintItineraryView';
 import { PhrasesTab } from './components/PhrasesTab';
 import { TopTabs, BottomTabs } from './components/TabBar';
+import { EntryGate } from './components/EntryGate';
 
 // Dialogs are opened rarely and some are heavy — ShareModal alone pulls in the
 // QR library. Splitting them out keeps the first paint to what every session
@@ -20,7 +20,6 @@ const NewTripModal = lazy(() => import('./components/NewTripModal').then(m => ({
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const SeatPickerModal = lazy(() => import('./components/SeatPickerModal').then(m => ({ default: m.SeatPickerModal })));
 import type { TabId } from './components/TabBar';
-import { btnPrimary, btnSecondary, card, inputMono, label as labelCls } from './components/ui';
 import { useI18n } from './utils/i18n';
 import { mergeRemoteTrip } from './services/mergeTrip';
 import { SyncBar } from './components/SyncBar';
@@ -513,88 +512,43 @@ export function App() {
     document.title = activeTrip?.title?.trim() || t('docTitle');
   }, [activeTrip?.title, t]);
 
-  // No trips at all. Offer both doors plainly: start one, or join a shared one.
+  /**
+   * Who may start a trip of their own.
+   *
+   * A signed-in organiser, or any browser on a deployment with no cloud at
+   * all — there, local trips are the only thing the app can do, so hiding the
+   * create button would leave nothing behind it. An *anonymous* account never
+   * counts: that is a guest who opened an invite link, and handing them the
+   * create door is how a friend ends up admin of an empty trip.
+   */
+  const isOrganiser = !isCloudEnabled || (!!user && !user.is_anonymous);
+
+  const gateError = joinBlockedNoCloud
+    ? t('joinNeedsCloud')
+    : staleShareLink
+      ? t('staleShareLink')
+      : joinError
+        ? t('joinFailed', { msg: joinError })
+        : null;
+
+  // Not on a trip yet. A stranger gets a code field and nothing else; the
+  // organiser's door is behind their sign-in.
   if (!activeTrip) {
     return (
-      <div className="min-h-screen bg-mist flex items-center justify-center p-5">
-        <div className="w-full max-w-sm space-y-5">
-          <div className="text-center space-y-3">
-            <div className="w-14 h-14 rounded-modal bg-brand-tint text-brand flex items-center justify-center mx-auto">
-              <Compass className="w-7 h-7" />
-            </div>
-            <div className="space-y-1.5">
-              <h1 className="text-xl font-semibold tracking-tight text-ink">{t('emptyTitle')}</h1>
-              <p className="text-sm text-muted leading-relaxed">{t('emptyHint')}</p>
-            </div>
-          </div>
-
-          <button onClick={() => setIsNewTripModalOpen(true)} className={`${btnPrimary} w-full`}>
-            <Calendar className="w-4 h-4" /> {t('createFirstTrip')}
-          </button>
-
-          <div className="flex items-center gap-3 text-[11px] text-faint">
-            <span className="h-px flex-1 bg-hairline" />
-            {t('emptyOr')}
-            <span className="h-px flex-1 bg-hairline" />
-          </div>
-
-          <form onSubmit={handleJoinByCode} className={`${card} p-4`}>
-            <label className={labelCls} htmlFor="invite-code">{t('haveInviteCode')}</label>
-            <div className="flex gap-2">
-              <input
-                id="invite-code"
-                value={joinCodeInput}
-                onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
-                placeholder={t('inviteCodePlaceholder')}
-                maxLength={12}
-                autoCapitalize="characters"
-                autoCorrect="off"
-                spellCheck={false}
-                className={`${inputMono} tracking-[0.16em] uppercase`}
-              />
-              <button
-                type="submit"
-                disabled={!joinCodeInput.trim()}
-                className={`${btnSecondary} shrink-0`}
-              >
-                {t('joinWithCode')}
-              </button>
-            </div>
-            {(joinError || joinBlockedNoCloud) && (
-              <p className="text-xs text-clay mt-2 leading-relaxed">
-                {joinBlockedNoCloud ? t('joinNeedsCloud') : t('joinFailed', { msg: joinError ?? '' })}
-              </p>
-            )}
-            {staleShareLink && (
-              <p className="text-xs text-clay mt-2 leading-relaxed">{t('staleShareLink')}</p>
-            )}
-            {cloudMode && pendingJoinCode && (
-              <p className="text-xs text-muted mt-2">{t('joiningTrip')}</p>
-            )}
-          </form>
-
-          {isCloudEnabled && (
-            user ? (
-              <p className="text-xs text-muted text-center leading-relaxed">
-                {t('emptyNoCloudTrips')}
-                {' '}
-                <button onClick={handleSignOut} className="text-brand font-medium underline">
-                  {t('signOut')}
-                </button>
-              </p>
-            ) : (
-              <p className="text-xs text-muted text-center">
-                {t('emptyHaveAccount')}{' '}
-                <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="text-brand font-medium underline"
-                >
-                  {t('emptySignIn')}
-                </button>
-              </p>
-            )
-          )}
-        </div>
+      <div>
+        <EntryGate
+          code={joinCodeInput}
+          onCodeChange={setJoinCodeInput}
+          onSubmitCode={handleJoinByCode}
+          error={gateError}
+          joining={cloudMode && !!pendingJoinCode}
+          isOrganiser={isOrganiser}
+          cloudEnabled={isCloudEnabled}
+          signedIn={!!user}
+          onCreateTrip={() => setIsNewTripModalOpen(true)}
+          onSignIn={() => setIsAuthModalOpen(true)}
+          onSignOut={handleSignOut}
+        />
 
         <Suspense fallback={null}>
           {isNewTripModalOpen && (

@@ -172,7 +172,10 @@ const dict: Record<string, Entry> = {
   seatNotYouHint: { zh: '你的名字被别人认领了？请组织者在行程设置里释放它。', en: 'Your name already taken? Ask the organiser to release it in Trip Settings.' },
   seatJoining: { zh: '加入中…', en: 'Joining…' },
   seatPickerLater: { zh: '稍后再说', en: 'Not now' },
-  seatErrorTaken: { zh: '这个名字刚被人认领了，请选另一个。', en: 'That name was just taken — pick another.' },
+  seatErrorTaken: {
+    zh: '这个名字已经有人用了。如果那就是你（换了手机、清了浏览器），请让组织者在「行程设置」里释放这个名额，然后再点一次。',
+    en: 'That name is already taken. If that was you — new phone, or cleared browser — ask the organiser to release it in Trip Settings, then tap it again.'
+  },
   seatErrorInvalid: { zh: '邀请链接无效或已失效。', en: 'That invite link is not valid any more.' },
   seatErrorFailed: { zh: '加入失败：{msg}', en: 'Could not join: {msg}' },
 
@@ -182,7 +185,12 @@ const dict: Record<string, Entry> = {
   rosterRelease: { zh: '释放', en: 'Release' },
   rosterReleaseConfirm: { zh: '释放「{name}」的名额？对方会失去访问权限，之后任何持有邀请链接的人都可以重新认领这个名字。', en: 'Release {name}\u2019s seat? They lose access, and anyone holding the invite link can claim the name again.' },
   rosterPermission: { zh: '权限', en: 'Permission' },
-  rosterCloudHint: { zh: '先在这里加好旅伴的名字和权限，再把邀请链接发给他们——他们打开后自己认领名字即可。', en: 'Add names and permissions here first, then send the invite link — everyone claims their own name when they open it.' },
+  rosterCloudHint: {
+    zh: '先在这里加好旅伴的名字和权限，再把邀请链接发给他们——他们打开后自己认领名字即可。'
+      + '如果有人换了手机或清了浏览器，进不来了，就在这里「释放」他的名额，让他重新认领一次。',
+    en: 'Add names and permissions here first, then send the invite link — everyone claims their own name when they open it. '
+      + 'If somebody gets locked out — new phone, cleared browser — release their seat here and they can claim it again.'
+  },
   rosterActionFailed: { zh: '操作失败：{msg}', en: 'That did not work: {msg}' },
 
   meLockedHint: { zh: '在这趟行程中你是「{name}」。', en: 'You are {name} on this trip.' },
@@ -270,6 +278,13 @@ const dict: Record<string, Entry> = {
 
   // ---- Invite code entry on the first screen ----
   haveInviteCode: { zh: '朋友给了你邀请码？', en: 'Got an invite code from a friend?' },
+  gateTitle: { zh: '输入邀请码', en: 'Enter your invite code' },
+  gateHint: {
+    zh: '朋友会发给你一条链接或一个 6 位邀请码，打开后选出你自己的名字就能加入。',
+    en: 'A friend sends you a link or a 6-character code. Open it, pick your own name, and you are in.'
+  },
+  gateOrganiser: { zh: '你是组织者？', en: 'Organising the trip?' },
+  gateOrganiserLink: { zh: '登录并创建行程', en: 'Sign in and create a trip' },
   inviteCodePlaceholder: { zh: '6 位字母数字', en: '6 letters/digits' },
   joinWithCode: { zh: '加入行程', en: 'Join Trip' },
   emptyOr: { zh: '或者', en: 'or' },

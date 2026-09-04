@@ -115,6 +115,37 @@ trip, and the way out. There is no "you are a member" banner — announcing a
 permission that no longer differs from anyone else's was just noise. The
 read-only banner stays, because that one explains why controls are missing.
 
+**The app has three doors, and `EntryGate` is two of them.** Before you are on
+a trip you get one of two screens, and which one is the whole point:
+
+- A **stranger** gets a code field and nothing else. No trip name, no roster —
+  `invite_roster` is what reveals those and it needs the code. The only other
+  exit is a text link to the organiser's sign-in.
+- An **organiser** gets the create-trip button, with the code field beside it as
+  the secondary action.
+
+The test is `isOrganiser = !isCloudEnabled || (!!user && !user.is_anonymous)`.
+Both halves matter. Without the keys the app can only make local trips, so
+hiding the button would leave nothing behind it. And an *anonymous* account must
+never count: that is a guest who opened an invite link, and this screen leading
+with "create your first trip" is exactly how a friend sent the bare domain ended
+up admin of an empty trip — their own trip, nothing leaked, but indistinguishable
+from being handed the keys to the real one. Adding a state to this screen means
+answering "what does a stranger see?" first.
+
+**A locked-out traveller needs the organiser, on purpose.** A friend on a new
+phone — or after iOS clears site data, which it does after about a week without
+a visit — arrives as a new anonymous account, and their name is held by the old
+one. `claim_seat` raises `SEAT_TAKEN`, and the way back is the admin pressing
+Release on that seat. So both sides of that exchange are written down:
+`seatErrorTaken` tells the traveller to ask the organiser to release it, and
+`rosterCloudHint` tells the organiser that Release is what a lockout needs.
+Change one and change the other. The alternative — letting anyone with the code
+retake an anonymous seat — was considered and rejected: the code would then let
+a link-holder become any traveller and edit the money under their name.
+Installing the app to the home screen makes the storage loss much less likely,
+which is part of why the PWA is worth having.
+
 **A role comes from a seat, and a seat is a name on the roster.** The admin
 writes the roster in Trip Settings — a name and a permission each, every name
 renameable including their own — and sends one link. Whoever opens it picks
