@@ -105,10 +105,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         </p>
 
         <div>
-          <label className={`${label} flex items-center gap-1.5`}>
+          <label className={`${label} flex items-center gap-1.5`} htmlFor="auth-id">
             <UserRound className="w-3.5 h-3.5" /> {t('authIdLabel')}
           </label>
           <input
+            id="auth-id"
             type="text"
             autoFocus
             autoCapitalize="none"
@@ -123,10 +124,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         <div>
-          <label className={`${label} flex items-center gap-1.5`}>
+          <label className={`${label} flex items-center gap-1.5`} htmlFor="auth-password">
             <KeyRound className="w-3.5 h-3.5" /> {t('authPasswordLabel')}
           </label>
           <input
+            id="auth-password"
             type="password"
             autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
             value={password}
