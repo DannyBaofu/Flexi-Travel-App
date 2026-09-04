@@ -37,4 +37,12 @@ describe('createNewTrip', () => {
     const trip = createNewTrip('Test', 'X', 'Y', 'not-a-date', 'also-bad', 'USD');
     expect(trip.days).toHaveLength(3);
   });
+
+  it('says the creator is the admin rather than leaving it to be inferred', () => {
+    // A trip with no role on it is read as read-only, so creation has to state
+    // one. Leaving the field off used to be how the app said 'mine', which
+    // also meant anyone opening the app for the first time became an admin.
+    const trip = createNewTrip('Test', 'Penang', 'Malaysia', '2026-11-20', '2026-11-22', 'MYR');
+    expect(trip.myRole).toBe('admin');
+  });
 });

@@ -28,7 +28,7 @@ export const TopTabs: React.FC<TabsProps> = ({ active, onChange }) => {
             key={id}
             onClick={() => onChange(id)}
             aria-current={on ? 'page' : undefined}
-            className={`px-4 py-2.5 rounded-control text-sm font-semibold flex items-center gap-2 border transition ${
+            className={`px-4 py-2.5 min-h-11 rounded-control text-sm font-semibold flex items-center gap-2 border transition ${
               on
                 ? 'bg-brand-tint text-brand border-brand-tint'
                 : 'bg-paper text-muted border-hairline hover:bg-mist hover:text-ink'

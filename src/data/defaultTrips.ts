@@ -28,15 +28,15 @@ export function createNewTrip(
     travelers: [
       { id: 't1', name: ownerName, avatarColor: '#3930DB', isOwner: true, role: 'admin' }
     ],
-    shareSettings: {
-      isPublic: true,
-      isPasswordProtected: false,
-      allowGuestEdits: true
-    },
     days,
     expenses: [],
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    // Said out loud rather than left to be inferred from a missing field.
+    // Whoever creates a trip owns it, and every other path that puts a trip
+    // in front of this browser sets the role it actually holds — so an absent
+    // role can only mean "we do not know", and the app reads that as viewer.
+    myRole: 'admin'
   };
 }
 

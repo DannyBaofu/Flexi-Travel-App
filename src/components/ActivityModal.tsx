@@ -170,8 +170,8 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
         </div>
 
         <div>
-          <span className={label}>{t('category')}</span>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <span className={label} id="activity-category-label">{t('category')}</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" role="group" aria-labelledby="activity-category-label">
             {(Object.keys(categoryMetaMap) as ActivityCategory[]).map((catKey) => {
               const meta = categoryMetaMap[catKey];
               const Icon = meta.icon;
@@ -182,7 +182,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                   key={catKey}
                   onClick={() => setCategory(catKey)}
                   aria-pressed={isSelected}
-                  className={`flex items-center gap-2 px-2.5 py-2.5 rounded-control text-xs font-medium border transition ${
+                  className={`flex items-center gap-2 px-2.5 py-2.5 min-h-11 rounded-control text-xs font-medium border transition ${
                     isSelected
                       ? 'bg-brand-tint border-brand-tint text-brand'
                       : 'bg-paper border-hairline text-muted hover:bg-mist'

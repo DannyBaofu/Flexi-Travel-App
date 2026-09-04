@@ -55,11 +55,13 @@ function dedupeById(trips: Trip[]): Trip[] {
 // field being there.
 function backfillKitty(trips: Trip[]): Trip[] {
   return trips.map(trip => {
-    // Packing lists and taxi cards were removed from the app; trips saved
-    // while they existed still carry the arrays, so shed them here rather
-    // than letting dead data ride along in every cloud push and export.
-    const { checklist: _checklist, taxiCards: _taxiCards, ...rest } =
-      trip as Trip & { checklist?: unknown; taxiCards?: unknown };
+    // Packing lists, taxi cards and shareSettings were all removed from the
+    // app; trips saved while they existed still carry them, so shed them here
+    // rather than letting dead data ride along in every cloud push.
+    // shareSettings was the odd one: three flags that were written on every
+    // new trip and read by nothing, ever.
+    const { checklist: _checklist, taxiCards: _taxiCards, shareSettings: _shareSettings, ...rest } =
+      trip as Trip & { checklist?: unknown; taxiCards?: unknown; shareSettings?: unknown };
     const cleaned = rest as Trip;
     return cleaned.kitty ? cleaned : { ...cleaned, kitty: resolveKitty(cleaned) };
   });
@@ -81,6 +83,19 @@ function backfillTravelerRoles(trips: Trip[]): Trip[] {
   });
 }
 
+// Trips saved before the role was written down have no `myRole`. Every one of
+// them is a trip this browser made, imported, or owned outright — the cloud
+// path has always stamped the membership role on arrival — so admin is what
+// they have been rendering as all along, and this keeps it that way.
+//
+// The point of doing it here is what it lets `App` do: once a stored trip
+// always carries a role, a *missing* role no longer means "mine". It means the
+// trip reached us by some path that never established one, and the only safe
+// reading of that is read-only.
+function backfillMyRole(trips: Trip[]): Trip[] {
+  return trips.map(trip => (trip.myRole ? trip : { ...trip, myRole: 'admin' as TripRole }));
+}
+
 export const storageService = {
   // Returns whatever the user actually has. An empty list is a valid state —
   // the app shows a "create your first trip" screen rather than inventing data.
@@ -90,7 +105,7 @@ export const storageService = {
       if (!stored) return [];
       const parsed = JSON.parse(stored);
       if (!Array.isArray(parsed)) return [];
-      return backfillTravelerRoles(backfillKitty(dedupeById(purgeSeededSample(parsed))));
+      return backfillMyRole(backfillTravelerRoles(backfillKitty(dedupeById(purgeSeededSample(parsed)))));
     } catch (e) {
       console.error('Error loading trips from storage:', e);
       return [];

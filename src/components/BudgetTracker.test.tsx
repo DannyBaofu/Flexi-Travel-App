@@ -30,7 +30,6 @@ const trip = (over: Partial<Trip> = {}): Trip =>
     ],
     days: [],
     expenses: [],
-    shareSettings: { isPublic: false, isPasswordProtected: false, allowGuestEdits: false },
     createdAt: '',
     updatedAt: '',
     ...over

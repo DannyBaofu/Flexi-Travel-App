@@ -13,6 +13,15 @@ export type ActivityCategory =
 // 'admin'  — trip creator/organizer: full control
 // 'member' — invited traveler: edits the plan and logs expenses
 // 'viewer' — read-only guest
+/**
+ * `admin` organises the trip, `member` travels on it — those are the two a
+ * roster hands out.
+ *
+ * `viewer` is not a seat anyone is given any more. It is the read-only state
+ * the app falls back to: when a trip arrives with no role we can establish,
+ * and when the server refuses this account's writes. Keeping it is what lets
+ * an unknown role mean "read-only" instead of meaning "member".
+ */
 export type TripRole = 'admin' | 'member' | 'viewer';
 
 export type TransportMode =
@@ -123,13 +132,6 @@ export interface TripKitty {
   paidInTravelerIds: string[];
 }
 
-export interface ShareSettings {
-  isPublic: boolean;
-  isPasswordProtected: boolean;
-  passcodeHash?: string; // Simple encoded hash for PIN
-  allowGuestEdits: boolean; // Read-only vs Collaborative
-}
-
 export interface Trip {
   id: string;
   title: string;
@@ -146,11 +148,13 @@ export interface Trip {
   expenses: ExpenseItem[];
   /** Optional shared cash pot. Absent on trips created before it existed. */
   kitty?: TripKitty;
-  shareSettings: ShareSettings;
   createdAt: string;
   updatedAt: string;
-  // Role of this browser's user for this trip. Undefined = locally created = admin.
-  // Set from the membership row, which is where the enforced role lives.
+  // Role of this browser's user for this trip. Always present on a trip that
+  // came through `getTrips`, which backfills the ones saved before it was
+  // written down — creation and import say admin, the cloud says whatever the
+  // membership row enforces. A missing role therefore means "arrived by a path
+  // that established none", and `App` reads that as viewer rather than admin.
   myRole?: TripRole;
   // Which traveller on the roster this browser's user is, from the claimed
   // seat. Local-only in exactly the way myRole is, and stripped before storing.

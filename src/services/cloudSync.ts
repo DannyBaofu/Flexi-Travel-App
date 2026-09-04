@@ -330,11 +330,53 @@ function randomCode(length = 6): string {
 }
 
 /**
+ * The trip's current invite code, or null if it has no live one.
+ *
+ * The share sheet reads this on open so the organiser is shown the link that
+ * is actually out there. Without it the sheet always offered to make a new
+ * one, which is how you end up rotating a link you only wanted to re-read.
+ *
+ * Admin-only by policy (invites_select), which is also who sees the button.
+ */
+export async function fetchInvite(tripId: string): Promise<string | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('trip_invites')
+    .select('code, created_at')
+    .eq('trip_id', tripId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  // Not being able to read the current code is not worth blocking the sheet
+  // over: the caller falls back to offering a new one, which is safe.
+  if (error) {
+    console.warn('Could not read the current invite:', error.message);
+    return null;
+  }
+  return (data?.[0]?.code as string | undefined) ?? null;
+}
+
+/**
  * One link per trip, not one per role. The link opens the door; the seat
  * claimed behind it decides what the person may do.
+ *
+ * One link per trip *at a time*, too: this retires every code that came
+ * before it. A link is forwarded on, screenshotted and pasted into group
+ * chats, so an organiser needs a way to take one back — and before this, no
+ * code could ever be revoked. Every one ever generated stayed a working door.
+ *
+ * The old code goes first on purpose. If the insert then fails the trip is
+ * left with no invite, which is recoverable by pressing the button again;
+ * the other order would leave the link you were trying to retire alive.
  */
 export async function createInvite(tripId: string): Promise<string> {
   if (!supabase) throw new Error('Cloud disabled');
+
+  const { error: revokeError } = await supabase
+    .from('trip_invites')
+    .delete()
+    .eq('trip_id', tripId);
+  if (revokeError) throw revokeError;
+
   const code = randomCode();
   const { error } = await supabase
     .from('trip_invites')

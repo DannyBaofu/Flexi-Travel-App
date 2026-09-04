@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check, Share2, Download, Upload, AlertTriangle } from 'lucide-react';
+import { Copy, Check, Share2, AlertTriangle } from 'lucide-react';
 import type { Trip, TripRole } from '../types/travel';
-import { sharingService } from '../services/sharing';
-import { createInvite, buildInviteUrl, isCloudEnabled } from '../services/cloudSync';
+import { createInvite, fetchInvite, buildInviteUrl, isCloudEnabled } from '../services/cloudSync';
 import { useI18n } from '../utils/i18n';
 import {
   Modal,
@@ -22,7 +21,6 @@ interface ShareModalProps {
   trip: Trip;
   role: TripRole;
   cloudMode: boolean;
-  onImportTrip: (importedTrip: Trip) => void;
 }
 
 const sectionHeading = 'text-[11px] font-semibold text-faint uppercase tracking-wider';
@@ -41,31 +39,46 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   onClose,
   trip,
   role,
-  cloudMode,
-  onImportTrip
+  cloudMode
 }) => {
   const { t } = useI18n();
   const isAdmin = role === 'admin';
   const [inviteUrl, setInviteUrl] = useState('');
   const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [importSuccess, setImportSuccess] = useState(false);
 
 
 
   useEffect(() => {
-    if (isOpen) {
-      setInviteUrl('');
-      setInviteError(null);
-      setInviteCopied(false);
-      setImportError(null);
-      setImportSuccess(false);
-    }
-  }, [isOpen, trip]);
+    if (!isOpen) return;
+    setInviteUrl('');
+    setInviteError(null);
+    setInviteCopied(false);
+
+    // Show the link that is actually out there. The sheet used to start blank
+    // every time, so re-reading your own invite meant pressing the button that
+    // makes a new one — which now retires the old one, and used to leave two
+    // live codes behind. Nothing to read for a local trip or a non-admin.
+    if (!cloudMode || !isAdmin) return;
+    let cancelled = false;
+    setInviteLoading(true);
+    fetchInvite(trip.id)
+      .then(code => {
+        if (cancelled || !code) return;
+        setInviteUrl(buildInviteUrl(code));
+      })
+      .finally(() => {
+        if (!cancelled) setInviteLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [isOpen, trip, cloudMode, isAdmin]);
 
   const handleCreateInvite = async () => {
+    // Replacing a link kills one that may already be sitting in a group chat,
+    // and there is no undo for that. Creating the first one costs nothing.
+    if (inviteUrl && !window.confirm(t('confirmRotateInvite'))) return;
     setInviteBusy(true);
     setInviteError(null);
     try {
@@ -88,26 +101,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        onImportTrip(sharingService.importFromJson(content));
-        setImportSuccess(true);
-        setImportError(null);
-        setTimeout(() => onClose(), 1200);
-      } catch (err: any) {
-        setImportError(err.message || 'Invalid JSON file.');
-        setImportSuccess(false);
-      }
-    };
-    reader.readAsText(file);
-  };
-
   return (
     <Modal
       isOpen={isOpen}
@@ -127,7 +120,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
         {/* ---- The invite link ---- */}
         {cloudMode ? (
-          <section className="space-y-3 pt-5 border-t border-hairline">
+          <section className="space-y-3">
             <h3 className={sectionHeading}>{t('inviteSection')}</h3>
             <p className="text-xs text-muted leading-relaxed">{t('inviteHint')}</p>
             {isAdmin && (
@@ -139,6 +132,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
                 <span>{t('inviteAdminOnly')}</span>
               </p>
+            ) : inviteLoading && !inviteUrl ? (
+              <p className="text-xs text-muted">{t('inviteLoading')}</p>
             ) : inviteUrl ? (
               <div className={`${card} p-4 space-y-3`}>
                 <div className="flex flex-wrap items-center gap-2">
@@ -179,6 +174,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     {inviteBusy ? t('creatingInvite') : t('inviteNewLink')}
                   </button>
                 </div>
+
+                <p className="text-[11px] text-faint leading-relaxed">{t('inviteRotateHint')}</p>
               </div>
             ) : (
               <button onClick={handleCreateInvite} disabled={inviteBusy} className={btnPrimary}>
@@ -196,30 +193,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             <span>{isCloudEnabled ? t('inviteRequiresLogin') : t('cloudOffNotice')}</span>
           </p>
         )}
-
-        {/* ---- Backup ---- */}
-        <section className="space-y-3 pt-5 border-t border-hairline">
-          <h3 className={sectionHeading}>{t('backupImport')}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button onClick={() => sharingService.exportToJsonFile(trip)} className={btnSecondary}>
-              <Download className="w-4 h-4" /> {t('exportJson')}
-            </button>
-
-            <label className={`${btnSecondary} cursor-pointer`}>
-              <Upload className="w-4 h-4" /> {t('importJson')}
-              <input type="file" accept=".json" onChange={handleFileUpload} className="sr-only" />
-            </label>
-          </div>
-
-          {importSuccess && (
-            <p className="px-3 py-2.5 bg-brand-tint rounded-control text-xs text-brand-deep flex items-center gap-2">
-              <Check className="w-4 h-4 shrink-0" /> {t('importSuccess')}
-            </p>
-          )}
-          {importError && (
-            <p className="px-3 py-2.5 bg-clay-tint rounded-control text-xs text-clay">{importError}</p>
-          )}
-        </section>
       </div>
     </Modal>
   );

@@ -89,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               value={activeTrip.id}
               onChange={(e) => onSelectTrip(e.target.value)}
               aria-label={t('tripSettings')}
-              className="appearance-none bg-mist hover:bg-hairline/60 border border-hairline text-ink text-sm font-semibold rounded-control pl-3 pr-8 py-2 focus:outline-none focus:border-brand cursor-pointer max-w-[150px] sm:max-w-[280px] truncate transition"
+              className="appearance-none bg-mist hover:bg-hairline/60 border border-hairline text-ink text-sm font-semibold rounded-control pl-3 pr-8 py-2 min-h-11 focus:outline-none focus:border-brand cursor-pointer max-w-[150px] sm:max-w-[280px] truncate transition"
             >
               {trips.map((tr) => (
                 <option key={tr.id} value={tr.id}>

@@ -170,8 +170,8 @@ export const KittyCard: React.FC<KittyCardProps> = ({
           </div>
 
           <div>
-            <span className={label}>{t('kittyHolder')}</span>
-            <div className="flex flex-wrap gap-1.5">
+            <span className={label} id="kitty-holder-label">{t('kittyHolder')}</span>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="kitty-holder-label">
               {trip.travelers.map(tv => {
                 const on = kitty.holderTravelerId === tv.id;
                 return (
@@ -180,7 +180,7 @@ export const KittyCard: React.FC<KittyCardProps> = ({
                     key={tv.id}
                     onClick={() => updateKitty({ holderTravelerId: tv.id })}
                     aria-pressed={on}
-                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                    className={`inline-flex items-center gap-2 px-3 py-2 min-h-11 rounded-control text-xs font-semibold border transition ${
                       on
                         ? 'bg-brand-tint border-brand-tint text-brand'
                         : 'bg-paper border-hairline text-muted hover:bg-mist'
@@ -195,8 +195,8 @@ export const KittyCard: React.FC<KittyCardProps> = ({
           </div>
 
           <div>
-            <span className={label}>{t('kittyCovers')}</span>
-            <div className="flex flex-wrap gap-1.5">
+            <span className={label} id="kitty-covers-label">{t('kittyCovers')}</span>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="kitty-covers-label">
               {(Object.keys(categoryMetaMap) as ActivityCategory[]).map(cat => {
                 const meta = categoryMetaMap[cat];
                 const Icon = meta.icon;
@@ -211,7 +211,7 @@ export const KittyCard: React.FC<KittyCardProps> = ({
                       if (next.length > 0) updateKitty({ categories: next });
                     }}
                     aria-pressed={on}
-                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 min-h-11 rounded-control text-xs font-semibold border transition ${
                       on
                         ? 'bg-brand-tint border-brand-tint text-brand'
                         : 'bg-paper border-hairline text-muted hover:bg-mist'
@@ -226,8 +226,8 @@ export const KittyCard: React.FC<KittyCardProps> = ({
           </div>
 
           <div>
-            <span className={label}>{t('kittyWhoPaidIn')}</span>
-            <div className="flex flex-wrap gap-1.5">
+            <span className={label} id="kitty-paidin-label">{t('kittyWhoPaidIn')}</span>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="kitty-paidin-label">
               {trip.travelers.map(tv => {
                 const on = kitty.paidInTravelerIds.includes(tv.id);
                 return (
@@ -238,7 +238,7 @@ export const KittyCard: React.FC<KittyCardProps> = ({
                       updateKitty({ paidInTravelerIds: toggleInList(kitty.paidInTravelerIds, tv.id) })
                     }
                     aria-pressed={on}
-                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                    className={`inline-flex items-center gap-2 px-3 py-2 min-h-11 rounded-control text-xs font-semibold border transition ${
                       on
                         ? 'bg-brand-tint border-brand-tint text-brand'
                         : 'bg-paper border-hairline text-muted hover:bg-mist'

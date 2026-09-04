@@ -52,6 +52,16 @@ a sentence, never just a sign or a hue. Anything tappable is at least 44px, and
 the three tabs live at the *bottom* on phones (`BottomTabs`) and at the top from
 `sm:` up (`TopTabs`).
 
+The 44px comes from `min-h-11` on `btnBase` and `select` in `ui.tsx`, plus
+`w-11 h-11` on `iconBtn`. It is a floor, not a height: padding still decides
+how big a control looks. Anything written with its own class string — the
+category chips, the day strip, the traveller chips in `ExpenseForm` and
+`KittyCard` — carries `min-h-11` itself, because it does not go through
+`btnBase`. A row of chips at `py-1.5` measures 28px, and the earlier claim that
+a small box was fine "inside a 44px row" was wrong: a row catches no taps, only
+the control does. A new tappable thing with a hand-written class needs the
+floor written in.
+
 **No sample text in inputs.** Placeholders that read `e.g. Bangkok` were removed
 on purpose — the label says what the field is, and a fake example is one more
 thing to read past.
@@ -61,7 +71,18 @@ thing to read past.
 duplicate and delete activities, log and delete expenses, and run the shared
 pot — everything with an undo behind it. `admin` keeps only the structural
 things: trip settings, the roster and its permissions, sharing, and deleting the
-trip. `viewer` is read-only.
+trip.
+
+**The roster offers two permissions, not three.** `viewer` is no longer a seat
+anyone can be given — for a group of friends all planning together, read-only
+was a permission nobody asked for. It survives as a *state*, never a grant: the
+fail-closed default for a trip whose role cannot be established, and what
+`pushTrip` drops to when the server refuses a write (somebody removed from the
+trip, say). The read-only banner stays with it, because that is the case it
+explains. Deleting the state as well as the seat would force an unknown role to
+resolve to `member`, which is the fail-open default all of this was fixed to
+get rid of — so `TripRole` keeps all three, and only `roleOptions` in
+`TripSettingsModal` shrank.
 
 So inside the tab components the test is `canEdit = role !== 'viewer'`, **not**
 `role === 'admin'` — `ItineraryView`, `BudgetTracker`, `ExpenseForm` and
@@ -69,6 +90,24 @@ So inside the tab components the test is `canEdit = role !== 'viewer'`, **not**
 `canEdit` for the same reason. Reaching for `isAdmin` in one of those is the
 mistake to catch in review. Every component still takes a `role` prop, and new
 UI needs a deliberate answer for all three.
+
+**An unknown role is a viewer, never an admin.** `role` in `App` is
+`activeTrip?.myRole ?? 'viewer'`, and that `??` is load-bearing. It used to be
+`|| 'admin'`, on the reasoning that a trip with no role must be one this
+browser made — which also meant *anyone* who opened the app and tapped "create
+a trip" got the organiser's bar, and that any trip arriving by a path that
+forgot to set a role arrived with full rights. So every path now states one:
+`createNewTrip` says `admin`, `fetchMyTrips` copies the
+enforced role off the membership row, a share link says what it grants, the
+realtime handler falls back to `viewer`, and `getTrips` backfills `admin` onto
+trips saved before any of that. Add a path that produces a `Trip` and you owe
+it a role; leave it off and the trip is read-only, which is the failure worth
+having.
+
+The same reasoning guards the sign-in upload: only `myRole === 'admin'` trips
+are pushed to the cloud. A guest opening an invite is signed in anonymously a
+moment later, and treating "no role" as ours uploaded their unrelated local
+trips into the organiser's project under a throwaway account.
 
 **The top bar is two different bars.** An organiser gets Trip Settings, Print
 and Share; a traveller gets the language switch, their own trips, creating a
@@ -119,8 +158,9 @@ role-permission assertions pass or fail for the wrong reason.
 `oxlint` reports six known warnings: `react(set-state-in-effect)` in
 `ActivityModal`, `ShareModal` and `TripSettingsModal` (each syncs form state to a
 prop when the modal opens), the same rule in `LocationInput` (a debounced fetch,
-which is exactly the external-system case the rule carves out), plus
-`react(only-export-components)` in `i18n.tsx`. They are not part of shipping. Git's `LF will be replaced by CRLF` warnings on
+which is exactly the external-system case the rule carves out) and in
+`UndoToast` (a dismissal timer), plus `react(only-export-components)` in
+`i18n.tsx`. They are not part of shipping. Git's `LF will be replaced by CRLF` warnings on
 this Windows machine are harmless noise.
 
 The itinerary opens on **today** when the trip is running and on day 1 otherwise
@@ -154,11 +194,40 @@ like for like before chasing a size jump.
 Sharing is **one short cloud invite** (`/j/AB3F7K`, ~35 chars), and only an
 admin ever sees the button. The link no longer carries a role — it opens the
 door, and the seat claimed behind it decides everything. It is also only useful
-until the roster is full: once every name is claimed it grants nothing. The old snapshot link —
-the whole trip LZ-compressed into the URL hash, ~13,000 characters for a 6-day
-trip — is no longer generated; `sharing.ts` still *parses* incoming ones so links
-already sent keep working, and `PasscodePromptModal` still exists for the PIN
-they could carry.
+until the roster is full: once every name is claimed it grants nothing.
+
+**One live code per trip.** `createInvite` deletes the trip's existing codes
+before inserting the new one, and the share sheet calls `fetchInvite` on open
+so the organiser is shown the link that is actually out there. Both halves
+matter: without the read, re-checking your own link meant pressing the button
+that makes a new one; without the delete, no code could ever be revoked, so
+every link ever generated stayed a working door. Replacing one now asks first,
+because there is no undo for it and the old link may already be in a group
+chat. The old code goes before the new one is written on purpose — a failure
+part-way leaves the trip with no invite, which is recoverable, rather than
+leaving the link you meant to kill alive.
+
+`join_trip` was **dropped** for the same reason (see `schema.sql`). Nothing had
+called it since `claim_seat` took over, but it stayed granted to
+`authenticated` — and anonymous sign-ins are on, so that is anyone. A code
+holder could call it directly and join with no seat at all, walking past both
+"one seat, one holder" and the full-roster rule, taking whatever role sat on the
+invite row. `claim_seat` is the only door.
+
+**The old snapshot link is gone completely** — the whole trip LZ-compressed
+into the URL hash, ~13,000 characters for a 6-day trip, delivering a frozen
+copy that never synced back. The generator went when the cloud invite replaced
+it; the reader has now gone too, and with it `sharing.ts`,
+`PasscodePromptModal`, `hashPin` and the `lz-string` dependency. An old link is
+not left to fail silently: `App` still recognises a `#share=` URL and shows
+`staleShareLink` ("ask the organiser for a new invite link"), in both the empty
+state and the app shell, which is more use than the stale copy would have been.
+
+**The .json export and import are gone too.** They were a power-user escape
+hatch in an app for a group of friends, and the two halves only made sense
+together — an export nothing can read back is not a backup. The cloud copy every
+member syncs to is the real safety net, and the share sheet is now one thing:
+the invite.
 
 **Location suggestions come from Photon** (`placeSearch.ts`), an OpenStreetMap
 geocoder built for type-ahead. Nominatim is the better-known OSM endpoint but its
@@ -189,14 +258,33 @@ policy is filtered by *that* table's policies, which is why `member_role` and
 Writing `exists (select 1 from trips ...)` directly into a policy is the bug
 that made trip creation silently fail to write its own membership row.
 
+**It is a PWA, and the service worker has one rule worth knowing.** Navigations
+are network-first; built assets are cache-first. That split is deliberate:
+`/assets/index-<hash>.js` is immutable — change the content and the name
+changes — so serving it from cache can never be stale, while a cached
+*document* is how a PWA ends up stuck three deploys behind, and this app
+deploys on every push. Everything cross-origin is left alone; caching Supabase
+responses would mean showing a stale trip while claiming to be in sync, which
+is the one failure this app cannot have. `public/sw.js` is plain JS copied
+verbatim by Vite, and `main.tsx` registers it **only** under `import.meta.env.PROD`
+— in dev it would sit in front of Vite's module server and fight HMR. So
+`npm run dev` never exercises it: use `npm run preview` (there is a
+`travelsync-preview` entry in `.claude/launch.json`) and stop the server to
+test offline for real.
+
 ## Data model notes
 
 A `Trip` holds `days[] → activities[]`, plus `expenses` and the optional
 `kitty`. Packing checklists, taxi cards, Thai addresses and the booked flag were
-all removed; `getTrips()` sheds the dead `checklist` / `taxiCards` arrays from
-older saved trips so they stop riding along in every cloud push and export.
-`myRole` on a Trip is local-only — it describes *this browser's*
-permission and is stripped before the trip is stored or shared.
+all removed; `getTrips()` sheds the dead `checklist` / `taxiCards` / `shareSettings`
+fields from older saved trips so they stop riding along in every cloud push.
+`shareSettings` was the odd one out: three flags (`isPublic`,
+`isPasswordProtected`, `allowGuestEdits`) written onto every new trip and read
+by nothing, ever.
+`myRole` on a Trip is local-only — it describes *this browser's* permission, so
+`tripDocument` strips it (with `myTravelerId`) before any cloud push or share
+payload. It does persist to `localStorage`, which is what lets a role survive a
+reload offline, and `getTrips` guarantees every stored trip has one.
 
 Two other things are deliberately *not* on the Trip, for the same reason: the UI
 language (`travelsync-lang`) and which traveller is "me" for the budget tab's

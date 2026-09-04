@@ -44,7 +44,7 @@ export const TripBanner: React.FC<TripBannerProps> = ({
         {isAdmin && (
           <button
             onClick={onOpenSettings}
-            className="absolute top-2.5 right-2.5 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-control text-xs font-semibold bg-paper/90 backdrop-blur text-ink border border-hairline hover:bg-paper transition"
+            className="absolute top-2.5 right-2.5 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 min-h-11 min-w-11 rounded-control text-xs font-semibold bg-paper/90 backdrop-blur text-ink border border-hairline hover:bg-paper transition"
           >
             <Edit2 className="w-3.5 h-3.5 text-muted" />
             <span className="hidden sm:inline">{t('customizeTrip')}</span>

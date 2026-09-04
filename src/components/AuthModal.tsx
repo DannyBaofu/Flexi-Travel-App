@@ -116,7 +116,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             spellCheck={false}
             value={id}
             onChange={(e) => setId(e.target.value)}
-            placeholder={t('authIdPlaceholder')}
             className={input}
             required
           />

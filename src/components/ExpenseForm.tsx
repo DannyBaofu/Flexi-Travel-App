@@ -98,8 +98,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
       {/* Tapping a chip beats opening a nine-item dropdown on a phone */}
       <div>
-        <span className={label}>{t('expenseWhatFor')}</span>
-        <div className="flex flex-wrap gap-1.5">
+        <span className={label} id="expense-category-label">{t('expenseWhatFor')}</span>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="expense-category-label">
           {(Object.keys(categoryMetaMap) as ActivityCategory[]).map(cat => {
             const meta = categoryMetaMap[cat];
             const Icon = meta.icon;
@@ -110,7 +110,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 key={cat}
                 onClick={() => setCategory(cat)}
                 aria-pressed={on}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                className={`inline-flex items-center gap-1.5 px-3 py-2 min-h-11 rounded-control text-xs font-semibold border transition ${
                   on
                     ? 'bg-brand-tint border-brand-tint text-brand'
                     : 'bg-paper border-hairline text-muted hover:bg-mist'
@@ -131,7 +131,6 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={t('expensePlaceholder')}
           className={input}
         />
       </div>
@@ -142,7 +141,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           type="button"
           onClick={() => setShowMore(v => !v)}
           aria-expanded={showMore}
-          className="w-full flex items-center justify-between gap-3 text-left min-h-[36px]"
+          className="w-full flex items-center justify-between gap-3 text-left min-h-11"
         >
           <span className="text-xs text-muted min-w-0 truncate">
             {describePayer(effectivePaidBy)}
@@ -163,8 +162,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             {/* Who paid is the admin's call; a member logs their own */}
             {canEdit && (
               <div>
-                <span className={label}>{t('paidBy')}</span>
-                <div className="flex flex-wrap gap-1.5">
+                <span className={label} id="expense-paidby-label">{t('paidBy')}</span>
+                <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="expense-paidby-label">
                   {trip.travelers.map(tv => {
                     const on = effectivePaidBy === tv.id;
                     return (
@@ -173,7 +172,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                         key={tv.id}
                         onClick={() => setPaidBy(tv.id)}
                         aria-pressed={on}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                        className={`inline-flex items-center gap-2 px-3 py-2 min-h-11 rounded-control text-xs font-semibold border transition ${
                           on
                             ? 'bg-brand-tint border-brand-tint text-brand'
                             : 'bg-paper border-hairline text-muted hover:bg-mist'
@@ -201,8 +200,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
             {canEdit && (
               <div>
-                <span className={label}>{t('splitWithLabel')}</span>
-                <div className="flex flex-wrap gap-1.5">
+                <span className={label} id="expense-splitwith-label">{t('splitWithLabel')}</span>
+                <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="expense-splitwith-label">
                   {trip.travelers.map(tv => {
                     const isSelected = splitWith.includes(tv.id);
                     return (
@@ -211,7 +210,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                         key={tv.id}
                         onClick={() => toggleSplitter(tv.id)}
                         aria-pressed={isSelected}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-control text-xs font-semibold border transition ${
+                        className={`inline-flex items-center gap-2 px-3 py-2 min-h-11 rounded-control text-xs font-semibold border transition ${
                           isSelected
                             ? 'bg-brand-tint border-brand-tint text-brand'
                             : 'bg-paper border-hairline text-muted hover:bg-mist'

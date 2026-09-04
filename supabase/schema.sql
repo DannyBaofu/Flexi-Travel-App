@@ -133,31 +133,19 @@ drop policy if exists invites_delete on public.trip_invites;
 create policy invites_delete on public.trip_invites
   for delete using (public.member_role(trip_id) = 'admin');
 
--- Join a trip with an invite code (bypasses RLS via security definer,
--- but only grants the role stored on the invite; never downgrades an admin)
-create or replace function public.join_trip(p_code text)
-returns text
-language plpgsql security definer
-set search_path = public
-as $$
-declare
-  v_trip text;
-  v_role text;
-begin
-  select trip_id, role into v_trip, v_role from trip_invites where code = p_code;
-  if v_trip is null then
-    raise exception 'INVALID_INVITE';
-  end if;
-  insert into trip_members (trip_id, user_id, role)
-  values (v_trip, auth.uid(), v_role)
-  on conflict (trip_id, user_id)
-  do update set role = excluded.role
-  where trip_members.role is distinct from 'admin';
-  return v_trip;
-end;
-$$;
-
-grant execute on function public.join_trip(text) to authenticated;
+-- `join_trip` is gone. It predated seats: it took a code, wrote a membership
+-- row with whatever role the invite carried, and left `traveler_id` null.
+--
+-- Nothing has called it since `claim_seat` took over, but a granted function
+-- is reachable by anyone who can get a token — and anonymous sign-ins are on,
+-- so that is everyone. A code holder could run it directly and land on the
+-- trip with no seat at all, which walks straight past the two rules the seat
+-- model rests on: one seat one holder, and a full roster grants nothing. It
+-- also handed out whatever role sat on the invite row, and that column still
+-- permits 'admin'.
+--
+-- Dropping it takes its privileges with it. `claim_seat` is the only door.
+drop function if exists public.join_trip(text);
 
 -- ---------------------------------------------------------------------------
 -- Seats

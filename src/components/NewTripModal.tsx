@@ -63,12 +63,12 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
     >
       <form id="new-trip-form" onSubmit={handleCreateCustom} className="p-5 space-y-4">
         <div>
-          <label className={label}>{t('tripNameRequired')}</label>
+          <label className={label} htmlFor="new-trip-title">{t('tripNameRequired')}</label>
           <input
+            id="new-trip-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={t('tripNamePlaceholder')}
             className={input}
             required
           />
@@ -76,8 +76,9 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className={label}>{t('destinationCity')}</label>
+            <label className={label} htmlFor="new-trip-destination">{t('destinationCity')}</label>
             <input
+              id="new-trip-destination"
               type="text"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
@@ -86,8 +87,9 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
             />
           </div>
           <div>
-            <label className={label}>{t('country')}</label>
+            <label className={label} htmlFor="new-trip-country">{t('country')}</label>
             <input
+              id="new-trip-country"
               type="text"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
@@ -98,8 +100,9 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className={label}>{t('startDate')}</label>
+            <label className={label} htmlFor="new-trip-start">{t('startDate')}</label>
             <input
+              id="new-trip-start"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -108,8 +111,9 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
             />
           </div>
           <div>
-            <label className={label}>{t('endDate')}</label>
+            <label className={label} htmlFor="new-trip-end">{t('endDate')}</label>
             <input
+              id="new-trip-end"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -120,8 +124,9 @@ export const NewTripModal: React.FC<NewTripModalProps> = ({
         </div>
 
         <div>
-          <label className={label}>{t('destCurrencyCode')}</label>
+          <label className={label} htmlFor="new-trip-currency">{t('destCurrencyCode')}</label>
           <input
+            id="new-trip-currency"
             type="text"
             value={currency}
             onChange={(e) => setCurrency(e.target.value.toUpperCase())}

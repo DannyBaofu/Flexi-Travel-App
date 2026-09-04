@@ -290,7 +290,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
           <button
             onClick={() => setShowAllDays(!showAllDays)}
-            className={`shrink-0 px-3.5 py-2.5 rounded-control text-xs font-semibold border transition ${
+            className={`shrink-0 px-3.5 py-2.5 min-h-11 rounded-control text-xs font-semibold border transition ${
               showAllDays
                 ? 'bg-brand-tint text-brand border-brand-tint'
                 : 'bg-paper text-muted border-hairline hover:bg-mist'
@@ -309,6 +309,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('searchPlaceholder')}
+              aria-label={t('searchPlaceholder')}
               className={`${input} pl-9 ${searchQuery ? 'pr-10' : ''} bg-mist`}
             />
             {searchQuery && (
@@ -325,7 +326,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none -mx-3 px-3 sm:-mx-4 sm:px-4">
             <button
               onClick={() => setSelectedCategory('all')}
-              className={`px-2.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition ${
+              className={`px-3 py-1.5 min-h-11 rounded-full text-xs font-semibold shrink-0 transition ${
                 selectedCategory === 'all'
                   ? 'bg-brand-tint text-brand'
                   : 'bg-mist text-muted hover:text-ink'
@@ -341,7 +342,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                 <button
                   key={catKey}
                   onClick={() => setSelectedCategory(isSelected ? 'all' : catKey)}
-                  className={`px-2.5 py-1.5 rounded-full text-xs font-medium shrink-0 flex items-center gap-1.5 transition ${
+                  className={`px-3 py-1.5 min-h-11 rounded-full text-xs font-medium shrink-0 flex items-center justify-center gap-1.5 transition ${
                     isSelected
                       ? 'bg-brand-tint text-brand'
                       : 'bg-mist text-muted hover:text-ink'

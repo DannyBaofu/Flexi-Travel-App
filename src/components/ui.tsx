@@ -13,9 +13,12 @@ import { X } from 'lucide-react';
 // touches, so if two buttons are brand-coloured neither one answers
 // "what do I do here". One primary per screen.
 
+// min-h-11 is 44px, the smallest thing a thumb reliably hits. It is a floor,
+// not a height: padding still decides how big a button looks, and the floor
+// only shows up on the dense variants where padding alone left 34px.
 const btnBase =
   'inline-flex items-center justify-center gap-1.5 font-semibold rounded-control ' +
-  'border transition disabled:opacity-50 disabled:cursor-not-allowed';
+  'min-h-11 border transition disabled:opacity-50 disabled:cursor-not-allowed';
 
 export const btnPrimary =
   `${btnBase} px-4 py-2.5 text-sm bg-brand hover:bg-brand-deep text-white border-transparent`;
@@ -29,20 +32,20 @@ export const btnGhost =
 export const btnDanger =
   `${btnBase} px-4 py-2.5 text-sm bg-paper hover:bg-clay-tint text-clay border-clay/25`;
 
-/** Small variants for dense rows — still 36px tall, inside a 44px tap row. */
+/** Small variants for dense rows: narrower and lighter type, same 44px floor. */
 export const btnPrimarySm =
   `${btnBase} px-3.5 py-2 text-xs bg-brand hover:bg-brand-deep text-white border-transparent`;
 
 export const btnSecondarySm =
   `${btnBase} px-3 py-2 text-xs bg-paper hover:bg-mist text-ink border-hairline`;
 
-/** Square icon button. 40px box inside a 44px row keeps the target legal. */
+/** Square icon button, 44px on a side. The whole box is the target. */
 export const iconBtn =
-  'w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-control ' +
+  'w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-control ' +
   'border border-hairline bg-paper text-muted hover:text-ink hover:bg-mist transition';
 
 export const iconBtnSolid =
-  'w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-control ' +
+  'w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-control ' +
   'border border-transparent bg-brand text-white hover:bg-brand-deep transition';
 
 // ---- Surfaces ------------------------------------------------------------
@@ -59,7 +62,7 @@ export const input =
 export const inputMono = `${input} font-mono tabular-nums`;
 
 export const select =
-  'w-full bg-mist border border-hairline rounded-control px-3.5 py-2.5 ' +
+  'w-full bg-mist border border-hairline rounded-control px-3.5 py-2.5 min-h-11 ' +
   'text-ink text-sm font-medium focus:outline-none focus:border-brand transition';
 
 export const label = 'block text-xs font-semibold text-muted mb-1.5';

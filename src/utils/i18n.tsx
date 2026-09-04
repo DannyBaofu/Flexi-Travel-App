@@ -70,7 +70,6 @@ const dict: Record<string, Entry> = {
   expenseAmountQ: { zh: '花了多少？', en: 'How much?' },
   expenseWhatFor: { zh: '这笔是什么？', en: 'What was it for?' },
   expenseNoteOptional: { zh: '备注（可选）', en: 'Note (optional)' },
-  expensePlaceholder: { zh: '例如：湄南河晚餐游船', en: 'e.g. Chao Phraya dinner cruise' },
   expenseMoreOptions: { zh: '更多选项', en: 'More options' },
   expensePaidByYou: { zh: '你付的', en: 'You paid' },
   expensePaidByOther: { zh: '{name} 付的', en: '{name} paid' },
@@ -114,7 +113,6 @@ const dict: Record<string, Entry> = {
   // ---- New trip modal ----
   newTripSubtitle: { zh: '填写基本信息，稍后再添加每天的活动', en: 'Fill in the basics — add daily activities afterwards' },
   tripNameRequired: { zh: '行程名称 *', en: 'Trip Name *' },
-  tripNamePlaceholder: { zh: '例如：曼谷之旅 2026', en: 'e.g. Bangkok Getaway 2026' },
   destinationCity: { zh: '目的地城市 *', en: 'Destination City *' },
   country: { zh: '国家', en: 'Country' },
   startDate: { zh: '开始日期', en: 'Start Date' },
@@ -123,17 +121,10 @@ const dict: Record<string, Entry> = {
   createTrip: { zh: '创建行程', en: 'Create Trip' },
 
   // ---- Share modal ----
-  safeShare: { zh: '安全分享给朋友', en: 'Safe Share with Friends' },
-  shareSubtitle: { zh: '即时分享链接，支持 PIN 密码锁与离线二维码', en: 'Instant share link with PIN lock & offline QR code' },
-  sharingPermissions: { zh: '分享权限与安全', en: 'Sharing Permissions & Security' },
-  viewerReadOnly: { zh: '仅查看（只读）', en: 'Viewer (Read-Only)' },
-  viewerDesc: { zh: '朋友只能查看行程和地图', en: 'Friends can only view schedule & maps' },
+  safeShare: { zh: '邀请朋友加入', en: 'Invite Your Friends' },
+  shareSubtitle: { zh: '一条链接，朋友打开后选出自己的名字就加入了', en: 'One link — friends open it, pick their name, and they are in' },
   copied: { zh: '已复制！', en: 'Copied!' },
   copyLink: { zh: '复制链接', en: 'Copy Link' },
-  backupImport: { zh: '备份与导入行程', en: 'Backup & Import Itinerary' },
-  exportJson: { zh: '导出行程 (.json)', en: 'Export Itinerary (.json)' },
-  importJson: { zh: '导入行程 (.json)', en: 'Import Itinerary (.json)' },
-  importSuccess: { zh: '行程导入成功！', en: 'Trip imported successfully!' },
   done: { zh: '完成', en: 'Done' },
 
   // ---- Taxi cards modal ----
@@ -149,7 +140,8 @@ const dict: Record<string, Entry> = {
   destCurrencyLabel: { zh: '目的地货币', en: 'Destination Currency' },
   homeCurrencyLabel: { zh: '本国货币', en: 'Home Currency' },
   travelersCompanions: { zh: '旅伴', en: 'Travelers & Companions' },
-  addFriendPlaceholder: { zh: '添加朋友姓名（例如 David）', en: 'Add friend name (e.g. David)' },
+  addFriendPlaceholder: { zh: '添加朋友姓名', en: 'Add a friend’s name' },
+  coverPhotoUrl: { zh: '封面图片链接', en: 'Cover photo link' },
   add: { zh: '添加', en: 'Add' },
   coverPhoto: { zh: '封面图片', en: 'Cover Photo Banner' },
   deleteTrip: { zh: '删除行程', en: 'Delete Trip' },
@@ -157,23 +149,12 @@ const dict: Record<string, Entry> = {
   saveSettings: { zh: '保存设置', en: 'Save Settings' },
 
   // ---- Passcode modal ----
-  passcodeTitle: { zh: '受密码保护的行程', en: 'Passcode Protected Itinerary' },
-  passcodeDescPrefix: { zh: '组织者已为', en: 'The organizer has protected' },
-  passcodeDescSuffix: { zh: '设置了安全 PIN 码。', en: 'with a security PIN.' },
-  enterPin: { zh: '输入 PIN 密码', en: 'Enter PIN Passcode' },
-  wrongPin: { zh: 'PIN 码不正确，请询问行程组织者。', en: 'Incorrect PIN code. Please ask the trip organizer.' },
-  unlock: { zh: '解锁行程', en: 'Unlock Itinerary' },
 
   // ---- Print view ----
   printTravelers: { zh: '旅伴', en: 'Travelers' },
   printCurrency: { zh: '货币', en: 'Currency' },
 
   // ---- Roles ----
-  shareAsAdmin: { zh: '管理员（完全控制）', en: 'Admin (Full Control)' },
-  shareAsAdminDesc: { zh: '行程设置、删除、旅伴管理等全部权限', en: 'Full access: settings, deletions, manage travelers' },
-  shareAsMember: { zh: '旅伴（基础编辑）', en: 'Member (Basic Edits)' },
-  shareAsMemberDesc: { zh: '可编辑活动、勾选清单、记录支出', en: 'Can edit activities, tick checklists, log expenses' },
-  memberShareNote: { zh: '只有管理员可以创建可编辑的分享链接，您可以分享只读链接。', en: 'Only the admin can create editable share links. You can share a read-only link.' },
 
   travelerNameLabel: { zh: '旅伴姓名', en: 'Traveller name' },
   travelerMeDefault: { zh: '我', en: 'Me' },
@@ -181,7 +162,6 @@ const dict: Record<string, Entry> = {
   // ---- Seats: the roster, and claiming your name off it ----
   seatRoleAdmin: { zh: '管理员', en: 'Admin' },
   seatRoleMember: { zh: '可编辑', en: 'Can edit' },
-  seatRoleViewer: { zh: '只读', en: 'View only' },
 
   seatPickerTitle: { zh: '你是哪一位？', en: 'Who are you?' },
   seatPickerSubtitle: { zh: '加入「{trip}」', en: 'Joining {trip}' },
@@ -195,7 +175,6 @@ const dict: Record<string, Entry> = {
   seatErrorTaken: { zh: '这个名字刚被人认领了，请选另一个。', en: 'That name was just taken — pick another.' },
   seatErrorInvalid: { zh: '邀请链接无效或已失效。', en: 'That invite link is not valid any more.' },
   seatErrorFailed: { zh: '加入失败：{msg}', en: 'Could not join: {msg}' },
-  seatPickYours: { zh: '选择你的名字', en: 'Pick your name' },
 
   rosterStatusFree: { zh: '未认领', en: 'Not claimed' },
   rosterStatusTaken: { zh: '已认领', en: 'Claimed' },
@@ -219,7 +198,6 @@ const dict: Record<string, Entry> = {
   authTabSignIn: { zh: '登录', en: 'Sign In' },
   authTabFirstTime: { zh: '首次使用', en: 'First Time' },
   authIdLabel: { zh: '账号 ID', en: 'Account ID' },
-  authIdPlaceholder: { zh: '例如：danny', en: 'e.g. danny' },
   authIdHint: { zh: '自己取一个，3–20 个字符，仅限小写字母、数字、. _ -', en: 'Choose your own. 3–20 characters: lowercase letters, numbers, . _ -' },
   authPasswordLabel: { zh: '密码', en: 'Password' },
   authPasswordPlaceholder: { zh: '至少 6 个字符', en: 'At least 6 characters' },
@@ -241,18 +219,33 @@ const dict: Record<string, Entry> = {
   createInviteBtn: { zh: '创建邀请链接', en: 'Create Invite Link' },
   creatingInvite: { zh: '创建中…', en: 'Creating…' },
   inviteHint: { zh: '朋友打开链接后选出自己的名字，就能实时同步这份行程 — 任何人的修改都会即时出现在所有人手机上。', en: 'Friends open the link, pick their name, and this trip syncs live — every edit appears on everyone’s phone instantly.' },
-  inviteViewerCannotInvite: { zh: '你目前是只读成员，无法邀请其他人。请让管理员分享链接。', en: 'You have read-only access, so you cannot invite others. Ask an admin to share the link.' },
-  inviteRequiresLogin: { zh: '登录后（右上角）即可创建实时邀请链接。', en: 'Sign in (top right) to create live invite links.' },
+  inviteRequiresLogin: {
+    zh: '先登录（右上角「更多」里）才能创建邀请链接。',
+    en: 'Sign in first — it is in the ⋯ menu, top right — to create an invite link.'
+  },
   joiningTrip: { zh: '正在加入行程…', en: 'Joining trip…' },
   joinFailed: { zh: '加入行程失败：{msg}', en: 'Failed to join trip: {msg}' },
+  staleShareLink: {
+    zh: '这是旧版分享链接，已经不能用了。请向组织者要一条新的邀请链接。',
+    en: 'That is an old-style share link and no longer works. Ask the organiser for a new invite link.'
+  },
   joinNeedsCloud: { zh: '这个邀请链接需要云同步，但本站尚未启用云同步。', en: 'This invite link needs cloud sync, which is not enabled on this site yet.' },
   inviteShortBadge: { zh: '短链接 · {n} 个字符', en: 'Short link · {n} characters' },
   inviteCodeLabel: { zh: '邀请码', en: 'Invite code' },
   inviteCodeHint: { zh: '朋友也可以直接输入这个邀请码，不一定要点链接。', en: 'Friends can also type this code in instead of tapping the link.' },
-  inviteNewLink: { zh: '再建一个邀请链接', en: 'Create another invite link' },
+  inviteNewLink: { zh: '换一个新链接', en: 'Replace with a new link' },
+  inviteRotateHint: {
+    zh: '换新链接后，旧链接和旧邀请码立即失效。',
+    en: 'A new link works immediately, and the old link and code stop working.'
+  },
+  confirmRotateInvite: {
+    zh: '换一个新链接？已经发出去的旧链接会立即失效，还没加入的人需要重新发给他们。',
+    en: 'Replace the invite link? Any link you have already sent stops working immediately, and anyone who has not joined yet will need the new one.'
+  },
+  inviteLoading: { zh: '正在读取邀请链接…', en: 'Loading invite link…' },
   cloudOffNotice: {
-    zh: '云同步尚未启用，所以目前只能用长快照链接分享，而且行程只保存在这台设备的浏览器里。',
-    en: 'Cloud sync is not set up yet, so sharing only works through long snapshot links and trips are stored only in this browser.'
+    zh: '这个网站还没启用云同步，所以暂时无法邀请别人，行程只存在这台设备的浏览器里。',
+    en: 'This site has no cloud sync set up yet, so there is no way to invite anyone and the trip lives only in this browser.'
   },
 
   // ---- Phrasebook ----
@@ -277,7 +270,7 @@ const dict: Record<string, Entry> = {
 
   // ---- Invite code entry on the first screen ----
   haveInviteCode: { zh: '朋友给了你邀请码？', en: 'Got an invite code from a friend?' },
-  inviteCodePlaceholder: { zh: '例如 AB3F7K', en: 'e.g. AB3F7K' },
+  inviteCodePlaceholder: { zh: '6 位字母数字', en: '6 letters/digits' },
   joinWithCode: { zh: '加入行程', en: 'Join Trip' },
   emptyOr: { zh: '或者', en: 'or' },
 
@@ -354,8 +347,6 @@ const dict: Record<string, Entry> = {
   deletedActivity: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },
   deletedExpense: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },
 
-  // ---- Shared trip / passcode ----
-  sharedTrip: { zh: '共享行程', en: 'Shared Trip' }
 };
 
 function interpolate(template: string, params?: Record<string, string | number>): string {

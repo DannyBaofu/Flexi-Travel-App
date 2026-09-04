@@ -218,8 +218,9 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
         <section className="space-y-3">
           <h3 className={sectionHeading}>{t('generalInfo')}</h3>
           <div>
-            <label className={label}>{t('tripNameLabel')}</label>
+            <label className={label} htmlFor="settings-title">{t('tripNameLabel')}</label>
             <input
+              id="settings-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -230,8 +231,9 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className={label}>{t('destinationCityLabel')}</label>
+              <label className={label} htmlFor="settings-destination">{t('destinationCityLabel')}</label>
               <input
+                id="settings-destination"
                 type="text"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
@@ -240,8 +242,9 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
               />
             </div>
             <div>
-              <label className={label}>{t('country')}</label>
+              <label className={label} htmlFor="settings-country">{t('country')}</label>
               <input
+                id="settings-country"
                 type="text"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
@@ -259,8 +262,9 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className={label}>{t('startDate')}</label>
+              <label className={label} htmlFor="settings-start">{t('startDate')}</label>
               <input
+                id="settings-start"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -269,8 +273,9 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
               />
             </div>
             <div>
-              <label className={label}>{t('endDate')}</label>
+              <label className={label} htmlFor="settings-end">{t('endDate')}</label>
               <input
+                id="settings-end"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -288,8 +293,9 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className={label}>{t('destCurrencyLabel')}</label>
+              <label className={label} htmlFor="settings-currency">{t('destCurrencyLabel')}</label>
               <input
+                id="settings-currency"
                 type="text"
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
@@ -298,19 +304,22 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
               />
             </div>
             <div>
-              <label className={label}>{t('homeCurrencyLabel')}</label>
+              <label className={label} htmlFor="settings-home-currency">{t('homeCurrencyLabel')}</label>
               <input
+                id="settings-home-currency"
                 type="text"
                 value={homeCurrency}
                 onChange={(e) => setHomeCurrency(e.target.value.toUpperCase())}
-                placeholder="USD"
                 className={`${inputMono} uppercase`}
                 required
               />
             </div>
             <div>
-              <label className={label}>1 {homeCurrency} = ? {currency}</label>
+              <label className={label} htmlFor="settings-rate">
+                1 {homeCurrency} = ? {currency}
+              </label>
               <input
+                id="settings-rate"
                 type="number"
                 step="any"
                 value={exchangeRate}
@@ -335,11 +344,11 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
           <ul className="space-y-2">
             {travelers.map((traveler) => {
               const claim = claims.find(c => c.travelerId === traveler.id);
-              // Admin is only offered where it can actually be granted: a seat
-              // nobody holds is clamped to member/viewer when it is claimed.
-              const roleOptions: TripRole[] = claim
-                ? ['admin', 'member', 'viewer']
-                : ['member', 'viewer'];
+              // Two permissions: organiser and traveller. Admin is only
+              // offered where it can actually be granted — a free seat is
+              // clamped to member when somebody claims it, so promoting one
+              // in advance would be a promise the server does not keep.
+              const roleOptions: TripRole[] = claim ? ['admin', 'member'] : ['member'];
 
               return (
                 <li
@@ -373,7 +382,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveTraveler(traveler.id)}
-                        className="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full text-faint hover:text-clay hover:bg-clay-tint transition"
+                        className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-full text-faint hover:text-clay hover:bg-clay-tint transition"
                         title={t('deleteItem')}
                       >
                         <X className="w-3.5 h-3.5" />
@@ -384,17 +393,24 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                   {isAdmin && (
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] text-muted shrink-0">{t('rosterPermission')}</span>
-                      <select
-                        value={claim?.role ?? traveler.role ?? 'member'}
-                        onChange={(e) => handleRoleChange(traveler.id, e.target.value as TripRole)}
-                        className={`${input} py-1.5 text-xs flex-1 min-w-0`}
-                      >
-                        {roleOptions.map(opt => (
-                          <option key={opt} value={opt}>
-                            {t(opt === 'admin' ? 'seatRoleAdmin' : opt === 'viewer' ? 'seatRoleViewer' : 'seatRoleMember')}
-                          </option>
-                        ))}
-                      </select>
+                      {roleOptions.length > 1 ? (
+                        <select
+                          aria-label={`${traveler.name} — ${t('rosterPermission')}`}
+                          value={claim?.role ?? traveler.role ?? 'member'}
+                          onChange={(e) => handleRoleChange(traveler.id, e.target.value as TripRole)}
+                          className={`${input} py-1.5 min-h-11 text-xs flex-1 min-w-0`}
+                        >
+                          {roleOptions.map(opt => (
+                            <option key={opt} value={opt}>
+                              {t(opt === 'admin' ? 'seatRoleAdmin' : 'seatRoleMember')}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-xs text-ink flex-1 min-w-0 truncate">
+                          {t('seatRoleMember')}
+                        </span>
+                      )}
                       {claim && !claim.isMe && (
                         <button
                           type="button"
@@ -429,6 +445,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                 }
               }}
               placeholder={t('addFriendPlaceholder')}
+              aria-label={t('addFriendPlaceholder')}
               className={`${input} flex-1`}
             />
             <button type="button" onClick={handleAddTraveler} className={`${btnSecondarySm} shrink-0 py-2.5`}>
@@ -445,6 +462,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
 
           <input
             type="url"
+            aria-label={t('coverPhotoUrl')}
             value={coverImage}
             onChange={(e) => setCoverImage(e.target.value)}
             className={`${input} break-all`}

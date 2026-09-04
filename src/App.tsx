@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Calendar, Compass } from 'lucide-react';
 import type { Trip, ActivityItem, TripRole, TripSeat } from './types/travel';
 import { storageService } from './services/storage';
-import { sharingService, resolveShareRole } from './services/sharing';
-import type { SharePayload } from './services/sharing';
 import { Navbar } from './components/Navbar';
 import { TripBanner } from './components/TripBanner';
 import { ItineraryView } from './components/ItineraryView';
@@ -20,7 +18,6 @@ const ShareModal = lazy(() => import('./components/ShareModal').then(m => ({ def
 const TripSettingsModal = lazy(() => import('./components/TripSettingsModal').then(m => ({ default: m.TripSettingsModal })));
 const NewTripModal = lazy(() => import('./components/NewTripModal').then(m => ({ default: m.NewTripModal })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
-const PasscodePromptModal = lazy(() => import('./components/PasscodePromptModal').then(m => ({ default: m.PasscodePromptModal })));
 const SeatPickerModal = lazy(() => import('./components/SeatPickerModal').then(m => ({ default: m.SeatPickerModal })));
 import type { TabId } from './components/TabBar';
 import { btnPrimary, btnSecondary, card, inputMono, label as labelCls } from './components/ui';
@@ -68,9 +65,9 @@ export function App() {
   const [trips, setTrips] = useState<Trip[]>(() => storageService.getTrips());
   const [activeTripId, setActiveTripId] = useState<string>(() => storageService.getActiveTripId());
   
-  // Shared URL state
-  const [pendingSharePayload, setPendingSharePayload] = useState<SharePayload | null>(null);
-  const [isPasscodePromptOpen, setIsPasscodePromptOpen] = useState<boolean>(false);
+  // An old snapshot link arrived. Those are no longer read, so all this does
+  // is explain why rather than dropping the visitor on a blank app.
+  const [staleShareLink, setStaleShareLink] = useState(false);
 
   // Cloud sync state
   const [user, setUser] = useState<User | null>(null);
@@ -136,14 +133,9 @@ export function App() {
       clearJoinHash();
       return;
     }
-    const payload = sharingService.parseShareFromUrl();
-    if (payload) {
-      if (payload.requiresPin && payload.pinHash) {
-        setPendingSharePayload(payload);
-        setIsPasscodePromptOpen(true);
-      } else {
-        applySharedTrip(payload);
-      }
+    if (window.location.hash.includes('#share=')) {
+      setStaleShareLink(true);
+      window.history.replaceState(null, '', '/');
     }
   }, []);
 
@@ -177,8 +169,14 @@ export function App() {
         const cloudTrips = await fetchMyTrips();
         const cloudIds = new Set(cloudTrips.map(ct => ct.id));
         const localTrips = storageService.getTrips();
+        // Only trips this browser actually owns. A guest opening an invite
+        // link is signed in anonymously a moment later, which runs this — and
+        // an `undefined` role used to count as ours, so their own unrelated
+        // trips were uploaded into the organiser's project under a throwaway
+        // account. `getTrips` gives every stored trip a role, so asking for
+        // admin outright is now the whole test.
         for (const lt of localTrips) {
-          if (!cloudIds.has(lt.id) && (lt.myRole === undefined || lt.myRole === 'admin')) {
+          if (!cloudIds.has(lt.id) && lt.myRole === 'admin') {
             try {
               await createTripCloud(lt);
               cloudTrips.push({ ...lt, myRole: 'admin' });
@@ -252,34 +250,17 @@ export function App() {
     }
   };
 
-  const applySharedTrip = (payload: SharePayload) => {
-    const grantedRole = resolveShareRole(payload);
-
-    // Never let a share link downgrade or overwrite the owner's own copy:
-    // if we already hold this trip as its admin, just switch to it.
-    const existing = storageService.getTrips().find(t => t.id === payload.trip.id);
-    if (existing && (existing.myRole === undefined || existing.myRole === 'admin')) {
-      setActiveTripId(existing.id);
-      storageService.setActiveTripId(existing.id);
-      sharingService.clearShareHash();
-      return;
-    }
-
-    const sharedTrip: Trip = { ...payload.trip, myRole: grantedRole };
-    const updatedTrips = storageService.saveTrip(sharedTrip);
-    setTrips(updatedTrips);
-    setActiveTripId(sharedTrip.id);
-    storageService.setActiveTripId(sharedTrip.id);
-
-    // Clean hash from URL so it doesn't stay permanently
-    sharingService.clearShareHash();
-  };
-
   // Get active trip object
   const activeTrip = trips.find(t => t.id === activeTripId) || trips[0];
 
-  // Role of this user for the active trip: locally created trips = admin
-  const role: TripRole = activeTrip?.myRole || 'admin';
+  // Role of this user for the active trip. Every path that hands us a trip
+  // states the role it comes with — creation and import say admin, the cloud
+  // says whatever the membership row enforces, a share link says what it
+  // grants, and `getTrips` backfills the trips saved before any of that was
+  // written down. So there is no longer an innocent reason for the field to be
+  // missing, and the safe reading of one that is missing is read-only: an
+  // unknown role must not be the most powerful one.
+  const role: TripRole = activeTrip?.myRole ?? 'viewer';
 
   // On a trip but with no name against it — every membership made before seats
   // existed, and the organiser's own trips from before this version. Same
@@ -437,7 +418,7 @@ export function App() {
         const hasUnsent = unsentTripRef.current?.id === remoteTrip.id;
         const merged: Trip = hasUnsent && current
           ? mergeRemoteTrip(current, remoteTrip)
-          : { ...remoteTrip, myRole: current?.myRole };
+          : { ...remoteTrip, myRole: current?.myRole ?? 'viewer' };
         const next = current
           ? prev.map(pt => (pt.id === remoteTrip.id ? merged : pt))
           : [merged, ...prev];
@@ -584,6 +565,9 @@ export function App() {
                 {joinBlockedNoCloud ? t('joinNeedsCloud') : t('joinFailed', { msg: joinError ?? '' })}
               </p>
             )}
+            {staleShareLink && (
+              <p className="text-xs text-clay mt-2 leading-relaxed">{t('staleShareLink')}</p>
+            )}
             {cloudMode && pendingJoinCode && (
               <p className="text-xs text-muted mt-2">{t('joiningTrip')}</p>
             )}
@@ -659,11 +643,17 @@ export function App() {
 
       {cloudMode && <SyncBar state={syncState} onRetry={retryPush} />}
 
-      {(joinError || joinBlockedNoCloud) && (
+      {(joinError || joinBlockedNoCloud || staleShareLink) && (
         <div className="bg-clay-tint border-b border-clay/20 px-4 py-2 text-xs text-clay no-print flex items-center justify-center gap-3">
-          <span>{joinBlockedNoCloud ? t('joinNeedsCloud') : t('joinFailed', { msg: joinError ?? '' })}</span>
+          <span>
+            {staleShareLink
+              ? t('staleShareLink')
+              : joinBlockedNoCloud
+                ? t('joinNeedsCloud')
+                : t('joinFailed', { msg: joinError ?? '' })}
+          </span>
           <button
-            onClick={() => { setJoinError(null); setJoinBlockedNoCloud(false); }}
+            onClick={() => { setJoinError(null); setJoinBlockedNoCloud(false); setStaleShareLink(false); }}
             className="font-semibold underline shrink-0"
             title={t('close')}
           >
@@ -753,7 +743,6 @@ export function App() {
             trip={activeTrip}
             role={role}
             cloudMode={cloudMode}
-            onImportTrip={(imported) => handleCreateTrip(imported)}
           />
         )}
 
@@ -790,24 +779,6 @@ export function App() {
             error={seatError}
             onPick={handlePickSeat}
             onCancel={() => { setSeatPrompt(null); setSeatError(null); }}
-          />
-        )}
-
-        {isPasscodePromptOpen && (
-          <PasscodePromptModal
-            isOpen
-            expectedPinHash={pendingSharePayload?.pinHash}
-            tripTitle={pendingSharePayload?.trip?.title || t('sharedTrip')}
-            onSuccess={() => {
-              if (pendingSharePayload) applySharedTrip(pendingSharePayload);
-              setIsPasscodePromptOpen(false);
-              setPendingSharePayload(null);
-            }}
-            onCancel={() => {
-              setIsPasscodePromptOpen(false);
-              setPendingSharePayload(null);
-              sharingService.clearShareHash();
-            }}
           />
         )}
       </Suspense>

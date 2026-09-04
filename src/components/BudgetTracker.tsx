@@ -9,6 +9,7 @@ import {
   ArrowUpRight,
   Check,
   ChevronDown,
+  ChevronUp,
   UserRound
 } from 'lucide-react';
 import type { Trip, ExpenseItem, ActivityCategory, TripRole, TripKitty } from '../types/travel';
@@ -22,7 +23,8 @@ import {
   card,
   cardFlat,
   btnPrimary,
-  btnPrimarySm,
+  btnSecondary,
+  btnSecondarySm,
   money
 } from './ui';
 
@@ -437,8 +439,16 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         </div>
 
         {!isReadOnly ? (
-          <button onClick={() => setIsAdding(!isAdding)} className={`${btnPrimary} shrink-0`}>
-            <Plus className="w-4 h-4" /> {isAdding ? t('closeForm') : t('logNewExpense')}
+          /* Once the form is open this button means "close it", and the form's
+             own save button is the primary action. Two indigo buttons on one
+             screen, one of them meaning cancel, is the confusion the
+             one-primary rule exists to prevent. */
+          <button
+            onClick={() => setIsAdding(!isAdding)}
+            className={`${isAdding ? btnSecondary : btnPrimary} shrink-0`}
+          >
+            {isAdding ? <ChevronUp className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {isAdding ? t('closeForm') : t('logNewExpense')}
           </button>
         ) : (
           <span className="text-xs text-faint">{t('viewingSharedLedger')}</span>
@@ -640,7 +650,7 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                 <div className="text-center py-8">
                   <p className="text-sm text-muted">{t('noExpensesYet')}</p>
                   {!isReadOnly && !isAdding && (
-                    <button onClick={() => setIsAdding(true)} className={`${btnPrimarySm} mt-3`}>
+                    <button onClick={() => setIsAdding(true)} className={`${btnSecondarySm} mt-3`}>
                       <Plus className="w-3.5 h-3.5" /> {t('logNewExpense')}
                     </button>
                   )}

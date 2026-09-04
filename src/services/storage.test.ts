@@ -121,3 +121,40 @@ describe('storageService.getTrips — traveller roles', () => {
     expect(storageService.getTrips()[0].travelers[0].role).toBe('viewer');
   });
 });
+
+describe('storageService.getTrips — this browser’s own role', () => {
+  it('gives a trip saved without a role the admin it has been rendering as', () => {
+    // Everything saved before the role was written down is a trip this browser
+    // made or imported, and it has always shown the owner's controls. The
+    // migration has to keep that true, or an existing user opens the app to a
+    // read-only copy of their own trip.
+    store.set(TRIPS_KEY, JSON.stringify([trip('trip-1', 'Bangkok')]));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips()[0].myRole).toBe('admin');
+  });
+
+  it('never promotes a role that was already set', () => {
+    // The whole point of the backfill is that App can then read a *missing*
+    // role as viewer. Overwriting a stored 'member' or 'viewer' would hand a
+    // traveller the organiser's controls, which is the bug in reverse.
+    const saved = [
+      { id: 'trip-m', title: 'Bangkok', days: [], myRole: 'member' },
+      { id: 'trip-v', title: 'Penang', days: [], myRole: 'viewer' }
+    ];
+    store.set(TRIPS_KEY, JSON.stringify(saved));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips().map(t => t.myRole)).toEqual(['member', 'viewer']);
+  });
+
+  it('states a role on every trip it returns, so no trip reads as unknown', () => {
+    store.set(TRIPS_KEY, JSON.stringify([
+      trip('trip-1', 'Bangkok'),
+      { id: 'trip-2', title: 'Penang', days: [], myRole: 'viewer' }
+    ]));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips().every(t => t.myRole !== undefined)).toBe(true);
+  });
+});

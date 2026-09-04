@@ -16,3 +16,12 @@ createRoot(document.getElementById('root')!).render(
     </ErrorBoundary>
   </StrictMode>,
 )
+
+// Offline shell. Registered only in a real build: in dev the worker would sit
+// in front of Vite's module server and fight HMR. Failure is not worth
+// reporting — the app works exactly as before without it, just not offline.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  })
+}
