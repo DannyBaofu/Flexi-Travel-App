@@ -53,8 +53,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isAdmin = role === 'admin';
   const isReadOnly = role === 'viewer';
 
-  // Three controls is plenty for a phone top bar, so everything that is
-  // not language or share lives behind this one menu.
+  // The organiser's menu, and only theirs. Three controls is plenty for a
+  // phone top bar, so everything of theirs that is not language or share
+  // lives behind this one.
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -100,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <ChevronDown className="w-4 h-4 text-muted absolute right-2.5 pointer-events-none" />
           </div>
 
-          {/* Quick actions — language, menu, and share for the organiser */}
+          {/* Quick actions — language, then whichever door this person has */}
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
@@ -110,69 +111,86 @@ export const Navbar: React.FC<NavbarProps> = ({
               {lang === 'zh' ? 'EN' : '中'}
             </button>
 
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setMenuOpen((v) => !v)}
-                className={iconBtn}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                title={t('more')}
-              >
-                <MoreHorizontal className="w-[18px] h-[18px]" />
-              </button>
+            {/* Organising the trip is a different job from being on it.
+                Settings, printing, sharing and the account itself belong to
+                whoever set the trip up, so the menu holding them is the
+                organiser's. A traveller's one extra door is starting a trip
+                of their own, and a single item behind a "more" menu is a tap
+                spent on nothing — so they get the button itself.
 
-              {menuOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 mt-2 w-60 bg-paper border border-hairline rounded-card shadow-lift p-1.5 animate-riseIn z-50"
+                The account row stays inside that menu on purpose: ID +
+                password is the organiser's own sign-in, never something a
+                friend is handed. And a guest who opened an invite is signed
+                in anonymously, so "sign out" there reads as "?" and destroys
+                the seat their name is bound to — which only an admin
+                pressing Release can give back. */}
+            {isAdmin ? (
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className={iconBtn}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  title={t('more')}
                 >
-                  {!isReadOnly && (
+                  <MoreHorizontal className="w-[18px] h-[18px]" />
+                </button>
+
+                {menuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 mt-2 w-60 bg-paper border border-hairline rounded-card shadow-lift p-1.5 animate-riseIn z-50"
+                  >
                     <button className={menuItem} onClick={run(onOpenNewTripModal)}>
                       <Plus className="w-4 h-4 text-muted shrink-0" />
                       {t('createNewTrip')}
                     </button>
-                  )}
 
-                  {/* Organising the trip is a different job from being on it.
-                      Settings, sharing and printing belong to whoever set it
-                      up; a traveller's bar stays down to the language switch,
-                      their own trips, and the way out. */}
-                  {isAdmin && (
-                    <>
-                      <button className={menuItem} onClick={run(onOpenSettingsModal)}>
-                        <Sliders className="w-4 h-4 text-muted shrink-0" />
-                        {t('tripSettings')}
-                      </button>
+                    <button className={menuItem} onClick={run(onOpenSettingsModal)}>
+                      <Sliders className="w-4 h-4 text-muted shrink-0" />
+                      {t('tripSettings')}
+                    </button>
 
-                      <button className={menuItem} onClick={run(onPrint)}>
-                        <Printer className="w-4 h-4 text-muted shrink-0" />
-                        {t('printTitle')}
-                      </button>
-                    </>
-                  )}
+                    <button className={menuItem} onClick={run(onPrint)}>
+                      <Printer className="w-4 h-4 text-muted shrink-0" />
+                      {t('printTitle')}
+                    </button>
 
-                  {cloudEnabled && (
-                    <>
-                      <div className="h-px bg-hairline my-1.5" />
-                      {user ? (
-                        <button className={menuItem} onClick={run(onSignOut)}>
-                          <LogOut className="w-4 h-4 text-muted shrink-0" />
-                          <span className="min-w-0 truncate">
-                            {t('signOut')}
-                            <span className="text-faint"> · {emailToId(user.email) || '?'}</span>
-                          </span>
-                        </button>
-                      ) : (
-                        <button className={menuItem} onClick={run(onOpenAuthModal)}>
-                          <LogIn className="w-4 h-4 text-muted shrink-0" />
-                          {t('signIn')}
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+                    {cloudEnabled && (
+                      <>
+                        <div className="h-px bg-hairline my-1.5" />
+                        {user ? (
+                          <button className={menuItem} onClick={run(onSignOut)}>
+                            <LogOut className="w-4 h-4 text-muted shrink-0" />
+                            <span className="min-w-0 truncate">
+                              {t('signOut')}
+                              <span className="text-faint"> · {emailToId(user.email) || '?'}</span>
+                            </span>
+                          </button>
+                        ) : (
+                          <button className={menuItem} onClick={run(onOpenAuthModal)}>
+                            <LogIn className="w-4 h-4 text-muted shrink-0" />
+                            {t('signIn')}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* No menu to open: the one thing a traveller keeps is starting
+                 a trip of their own, and a viewer keeps nothing. */
+              !isReadOnly && (
+                <button
+                  onClick={onOpenNewTripModal}
+                  className={iconBtn}
+                  title={t('createNewTrip')}
+                >
+                  <Plus className="w-[18px] h-[18px]" />
+                </button>
+              )
+            )}
 
             {isAdmin && (
               <button

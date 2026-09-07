@@ -109,11 +109,18 @@ are pushed to the cloud. A guest opening an invite is signed in anonymously a
 moment later, and treating "no role" as ours uploaded their unrelated local
 trips into the organiser's project under a throwaway account.
 
-**The top bar is two different bars.** An organiser gets Trip Settings, Print
-and Share; a traveller gets the language switch, their own trips, creating a
-trip, and the way out. There is no "you are a member" banner — announcing a
-permission that no longer differs from anyone else's was just noise. The
-read-only banner stays, because that one explains why controls are missing.
+**The top bar is two different bars.** An organiser gets a ⋯ menu — create a
+trip, Trip Settings, Print and the account row — with Share beside it. A
+traveller gets the language switch, their own trips, and a bare `+` to start a
+trip of their own: no menu, because a single item behind one is a tap spent on
+nothing. **The account row is the organiser's too.** ID + password is *their*
+sign-in, never something a friend is handed, and a guest who opened an invite
+is signed in anonymously — so the row read `Sign out · ?` and, tapped, threw
+away the anonymous account their seat is bound to, which is the lockout only
+Release can undo. A viewer gets neither menu nor `+`. There is no "you are a
+member" banner — announcing a permission that no longer differs from anyone
+else's was just noise. The read-only banner stays, because that one explains
+why controls are missing.
 
 **The app has three doors, and `EntryGate` is two of them.** Before you are on
 a trip you get one of two screens, and which one is the whole point:
