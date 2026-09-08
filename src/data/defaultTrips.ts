@@ -30,6 +30,7 @@ export function createNewTrip(
     ],
     days,
     expenses: [],
+    ideas: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     // Said out loud rather than left to be inferred from a missing field.

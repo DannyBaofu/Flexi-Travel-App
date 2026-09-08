@@ -1,12 +1,16 @@
 import React from 'react';
-import { Calendar, Wallet, Languages } from 'lucide-react';
+import { Calendar, Wallet, Languages, Lightbulb } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useI18n } from '../utils/i18n';
 
-export type TabId = 'itinerary' | 'budget' | 'phrases';
+export type TabId = 'itinerary' | 'ideas' | 'budget' | 'phrases';
 
+// The draft list sits next to the plan, not off at the end: writing down
+// where you want to go and deciding which day it happens are one job done in
+// two sittings, and the tab you flick to while planning should be adjacent.
 const TABS: { id: TabId; icon: LucideIcon; longKey: string; shortKey: string }[] = [
   { id: 'itinerary', icon: Calendar, longKey: 'tabItinerary', shortKey: 'tabItineraryShort' },
+  { id: 'ideas', icon: Lightbulb, longKey: 'tabIdeas', shortKey: 'tabIdeasShort' },
   { id: 'budget', icon: Wallet, longKey: 'tabBudget', shortKey: 'tabBudgetShort' },
   { id: 'phrases', icon: Languages, longKey: 'tabPhrases', shortKey: 'tabPhrasesShort' }
 ];

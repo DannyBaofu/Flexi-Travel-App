@@ -86,6 +86,19 @@ describe('mergeRemoteTrip', () => {
     expect(merged.exchangeRate).toBe(9);
   });
 
+  it('keeps a draft idea that never reached the server', () => {
+    // The draft list is the fastest thing in the app to type into, which makes
+    // it the likeliest to be holding work when somebody else's update lands.
+    const draft = (id: string) => ({
+      id, text: id, category: 'food' as const, createdAt: '2026-09-01T00:00:00.000Z'
+    });
+    const local = trip({ ideas: [draft('mine'), draft('shared')] });
+    const remote = trip({ ideas: [draft('shared'), draft('theirs')] });
+
+    const merged = mergeRemoteTrip(local, remote);
+    expect((merged.ideas ?? []).map(i => i.id).sort()).toEqual(['mine', 'shared', 'theirs']);
+  });
+
   it('never lets myRole travel in from the remote copy', () => {
     const local = trip({ myRole: 'member' });
     const remote = trip({ myRole: 'admin' });

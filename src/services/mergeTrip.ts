@@ -1,4 +1,4 @@
-import type { ActivityItem, ExpenseItem, Trip } from '../types/travel';
+import type { ActivityItem, ExpenseItem, Trip, TripIdea } from '../types/travel';
 
 /**
  * Reconciling a remote trip with unsent local work.
@@ -45,6 +45,9 @@ export function mergeRemoteTrip(local: Trip, remote: Trip): Trip {
     ...remote,
     days: extraDays.length > 0 ? [...days, ...extraDays] : days,
     expenses: mergeById<ExpenseItem>(remote.expenses ?? [], local.expenses ?? []),
+    // The draft list is the fastest thing in the app to type into, so it is
+    // the likeliest to hold work that has not been sent yet.
+    ideas: mergeById<TripIdea>(remote.ideas ?? [], local.ideas ?? []),
     // Local-only: describes this browser's permission, never travels
     myRole: local.myRole
   };

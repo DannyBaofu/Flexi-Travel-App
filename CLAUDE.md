@@ -49,8 +49,9 @@ second one means neither answers "what do I do here".
 
 **Colour never carries meaning alone.** Money owed shows a direction arrow *and*
 a sentence, never just a sign or a hue. Anything tappable is at least 44px, and
-the three tabs live at the *bottom* on phones (`BottomTabs`) and at the top from
-`sm:` up (`TopTabs`).
+the four tabs live at the *bottom* on phones (`BottomTabs`) and at the top from
+`sm:` up (`TopTabs`). Four two-character labels is what fits 375px, which is why
+`tabIdeasShort` is `想去` and not `想去清单`.
 
 The 44px comes from `min-h-11` on `btnBase` and `select` in `ui.tsx`, plus
 `w-11 h-11` on `iconBtn`. It is a floor, not a height: padding still decides
@@ -172,7 +173,8 @@ Claiming also never changes the role of somebody already on the trip — swappin
 which name you are is not a way to change what you may do.
 
 **No ticket references in code**, comments, or test titles. Commit messages
-only. Commits end with the `Co-Authored-By: Claude Fable 5` trailer.
+only. Commits end with a `Co-Authored-By:` trailer naming the model that wrote
+them — the history has been `Claude Opus 5` for a while now.
 
 ## Things that will confuse you once
 
@@ -312,8 +314,31 @@ test offline for real.
 
 ## Data model notes
 
-A `Trip` holds `days[] → activities[]`, plus `expenses` and the optional
-`kitty`. Packing checklists, taxi cards, Thai addresses and the booked flag were
+**The draft list (`trip.ideas`) is a wishlist, not half an itinerary.** One
+`TripIdea` is a line of text, a bucket, who typed it and when — no day, no
+time, no cost, no map link, because an idea that has to be filled in is an idea
+nobody writes down. Its `category` is an `ActivityCategory` rather than a
+taxonomy of its own, so promoting one carries its kind, its icon and its spine
+tone straight into the activity with nothing to map.
+
+Nothing links an idea to an activity, deliberately: `加入行程` opens
+`ActivityModal` with `prefill` (title + category — *not* `activityToEdit`, so
+the dialog still says "add"), and `handleSaveActivity` flips that idea's
+`planned` in the same trip write. A real link would mean answering what happens
+to the idea when the activity moves day or gets deleted, which is a question a
+wishlist should never have to have.
+
+`IdeasView`'s single chip row does two jobs — it filters the list *and* it is
+the bucket new text goes into — because one control for "which kind am I
+working on" beats a filter row plus a tag picker. That only stays honest
+because the input's label states the consequence (`添加到「美食餐饮」`, or
+`添加想法` in All, which files under `other`). Change one and change the other.
+The rest of the tab is in service of one measurement: type, Enter, focus stays,
+type again — and a pasted multi-line block becomes one idea per line, because
+that is how a group actually collects them.
+
+A `Trip` holds `days[] → activities[]`, plus `expenses`, `ideas` and the
+optional `kitty`. Packing checklists, taxi cards, Thai addresses and the booked flag were
 all removed; `getTrips()` sheds the dead `checklist` / `taxiCards` / `shareSettings`
 fields from older saved trips so they stop riding along in every cloud push.
 `shareSettings` was the odd one out: three flags (`isPublic`,

@@ -59,6 +59,32 @@ export interface ActivityItem {
   transportToNext?: TransportSuggestion;
 }
 
+/**
+ * One line somebody typed into the draft list before anybody decided which
+ * day it lands on — a place to go, something to eat, somewhere to play, a
+ * view worth the trip out.
+ *
+ * Deliberately thin, and deliberately *not* half an activity. The draft is a
+ * dumping ground that has to keep up with typing, so an idea is a line of
+ * text and a bucket. It never links to an activity either: turning one into a
+ * plan copies its text and category into the activity form and leaves the
+ * idea behind, marked `planned`. A link would mean answering "what happens to
+ * the idea when the activity moves day, or gets deleted?" — questions a
+ * wishlist should never have to have.
+ */
+export interface TripIdea {
+  id: string;
+  /** What was typed. One line; long ones wrap rather than getting a notes field. */
+  text: string;
+  /** Same taxonomy an activity uses, so promoting one needs no mapping. */
+  category: ActivityCategory;
+  /** Whose idea it was, when this browser knows which seat it holds. */
+  addedByTravelerId?: string;
+  createdAt: string;
+  /** Dealt with — in the schedule, or handled some other way. Sinks to the bottom. */
+  planned?: boolean;
+}
+
 export interface DaySchedule {
   id: string;
   dayNumber: number; // 1, 2, 3...
@@ -146,6 +172,13 @@ export interface Trip {
   travelers: Traveler[];
   days: DaySchedule[];
   expenses: ExpenseItem[];
+  /**
+   * The draft list: everything the group wants to do, before any of it has a
+   * day or a time. Part of the trip document, so it syncs and merges like the
+   * days and the expenses do. Absent on trips saved before it existed —
+   * `getTrips` backfills an empty list.
+   */
+  ideas?: TripIdea[];
   /** Optional shared cash pot. Absent on trips created before it existed. */
   kitty?: TripKitty;
   createdAt: string;

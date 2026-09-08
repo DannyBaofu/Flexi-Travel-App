@@ -1,9 +1,17 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import type { Trip, ActivityItem, TripRole, TripSeat } from './types/travel';
+import type {
+  Trip,
+  ActivityItem,
+  ActivityCategory,
+  TripIdea,
+  TripRole,
+  TripSeat
+} from './types/travel';
 import { storageService } from './services/storage';
 import { Navbar } from './components/Navbar';
 import { TripBanner } from './components/TripBanner';
 import { ItineraryView } from './components/ItineraryView';
+import { IdeasView } from './components/IdeasView';
 import { BudgetTracker } from './components/BudgetTracker';
 import { PrintItineraryView } from './components/PrintItineraryView';
 import { PhrasesTab } from './components/PhrasesTab';
@@ -117,6 +125,13 @@ export function App() {
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [activityTargetDayId, setActivityTargetDayId] = useState<string>('');
   const [activityToEdit, setActivityToEdit] = useState<ActivityItem | null>(null);
+  // An idea being promoted off the draft list: what it puts in the form, and
+  // which idea to tick off once the activity is actually saved. Held as state
+  // rather than passed straight through so the object stays stable between
+  // renders — the modal syncs its fields from it when it opens.
+  const [activityPrefill, setActivityPrefill] =
+    useState<{ title: string; category: ActivityCategory } | null>(null);
+  const [ideaBeingPlanned, setIdeaBeingPlanned] = useState<string | null>(null);
 
   // Parse share hash from URL on page mount
   useEffect(() => {
@@ -453,12 +468,33 @@ export function App() {
   const handleOpenAddActivity = (dayId: string) => {
     setActivityTargetDayId(dayId);
     setActivityToEdit(null);
+    setActivityPrefill(null);
+    setIdeaBeingPlanned(null);
     setIsActivityModalOpen(true);
   };
 
   const handleOpenEditActivity = (dayId: string, activity: ActivityItem) => {
     setActivityTargetDayId(dayId);
     setActivityToEdit(activity);
+    setActivityPrefill(null);
+    setIdeaBeingPlanned(null);
+    setIsActivityModalOpen(true);
+  };
+
+  /**
+   * An idea off the draft list, on its way to becoming a plan.
+   *
+   * The activity form opens with the name and the kind already filled in, so
+   * the only thing left to answer is the one the draft list deliberately does
+   * not ask: which day. The idea itself is not linked to the activity — it is
+   * just ticked off once the activity saves.
+   */
+  const handlePlanIdea = (idea: TripIdea) => {
+    if (!activeTrip) return;
+    setActivityTargetDayId(activeTrip.days[0]?.id || '');
+    setActivityToEdit(null);
+    setActivityPrefill({ title: idea.text, category: idea.category });
+    setIdeaBeingPlanned(idea.id);
     setIsActivityModalOpen(true);
   };
 
@@ -478,7 +514,16 @@ export function App() {
       return { ...day, activities: newActivities };
     });
 
-    handleUpdateTrip({ ...activeTrip, days: updatedDays });
+    // Tick the idea off in the same write, so the draft list and the schedule
+    // can never disagree about whether this one got planned.
+    const ideas = ideaBeingPlanned
+      ? (activeTrip.ideas ?? []).map(idea =>
+          idea.id === ideaBeingPlanned ? { ...idea, planned: true } : idea
+        )
+      : activeTrip.ideas;
+    setIdeaBeingPlanned(null);
+
+    handleUpdateTrip({ ...activeTrip, days: updatedDays, ideas });
   };
 
   // A hand-typed code joins through exactly the same path as an invite link:
@@ -650,6 +695,17 @@ export function App() {
           />
         )}
 
+        {activeTab === 'ideas' && (
+          <IdeasView
+            key={activeTrip.id}
+            trip={activeTrip}
+            onUpdateTrip={handleUpdateTrip}
+            onOfferUndo={offerUndo}
+            onPlanIdea={handlePlanIdea}
+            role={role}
+          />
+        )}
+
         {activeTab === 'budget' && (
           <BudgetTracker
             key={activeTrip.id}
@@ -682,9 +738,14 @@ export function App() {
         {isActivityModalOpen && (
           <ActivityModal
             isOpen
-            onClose={() => setIsActivityModalOpen(false)}
+            onClose={() => {
+              setIsActivityModalOpen(false);
+              // Closing without saving leaves the idea where it was.
+              setIdeaBeingPlanned(null);
+            }}
             onSave={handleSaveActivity}
             activityToEdit={activityToEdit}
+            prefill={activityPrefill}
             currentDayId={activityTargetDayId || activeTrip.days[0]?.id || ''}
             trip={activeTrip}
           />

@@ -67,6 +67,13 @@ function backfillKitty(trips: Trip[]): Trip[] {
   });
 }
 
+// Trips saved before the draft list existed have no `ideas`. Give them an
+// empty one on read so the tab and the merge can both rely on the field being
+// an array rather than guarding for undefined in every place that touches it.
+function backfillIdeas(trips: Trip[]): Trip[] {
+  return trips.map(trip => (Array.isArray(trip.ideas) ? trip : { ...trip, ideas: [] }));
+}
+
 // Travellers saved before seats existed have no `role`. The trip's owner is
 // its admin; everyone else defaults to the role the house rule assumes —
 // member, which adds and edits but does not delete.
@@ -105,7 +112,9 @@ export const storageService = {
       if (!stored) return [];
       const parsed = JSON.parse(stored);
       if (!Array.isArray(parsed)) return [];
-      return backfillMyRole(backfillTravelerRoles(backfillKitty(dedupeById(purgeSeededSample(parsed)))));
+      return backfillMyRole(
+        backfillTravelerRoles(backfillIdeas(backfillKitty(dedupeById(purgeSeededSample(parsed)))))
+      );
     } catch (e) {
       console.error('Error loading trips from storage:', e);
       return [];

@@ -122,6 +122,28 @@ describe('storageService.getTrips — traveller roles', () => {
   });
 });
 
+describe('storageService.getTrips — the draft list', () => {
+  it('gives a trip saved before the draft list an empty one', () => {
+    store.set(TRIPS_KEY, JSON.stringify([trip('trip-1', 'Bangkok')]));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips()[0].ideas).toEqual([]);
+  });
+
+  it('leaves ideas that are already there alone', () => {
+    const saved = [{
+      id: 'trip-1',
+      title: 'Bangkok',
+      days: [],
+      ideas: [{ id: 'idea-1', text: 'Jodd Fairs', category: 'food', createdAt: '' }]
+    }];
+    store.set(TRIPS_KEY, JSON.stringify(saved));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips()[0].ideas).toHaveLength(1);
+  });
+});
+
 describe('storageService.getTrips — this browser’s own role', () => {
   it('gives a trip saved without a role the admin it has been rendering as', () => {
     // Everything saved before the role was written down is a trip this browser

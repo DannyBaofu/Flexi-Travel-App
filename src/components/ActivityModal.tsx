@@ -14,6 +14,13 @@ interface ActivityModalProps {
   activityToEdit?: ActivityItem | null;
   currentDayId: string;
   trip: Trip;
+  /**
+   * A new activity that starts out part-written — an idea being promoted off
+   * the draft list. It is not an `activityToEdit`: nothing exists yet, so the
+   * dialog is still "add", and the only thing carried over is what the person
+   * already typed once.
+   */
+  prefill?: { title: string; category: ActivityCategory } | null;
 }
 
 export const ActivityModal: React.FC<ActivityModalProps> = ({
@@ -22,7 +29,8 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   onSave,
   activityToEdit,
   currentDayId,
-  trip
+  trip,
+  prefill
 }) => {
   const { lang, t } = useI18n();
   const [selectedDayId, setSelectedDayId] = useState(currentDayId);
@@ -47,8 +55,11 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setNotes(activityToEdit.notes || '');
     } else {
       setTime('10:00');
-      setTitle('');
-      setCategory('sightseeing');
+      setTitle(prefill?.title ?? '');
+      setCategory(prefill?.category ?? 'sightseeing');
+      // A promoted idea brings its name, which is usually the place itself —
+      // leave the location field to the suggestion list rather than guessing
+      // an address off one line of text.
       setLocationName('');
       setLocationAddress('');
       setGoogleMapsUrl('');
@@ -56,7 +67,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setNotes('');
     }
     setSelectedDayId(currentDayId);
-  }, [activityToEdit, currentDayId, isOpen]);
+  }, [activityToEdit, currentDayId, isOpen, prefill]);
 
   /** Picking a suggestion fills the address and an exact map pin for free. */
   const handlePickPlace = (place: PlaceSuggestion) => {

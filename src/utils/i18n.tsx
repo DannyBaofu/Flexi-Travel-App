@@ -10,6 +10,7 @@ const dict: Record<string, Entry> = {
   // ---- App shell ----
   appTagline: { zh: '旅行行程规划', en: 'Travel Itinerary Planner' },
   tabItinerary: { zh: '每日行程', en: 'Day-by-Day Schedule' },
+  tabIdeas: { zh: '想去清单', en: 'Idea List' },
   tabBudget: { zh: '预算与分账', en: 'Budget & Expense Splitter' },
 
   // ---- Navbar ----
@@ -269,6 +270,7 @@ const dict: Record<string, Entry> = {
 
   // ---- Bottom tab bar (short labels — four across a 375px screen) ----
   tabItineraryShort: { zh: '行程', en: 'Plan' },
+  tabIdeasShort: { zh: '想去', en: 'Ideas' },
   tabBudgetShort: { zh: '预算', en: 'Budget' },
   tabPhrasesShort: { zh: '泰语', en: 'Thai' },
 
@@ -357,10 +359,37 @@ const dict: Record<string, Entry> = {
   // ---- Days follow the dates ----
   daysKeptWarning: { zh: '有 {n} 天超出了新的日期范围，但里面还有活动，所以没有删除。请先把活动移走再缩短行程。', en: '{n} day(s) fall outside the new dates but still have activities, so they were kept. Move those activities first if you want the trip shorter.' },
 
+  // ---- The draft list ----
+  // The input says where what you type will land, so picking a kind above it
+  // never changes anything silently.
+  ideaAddTo: { zh: '添加到「{bucket}」', en: 'Add to {bucket}' },
+  ideaAddAny: { zh: '添加想法', en: 'Add an idea' },
+  ideaAdd: { zh: '添加', en: 'Add' },
+  ideaAlreadyThere: { zh: '清单里已经有「{name}」了。', en: '“{name}” is already on the list.' },
+  ideaCountOne: { zh: '1 个想法', en: '1 idea' },
+  ideaCount: { zh: '{n} 个想法', en: '{n} ideas' },
+  ideaPlannedCount: { zh: '{n} 个已安排', en: '{n} scheduled' },
+  ideaMarkPlanned: { zh: '标记为已安排', en: 'Mark as scheduled' },
+  ideaMarkUnplanned: { zh: '改回还没安排', en: 'Mark as not scheduled yet' },
+  ideaPlanIt: { zh: '加入行程', en: 'Add to a day' },
+  ideaDelete: { zh: '删除想法', en: 'Delete idea' },
+  ideaText: { zh: '想法内容', en: 'Idea' },
+  ideaBucket: { zh: '归到哪一类', en: 'Which kind' },
+  ideaSaveEdit: { zh: '保存', en: 'Save' },
+  ideaAddedBy: { zh: '{name} 加的', en: '{name} added this' },
+  ideaEmpty: {
+    zh: '还没有人写想法。想去哪、想吃什么，先写下来，不用管是第几天。',
+    en: 'Nobody has written anything yet. Where to go, what to eat — write it down, no day needed.'
+  },
+  ideaEmptyFiltered: { zh: '这一类还没有想法。', en: 'Nothing in this kind yet.' },
+  ideaHidePlanned: { zh: '隐藏已安排', en: 'Hide scheduled' },
+  ideaShowPlanned: { zh: '显示已安排', en: 'Show scheduled' },
+
   // ---- Undo instead of a confirm dialog ----
   undo: { zh: '撤销', en: 'Undo' },
   deletedActivity: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },
   deletedExpense: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },
+  deletedIdea: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },
 
 };
 
