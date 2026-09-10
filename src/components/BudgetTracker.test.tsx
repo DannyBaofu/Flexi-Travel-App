@@ -4,6 +4,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BudgetTracker } from './BudgetTracker';
 import { I18nProvider } from '../utils/i18n';
+import { toISODate } from '../services/tripDays';
 import type { Trip } from '../types/travel';
 
 /**
@@ -77,8 +78,11 @@ describe('BudgetTracker — logging an expense', () => {
     expect(expense.paidByTravelerId).toBe('t1');
     // An untitled expense takes its category's name rather than staying blank
     expect(expense.title).not.toBe('');
-    // Logged today, not on the trip's start date
-    expect(expense.date).toBe(new Date().toISOString().slice(0, 10));
+    // Logged today, not on the trip's start date. "Today" is the local
+    // calendar day, which is why this is not toISOString(): east of UTC,
+    // a morning here is still yesterday there, and the two disagree for
+    // the first eight hours of every day.
+    expect(expense.date).toBe(toISODate(new Date()));
   });
 
   it('refuses to save without an amount', async () => {

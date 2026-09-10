@@ -36,10 +36,8 @@ const dict: Record<string, Entry> = {
   activityCountOne: { zh: '1 项活动', en: '1 activity' },
   allDaysOverview: { zh: '全部总览', en: 'All Days Overview' },
   singleDayView: { zh: '单日视图', en: 'Single Day View' },
-  searchPlaceholder: { zh: '搜索地点、美食、寺庙…', en: 'Search places, foods, temples...' },
   all: { zh: '全部', en: 'All' },
   addActivity: { zh: '添加活动', en: 'Add Activity' },
-  filteredItems: { zh: '筛选结果：{n} 项', en: 'Filtered: {n} items' },
   tips: { zh: '小贴士', en: 'Tips' },
   googleMaps: { zh: '谷歌地图', en: 'Google Maps' },
   moveEarlier: { zh: '上移', en: 'Move Earlier' },
@@ -294,7 +292,6 @@ const dict: Record<string, Entry> = {
   // ---- Itinerary ----
   todayBadge: { zh: '今天', en: 'Today' },
   dayTotalLabel: { zh: '当日合计', en: 'Day total' },
-  clearFilter: { zh: '清除筛选', en: 'Clear filter' },
 
   // ---- Budget: the personal answer comes first ----
   yourBalance: { zh: '你的余额', en: 'Your balance' },

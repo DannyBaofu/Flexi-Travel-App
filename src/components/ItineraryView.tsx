@@ -8,9 +8,7 @@ import {
   Copy,
   ArrowUp,
   ArrowDown,
-  Search,
   ChevronDown,
-  X,
   Train,
   TramFront,
   Ship,
@@ -29,7 +27,6 @@ import {
   btnSecondarySm,
   chipGilt,
   chipPlain,
-  input,
   money
 } from './ui';
 
@@ -108,8 +105,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
     todayIndex >= 0 ? todayIndex : 0
   );
   const [showAllDays, setShowAllDays] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<ActivityCategory | 'all'>('all');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const currentDay: DaySchedule | undefined = trip.days[selectedDayIndex];
@@ -188,20 +183,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
     onUpdateTrip({ ...trip, days: updatedDays });
   };
 
-  const filterActivities = (activities: ActivityItem[]) => {
-    return activities.filter((act) => {
-      const q = searchQuery.toLowerCase();
-      const matchesSearch = searchQuery === '' ||
-        act.title.toLowerCase().includes(q) ||
-        act.locationName.toLowerCase().includes(q) ||
-        (act.notes && act.notes.toLowerCase().includes(q));
-
-      const matchesCat = selectedCategory === 'all' || act.category === selectedCategory;
-      return matchesSearch && matchesCat;
-    });
-  };
-
-  const hasActiveFilter = searchQuery !== '' || selectedCategory !== 'all';
   const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
 
   const daysToRender = showAllDays ? trip.days : (currentDay ? [currentDay] : []);
@@ -249,7 +230,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Day picker + filters */}
+      {/* Day picker */}
       <div className={`${card} p-3 sm:p-4`}>
         {/* Bleed to the screen edge so it reads as scrollable */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-3 px-3 sm:-mx-4 sm:px-4">
@@ -299,69 +280,13 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
             {showAllDays ? t('singleDayView') : t('allDaysOverview')}
           </button>
         </div>
-
-        {/* Search & category filter */}
-        <div className="mt-3 pt-3 border-t border-hairline space-y-2.5">
-          <div className="relative">
-            <Search className="w-4 h-4 text-faint absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('searchPlaceholder')}
-              aria-label={t('searchPlaceholder')}
-              className={`${input} pl-9 ${searchQuery ? 'pr-10' : ''} bg-mist`}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 inline-flex items-center justify-center rounded-full text-faint hover:text-ink hover:bg-hairline transition"
-                title={t('clearFilter')}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none -mx-3 px-3 sm:-mx-4 sm:px-4">
-            <button
-              onClick={() => setSelectedCategory('all')}
-              className={`px-3 py-1.5 min-h-11 rounded-full text-xs font-semibold shrink-0 transition ${
-                selectedCategory === 'all'
-                  ? 'bg-brand-tint text-brand'
-                  : 'bg-mist text-muted hover:text-ink'
-              }`}
-            >
-              {t('all')}
-            </button>
-            {(Object.keys(categoryMetaMap) as ActivityCategory[]).map((catKey) => {
-              const meta = categoryMetaMap[catKey];
-              const Icon = meta.icon;
-              const isSelected = selectedCategory === catKey;
-              return (
-                <button
-                  key={catKey}
-                  onClick={() => setSelectedCategory(isSelected ? 'all' : catKey)}
-                  className={`px-3 py-1.5 min-h-11 rounded-full text-xs font-medium shrink-0 flex items-center justify-center gap-1.5 transition ${
-                    isSelected
-                      ? 'bg-brand-tint text-brand'
-                      : 'bg-mist text-muted hover:text-ink'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{catLabel(meta)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
       {/* Days */}
       <div className="space-y-4">
         {daysToRender.map((day) => {
-          const filteredActivities = filterActivities(day.activities || []);
-          const shownCost = filteredActivities.reduce((sum, a) => sum + (a.cost || 0), 0);
+          const activities = day.activities || [];
+          const dayCost = activities.reduce((sum, a) => sum + (a.cost || 0), 0);
           const isToday = trip.days.indexOf(day) === todayIndex;
 
           return (
@@ -395,13 +320,13 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
               {/* Activities */}
               <div className="mt-3 space-y-1.5">
-                {filteredActivities.length > 0 ? (
-                  filteredActivities.map((activity, actIdx) => {
+                {activities.length > 0 ? (
+                  activities.map((activity, actIdx) => {
                     const meta = categoryMetaMap[activity.category] || categoryMetaMap.other;
                     const Icon = meta.icon;
                     const homeCost = activity.cost ? Math.round(activity.cost / rate) : null;
                     const isExpanded = expandedIds.has(activity.id);
-                    const nextActivity = !hasActiveFilter ? filteredActivities[actIdx + 1] : undefined;
+                    const nextActivity = activities[actIdx + 1];
 
                     return (
                       <React.Fragment key={activity.id}>
@@ -562,17 +487,13 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
               {/* Day subtotal, in both currencies, at the foot where the
                   running total belongs. */}
-              {filteredActivities.length > 0 && (
+              {activities.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-hairline flex items-center justify-between gap-3">
-                  <span className="text-xs text-muted">
-                    {hasActiveFilter
-                      ? t('filteredItems', { n: filteredActivities.length })
-                      : t('dayTotalLabel')}
-                  </span>
+                  <span className="text-xs text-muted">{t('dayTotalLabel')}</span>
                   <span className={`text-sm font-semibold text-ink ${money}`}>
-                    {shownCost.toLocaleString()} {trip.currency}
+                    {dayCost.toLocaleString()} {trip.currency}
                     <span className="text-xs font-normal text-muted ml-1.5">
-                      ≈ {trip.homeCurrency} {Math.round(shownCost / rate).toLocaleString()}
+                      ≈ {trip.homeCurrency} {Math.round(dayCost / rate).toLocaleString()}
                     </span>
                   </span>
                 </div>
