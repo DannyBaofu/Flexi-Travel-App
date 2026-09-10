@@ -17,8 +17,7 @@ import {
   Footprints
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { Trip, DaySchedule, ActivityItem, ActivityCategory, TransportMode, TripRole } from '../types/travel';
-import { categoryMetaMap } from '../utils/categoryHelpers';
+import type { Trip, DaySchedule, ActivityItem, TransportMode, TripRole } from '../types/travel';
 import { useI18n, translateWeekday } from '../utils/i18n';
 import {
   card,
@@ -187,9 +186,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
   const daysToRender = showAllDays ? trip.days : (currentDay ? [currentDay] : []);
 
-  const catLabel = (meta: typeof categoryMetaMap[ActivityCategory]) =>
-    lang === 'zh' ? meta.labelZh : meta.label.split(' ')[0];
-
   /** The hop to the next activity: connective tissue, not an item. */
   const renderTransportConnector = (activity: ActivityItem, nextActivity: ActivityItem) => {
     const transport = activity.transportToNext;
@@ -322,8 +318,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
               <div className="mt-3 space-y-1.5">
                 {activities.length > 0 ? (
                   activities.map((activity, actIdx) => {
-                    const meta = categoryMetaMap[activity.category] || categoryMetaMap.other;
-                    const Icon = meta.icon;
                     const homeCost = activity.cost ? Math.round(activity.cost / rate) : null;
                     const isExpanded = expandedIds.has(activity.id);
                     const nextActivity = activities[actIdx + 1];
@@ -348,12 +342,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                               {activity.time}
                             </span>
 
-                            {/* Tonal spine — decorative; the icon carries identity */}
-                            <span
-                              className={`w-[3px] rounded-full shrink-0 self-stretch min-h-[38px] ${meta.spine}`}
-                              aria-hidden="true"
-                            />
-
                             <div className="min-w-0 flex-1">
                               <div className="text-sm font-semibold text-ink leading-snug line-clamp-2">
                                 {activity.title}
@@ -366,18 +354,13 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                 </div>
                               )}
 
-                              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                <span className={chipPlain}>
-                                  <Icon className="w-3 h-3" />
-                                  {catLabel(meta)}
-                                </span>
-
-                                {activity.cost !== undefined && activity.cost > 0 && (
+                              {activity.cost !== undefined && activity.cost > 0 && (
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                                   <span className={`${chipPlain} ${money}`}>
                                     {activity.cost.toLocaleString()} {trip.currency}
                                   </span>
-                                )}
-                              </div>
+                                </div>
+                              )}
                             </div>
 
                             <ChevronDown

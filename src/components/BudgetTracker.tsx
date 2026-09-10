@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { Trip, ExpenseItem, ActivityCategory, TripRole, TripKitty } from '../types/travel';
 import { computeKitty, resolveKitty } from '../services/kitty';
+import { toISODate } from '../services/tripDays';
 import { KittyCard } from './KittyCard';
 import { ExpenseForm } from './ExpenseForm';
 import { categoryMetaMap } from '../utils/categoryHelpers';
@@ -35,19 +36,16 @@ interface BudgetTrackerProps {
   role: TripRole;
 }
 
-const pad2 = (n: number) => String(n).padStart(2, '0');
-const toISO = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-
 /**
  * Expenses are logged on the day they happen, so the date field starts at
  * today — not at the trip's start date, which was only ever right on day one.
  */
-const todayISO = () => toISO(new Date());
+const todayISO = () => toISODate(new Date());
 
 const yesterdayISO = () => {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return toISO(d);
+  return toISODate(d);
 };
 
 export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
