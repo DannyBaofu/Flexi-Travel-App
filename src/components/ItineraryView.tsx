@@ -336,7 +336,11 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                 toggleExpanded(activity.id);
                               }
                             }}
-                            className="flex items-start gap-2.5 p-3 cursor-pointer select-none"
+                            // min-h-11 is the 44px tap floor. The tonal spine
+                            // used to hold this row open; with it gone the
+                            // height is content-driven, and a title-only
+                            // activity falls under the floor without it.
+                            className="flex items-start gap-2.5 p-3 min-h-11 cursor-pointer select-none"
                           >
                             <span className={`text-xs font-medium text-muted shrink-0 w-[46px] pt-0.5 ${money}`}>
                               {activity.time}

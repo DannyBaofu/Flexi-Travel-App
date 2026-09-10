@@ -83,7 +83,10 @@ describe('BudgetTracker — logging an expense', () => {
     // a morning here is still yesterday there, and the two disagree for
     // the first eight hours of every day.
     expect(expense.date).toBe(toISODate(new Date()));
-  });
+    // Driving the form through userEvent costs a few seconds, which sits right
+    // on vitest's 5s default and goes over it on a loaded machine. The timeout
+    // is generous on purpose: this test failing should mean the form broke.
+  }, 20000);
 
   it('refuses to save without an amount', async () => {
     const user = userEvent.setup();
