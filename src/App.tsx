@@ -10,6 +10,7 @@ import type {
 import { storageService } from './services/storage';
 import { Navbar } from './components/Navbar';
 import { TripBanner } from './components/TripBanner';
+import { FlightCard } from './components/FlightCard';
 import { ItineraryView } from './components/ItineraryView';
 import { IdeasView } from './components/IdeasView';
 import { BudgetTracker } from './components/BudgetTracker';
@@ -684,15 +685,25 @@ export function App() {
 
         {/* Tab Views */}
         {activeTab === 'itinerary' && (
-          <ItineraryView
-            key={activeTrip.id}
-            trip={activeTrip}
-            onUpdateTrip={handleUpdateTrip}
-            onOpenAddActivityModal={handleOpenAddActivity}
-            onOpenEditActivityModal={handleOpenEditActivity}
-            onOfferUndo={offerUndo}
-            role={role}
-          />
+          <div className="space-y-4">
+            {/* The flights frame the trip, so they sit above the days. The
+                organiser writes them in Trip Settings; the card only reads. */}
+            <FlightCard
+              key={`flights-${activeTrip.id}`}
+              trip={activeTrip}
+              role={role}
+              onOpenSettings={() => setIsSettingsModalOpen(true)}
+            />
+            <ItineraryView
+              key={activeTrip.id}
+              trip={activeTrip}
+              onUpdateTrip={handleUpdateTrip}
+              onOpenAddActivityModal={handleOpenAddActivity}
+              onOpenEditActivityModal={handleOpenEditActivity}
+              onOfferUndo={offerUndo}
+              role={role}
+            />
+          </div>
         )}
 
         {activeTab === 'ideas' && (

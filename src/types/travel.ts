@@ -158,6 +158,49 @@ export interface TripKitty {
   paidInTravelerIds: string[];
 }
 
+/**
+ * One flight, as it reads off the booking: number, where from, where to, and
+ * the local clock time at each end.
+ *
+ * Times are the airport's own local time, exactly as printed on the ticket,
+ * and nothing here converts between zones — so a leg's duration is *not*
+ * derivable from its two times and the card does not pretend it is. What can
+ * be worked out honestly is the wait between two legs, because both clocks
+ * are the same airport's.
+ */
+export interface FlightLeg {
+  id: string;
+  /** e.g. "SQ 131". Free text: the airline is whatever the prefix says. */
+  flightNo: string;
+  /** Airport or city, as typed — "PEN", "Penang". */
+  from: string;
+  to: string;
+  /** YYYY-MM-DD, local to the departure airport. */
+  date: string;
+  /** HH:MM, 24h. Either may be blank while the booking is still being typed in. */
+  departTime: string;
+  arriveTime: string;
+}
+
+/** Every leg in one direction, plus where the group is meeting first. */
+export interface FlightJourney {
+  legs: FlightLeg[];
+  /** "07:00 at the check-in counter" — the organiser's one line to the group. */
+  note?: string;
+}
+
+/**
+ * The trip's flights, written once by the organiser and read by everyone.
+ * Part of the trip document, so it syncs like the days do. Absent on trips
+ * saved before it existed — `getTrips` backfills an empty one.
+ */
+export interface TripFlights {
+  /** Optional heading for the card; the flight numbers already say who flies it. */
+  airline?: string;
+  outbound: FlightJourney;
+  inbound: FlightJourney;
+}
+
 export interface Trip {
   id: string;
   title: string;
@@ -181,6 +224,8 @@ export interface Trip {
   ideas?: TripIdea[];
   /** Optional shared cash pot. Absent on trips created before it existed. */
   kitty?: TripKitty;
+  /** Flights out and back, set by the organiser in Trip Settings. */
+  flights?: TripFlights;
   createdAt: string;
   updatedAt: string;
   // Role of this browser's user for this trip. Always present on a trip that

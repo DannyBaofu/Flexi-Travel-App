@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sliders, Calendar, DollarSign, Image, Users, Plus, Trash2 } from 'lucide-react';
-import type { Trip, Traveler, TripRole, SeatClaim } from '../types/travel';
+import { X, Sliders, Calendar, DollarSign, Image, Users, Plus, Trash2, Plane } from 'lucide-react';
+import type { Trip, Traveler, TripRole, SeatClaim, TripFlights, FlightLeg } from '../types/travel';
 import { useI18n } from '../utils/i18n';
 import { reconcileDays } from '../services/tripDays';
+import { emptyFlights, newFlightLeg, tidyFlights } from '../services/flights';
 import { fetchSeatClaims, releaseSeat, setSeatRole } from '../services/cloudSync';
 import {
   Modal,
@@ -39,6 +40,8 @@ const AVATAR_COLORS = ['#3930DB', '#B42318', '#8A5D0B', '#0F766E', '#6D28D9', '#
 
 const sectionHeading = 'text-[11px] font-semibold text-faint uppercase tracking-wider flex items-center gap-1.5';
 
+type Direction = 'outbound' | 'inbound';
+
 export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
   isOpen,
   onClose,
@@ -60,6 +63,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
   const [exchangeRate, setExchangeRate] = useState(trip.exchangeRate || 1);
   const [coverImage, setCoverImage] = useState(trip.coverImage);
   const [travelers, setTravelers] = useState<Traveler[]>(trip.travelers || []);
+  const [flights, setFlights] = useState<TripFlights>(trip.flights ?? emptyFlights());
   const [newTravelerName, setNewTravelerName] = useState('');
   const [claims, setClaims] = useState<SeatClaim[]>([]);
   const [seatError, setSeatError] = useState<string | null>(null);
@@ -75,7 +79,29 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
     setExchangeRate(trip.exchangeRate || 1);
     setCoverImage(trip.coverImage);
     setTravelers(trip.travelers || []);
+    setFlights(trip.flights ?? emptyFlights());
   }, [trip, isOpen]);
+
+  // ---- Flights: two journeys, each a list of legs and a meeting note ----
+  const setNote = (dir: Direction, note: string) =>
+    setFlights(prev => ({ ...prev, [dir]: { ...prev[dir], note } }));
+
+  const setLegs = (dir: Direction, change: (legs: FlightLeg[]) => FlightLeg[]) =>
+    setFlights(prev => ({ ...prev, [dir]: { ...prev[dir], legs: change(prev[dir].legs) } }));
+
+  // A new leg lands on the day the last one did — connections are usually
+  // same-day — and the first one on the trip's own start or end date.
+  const handleAddLeg = (dir: Direction) =>
+    setLegs(dir, legs => {
+      const fallback = dir === 'outbound' ? startDate : endDate;
+      return [...legs, newFlightLeg(legs[legs.length - 1]?.date || fallback)];
+    });
+
+  const handleLegChange = (dir: Direction, id: string, patch: Partial<FlightLeg>) =>
+    setLegs(dir, legs => legs.map(leg => (leg.id === id ? { ...leg, ...patch } : leg)));
+
+  const handleRemoveLeg = (dir: Direction, id: string) =>
+    setLegs(dir, legs => legs.filter(leg => leg.id !== id));
 
   // Who currently holds each name. Only the server knows, and only for a trip
   // that is actually in the cloud.
@@ -173,6 +199,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
       exchangeRate: Number(exchangeRate) || 1,
       coverImage: coverImage.trim(),
       travelers,
+      flights: tidyFlights(flights),
       updatedAt: new Date().toISOString()
     });
     onClose();
@@ -284,6 +311,148 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
               />
             </div>
           </div>
+        </section>
+
+        {/* Flights — right under the dates they hang off */}
+        <section className="space-y-4 pt-5 border-t border-hairline">
+          <div className="space-y-1.5">
+            <h3 className={sectionHeading}>
+              <Plane className="w-3.5 h-3.5" /> {t('flightsSection')}
+            </h3>
+            <p className="text-[11px] text-faint leading-relaxed">{t('flightsSettingsHint')}</p>
+          </div>
+
+          <div>
+            <label className={label} htmlFor="settings-airline">{t('flightsAirlineLabel')}</label>
+            <input
+              id="settings-airline"
+              type="text"
+              value={flights.airline ?? ''}
+              onChange={(e) => setFlights(prev => ({ ...prev, airline: e.target.value }))}
+              className={input}
+            />
+          </div>
+
+          {(['outbound', 'inbound'] as const).map(dir => {
+            const journey = flights[dir];
+            return (
+              <div key={dir} className="space-y-2.5">
+                <h4 className="text-xs font-semibold text-ink">
+                  {t(dir === 'outbound' ? 'flightsOutbound' : 'flightsInbound')}
+                </h4>
+
+                {journey.legs.map((leg, idx) => (
+                  <div
+                    key={leg.id}
+                    className="bg-mist border border-hairline rounded-control px-3 pt-1.5 pb-3 space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-faint uppercase tracking-wider">
+                        {t('flightsLegN', { n: idx + 1 })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLeg(dir, leg.id)}
+                        className="w-11 h-11 -mr-2.5 shrink-0 inline-flex items-center justify-center rounded-full text-faint hover:text-clay hover:bg-clay-tint transition"
+                        title={t('flightsRemoveLeg')}
+                        aria-label={t('flightsRemoveLeg')}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className={label} htmlFor={`${leg.id}-no`}>{t('flightsLegNo')}</label>
+                        <input
+                          id={`${leg.id}-no`}
+                          type="text"
+                          value={leg.flightNo}
+                          onChange={(e) => handleLegChange(dir, leg.id, { flightNo: e.target.value })}
+                          className={`${inputMono} uppercase`}
+                          autoCapitalize="characters"
+                        />
+                      </div>
+                      <div>
+                        <label className={label} htmlFor={`${leg.id}-from`}>{t('flightsLegFrom')}</label>
+                        <input
+                          id={`${leg.id}-from`}
+                          type="text"
+                          value={leg.from}
+                          onChange={(e) => handleLegChange(dir, leg.id, { from: e.target.value })}
+                          className={input}
+                        />
+                      </div>
+                      <div>
+                        <label className={label} htmlFor={`${leg.id}-to`}>{t('flightsLegTo')}</label>
+                        <input
+                          id={`${leg.id}-to`}
+                          type="text"
+                          value={leg.to}
+                          onChange={(e) => handleLegChange(dir, leg.id, { to: e.target.value })}
+                          className={input}
+                        />
+                      </div>
+                    </div>
+
+                    {/* The date takes a full row on a phone: a date picker
+                        squeezed into a third of 375px clips its own text. */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className={label} htmlFor={`${leg.id}-date`}>{t('date')}</label>
+                        <input
+                          id={`${leg.id}-date`}
+                          type="date"
+                          value={leg.date}
+                          onChange={(e) => handleLegChange(dir, leg.id, { date: e.target.value })}
+                          className={input}
+                        />
+                      </div>
+                      <div>
+                        <label className={label} htmlFor={`${leg.id}-dep`}>{t('flightsLegDepart')}</label>
+                        <input
+                          id={`${leg.id}-dep`}
+                          type="time"
+                          value={leg.departTime}
+                          onChange={(e) => handleLegChange(dir, leg.id, { departTime: e.target.value })}
+                          className={inputMono}
+                        />
+                      </div>
+                      <div>
+                        <label className={label} htmlFor={`${leg.id}-arr`}>{t('flightsLegArrive')}</label>
+                        <input
+                          id={`${leg.id}-arr`}
+                          type="time"
+                          value={leg.arriveTime}
+                          onChange={(e) => handleLegChange(dir, leg.id, { arriveTime: e.target.value })}
+                          className={inputMono}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => handleAddLeg(dir)}
+                  className={btnSecondarySm}
+                >
+                  <Plus className="w-3.5 h-3.5" /> {t('flightsAddLeg')}
+                </button>
+
+                <div>
+                  <label className={label} htmlFor={`settings-${dir}-note`}>{t('flightsNoteLabel')}</label>
+                  <input
+                    id={`settings-${dir}-note`}
+                    type="text"
+                    value={journey.note ?? ''}
+                    onChange={(e) => setNote(dir, e.target.value)}
+                    className={input}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </section>
 
         {/* Currencies */}

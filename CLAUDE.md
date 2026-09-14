@@ -376,6 +376,22 @@ Contributions are in the **home** currency (what people hand over); spending is
 converted at `exchangeRate`. All of this lives in `src/services/kitty.ts` with
 tests — change the drawdown rules there, not in the component.
 
+**Flights (`trip.flights`) are the organiser's to write and everyone's to
+read.** Two journeys, `outbound` and `inbound`, each a list of legs plus one
+line of meeting note ("07:00 at the check-in counter"); the form is a section
+of Trip Settings and `FlightCard` sits above the day strip on the schedule tab,
+collapsed by default mid-trip because on day three the plan for today is what
+you opened the app for. Times are the local clock at each airport, exactly as
+the ticket prints them, and nothing converts between zones — so the card shows
+**no per-leg duration and no total travel time**, because without a timezone
+table both would be wrong by the zone difference, and a wrong number is worse
+than none. The one sum it does perform is the wait at a connection, where both
+clocks belong to the same airport; that and the tidy-on-save live in
+`src/services/flights.ts` with tests. The organiser's "add flights" prompt
+shows only before the trip starts: once it is running, an empty slot above
+today's plan is noise. Members never get an edit control here — the admin-only
+test is deliberate, because flights are trip structure, not planning.
+
 Adding a field that existing saved trips won't have? Add a backfill in
 `src/services/storage.ts` — `getTrips()` already migrates older shapes, and
 skipping this silently breaks anyone with a saved trip.

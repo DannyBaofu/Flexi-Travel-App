@@ -144,6 +144,36 @@ describe('storageService.getTrips — the draft list', () => {
   });
 });
 
+describe('storageService.getTrips — flights', () => {
+  it('gives a trip saved before the flight schedule two empty journeys', () => {
+    store.set(TRIPS_KEY, JSON.stringify([trip('trip-1', 'Bangkok')]));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips()[0].flights).toEqual({
+      outbound: { legs: [] },
+      inbound: { legs: [] }
+    });
+  });
+
+  it('leaves flights the organiser already entered alone', () => {
+    const saved = [{
+      id: 'trip-1',
+      title: 'Bangkok',
+      days: [],
+      flights: {
+        airline: 'AirAsia',
+        outbound: { legs: [{ id: 'l1', flightNo: 'AK 6202', from: 'PEN', to: 'DMK', date: '2026-10-05', departTime: '08:00', arriveTime: '09:05' }] },
+        inbound: { legs: [] }
+      }
+    }];
+    store.set(TRIPS_KEY, JSON.stringify(saved));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips()[0].flights?.airline).toBe('AirAsia');
+    expect(storageService.getTrips()[0].flights?.outbound.legs).toHaveLength(1);
+  });
+});
+
 describe('storageService.getTrips — this browser’s own role', () => {
   it('gives a trip saved without a role the admin it has been rendering as', () => {
     // Everything saved before the role was written down is a trip this browser

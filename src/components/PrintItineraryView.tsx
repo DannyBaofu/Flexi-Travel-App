@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Trip, TransportMode } from '../types/travel';
 import { useI18n, translateWeekday } from '../utils/i18n';
+import { hasFlightInfo, journeyDate, formatLegDate } from '../services/flights';
 
 const MODE_T_KEYS: Record<TransportMode, string> = {
   bts: 'mode_bts',
@@ -28,6 +29,15 @@ const RULE = 'border-[#B9BECF]';
 export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) => {
   const { lang, t } = useI18n();
   const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
+  const locale = lang === 'zh' ? 'zh-CN' : 'en-US';
+
+  const flights = trip.flights;
+  const journeys = flights
+    ? [
+        { key: 'out', labelKey: 'flightsOutbound', journey: flights.outbound },
+        { key: 'in', labelKey: 'flightsInbound', journey: flights.inbound }
+      ].filter(j => j.journey.legs.length > 0 || !!j.journey.note?.trim())
+    : [];
 
   return (
     <div className="hidden print:block bg-paper text-ink p-8 space-y-6">
@@ -45,6 +55,42 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
           </div>
         </div>
       </header>
+
+      {/* Flights first: the page is read at the airport as much as in the city. */}
+      {hasFlightInfo(flights) && (
+        <section className={`border ${RULE} rounded-lg p-4 break-inside-avoid`}>
+          <h2 className={`text-lg font-bold border-b ${RULE} pb-2 mb-3`}>
+            {t('flightsTitle')}
+            {flights?.airline ? ` – ${flights.airline}` : ''}
+          </h2>
+          <div className="grid grid-cols-2 gap-6 text-xs">
+            {journeys.map(({ key, labelKey, journey }) => {
+              const date = journeyDate(journey);
+              return (
+                <div key={key} className="space-y-1.5">
+                  <div className="font-semibold uppercase tracking-wider text-muted">
+                    {t(labelKey)}
+                    {date ? ` · ${formatLegDate(date, locale)}` : ''}
+                  </div>
+                  {journey.note && <div className="italic">{journey.note}</div>}
+                  {journey.legs.map(leg => (
+                    <div key={leg.id} className="flex gap-3 items-baseline">
+                      <span className="font-mono tabular-nums font-bold w-16 shrink-0">{leg.flightNo || '—'}</span>
+                      <span className="flex-1 min-w-0">
+                        {leg.from}{leg.from && leg.to ? ' → ' : ''}{leg.to}
+                        {leg.date && leg.date !== date ? ` (${formatLegDate(leg.date, locale)})` : ''}
+                      </span>
+                      <span className="font-mono tabular-nums shrink-0">
+                        {leg.departTime || '—'} – {leg.arriveTime || '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="space-y-5">
         {trip.days.map((day) => {

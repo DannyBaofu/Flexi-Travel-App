@@ -1,5 +1,6 @@
 import type { Trip, TripRole } from '../types/travel';
 import { resolveKitty } from './kitty';
+import { emptyFlights } from './flights';
 
 const TRIPS_STORAGE_KEY = 'travelsync_trips_v1';
 const ACTIVE_TRIP_KEY = 'travelsync_active_trip_id_v1';
@@ -74,6 +75,15 @@ function backfillIdeas(trips: Trip[]): Trip[] {
   return trips.map(trip => (Array.isArray(trip.ideas) ? trip : { ...trip, ideas: [] }));
 }
 
+// Trips saved before the flight schedule existed have no `flights`. Give them
+// the empty shape on read — two journeys with no legs — so the settings form
+// and the card can both read `flights.outbound.legs` without guarding.
+function backfillFlights(trips: Trip[]): Trip[] {
+  return trips.map(trip =>
+    trip.flights?.outbound && trip.flights?.inbound ? trip : { ...trip, flights: emptyFlights() }
+  );
+}
+
 // Travellers saved before seats existed have no `role`. The trip's owner is
 // its admin; everyone else defaults to the role the house rule assumes —
 // member, which adds and edits but does not delete.
@@ -113,7 +123,9 @@ export const storageService = {
       const parsed = JSON.parse(stored);
       if (!Array.isArray(parsed)) return [];
       return backfillMyRole(
-        backfillTravelerRoles(backfillIdeas(backfillKitty(dedupeById(purgeSeededSample(parsed)))))
+        backfillTravelerRoles(
+          backfillFlights(backfillIdeas(backfillKitty(dedupeById(purgeSeededSample(parsed)))))
+        )
       );
     } catch (e) {
       console.error('Error loading trips from storage:', e);

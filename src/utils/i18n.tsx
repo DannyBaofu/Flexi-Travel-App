@@ -382,6 +382,47 @@ const dict: Record<string, Entry> = {
   ideaHidePlanned: { zh: '隐藏已安排', en: 'Hide scheduled' },
   ideaShowPlanned: { zh: '显示已安排', en: 'Show scheduled' },
 
+  // ---- Flights ----
+  // The card everyone reads on the schedule tab
+  flightsTitle: { zh: '航班信息', en: 'Flights' },
+  flightsOutbound: { zh: '去程', en: 'Outbound' },
+  flightsInbound: { zh: '回程', en: 'Return' },
+  flightsColFlight: { zh: '航班', en: 'Flight' },
+  flightsColRoute: { zh: '路线', en: 'Route' },
+  flightsColDepart: { zh: '起飞', en: 'Departs' },
+  flightsColArrive: { zh: '到达', en: 'Arrives' },
+  flightsLayover: { zh: '在 {at} 中转 · 等候 {dur}', en: 'Connection at {at} · {dur}' },
+  flightsLayoverNoTime: { zh: '在 {at} 中转', en: 'Connection at {at}' },
+  durHM: { zh: '{h} 小时 {m} 分', en: '{h}h {m}m' },
+  durH: { zh: '{h} 小时', en: '{h}h' },
+  durM: { zh: '{m} 分钟', en: '{m}m' },
+  flightsLookup: { zh: '在 Google 查询 {no}', en: 'Look up {no} on Google' },
+  flightsLookupHint: {
+    zh: '点击航班号可在 Google 查询最新时刻。',
+    en: 'Tap a flight number to check its latest times on Google.'
+  },
+  flightsShow: { zh: '展开航班信息', en: 'Show flights' },
+  flightsHide: { zh: '收起航班信息', en: 'Hide flights' },
+  // Organiser only, before the trip: the one way in that is not behind a menu
+  flightsAddPrompt: { zh: '添加航班信息', en: 'Add flight details' },
+
+  // Trip Settings — the organiser's form
+  flightsSection: { zh: '航班', en: 'Flights' },
+  flightsSettingsHint: {
+    zh: '填好后会显示在行程页顶部，所有旅伴都能看到。留空则不显示。',
+    en: 'Shown to everyone at the top of the schedule tab once filled in. Leave it empty to hide it.'
+  },
+  flightsAirlineLabel: { zh: '航空公司（可选）', en: 'Airline (optional)' },
+  flightsNoteLabel: { zh: '集合提醒（可选）', en: 'Meeting note (optional)' },
+  flightsAddLeg: { zh: '添加航班', en: 'Add a flight' },
+  flightsRemoveLeg: { zh: '删除这段航班', en: 'Remove this flight' },
+  flightsLegN: { zh: '第 {n} 段', en: 'Flight {n}' },
+  flightsLegNo: { zh: '航班号', en: 'Flight no.' },
+  flightsLegFrom: { zh: '出发地', en: 'From' },
+  flightsLegTo: { zh: '目的地', en: 'To' },
+  flightsLegDepart: { zh: '起飞时间', en: 'Departs' },
+  flightsLegArrive: { zh: '到达时间', en: 'Arrives' },
+
   // ---- Undo instead of a confirm dialog ----
   undo: { zh: '撤销', en: 'Undo' },
   deletedActivity: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },
