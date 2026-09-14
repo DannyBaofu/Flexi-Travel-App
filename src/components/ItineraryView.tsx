@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { lazy, Suspense, useMemo, useState } from 'react';
 import {
   Plus,
   MapPin,
+  Map as MapIcon,
   ExternalLink,
   Edit3,
   Trash2,
@@ -19,6 +20,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import type { Trip, DaySchedule, ActivityItem, TransportMode, TripRole } from '../types/travel';
 import { useI18n, translateWeekday } from '../utils/i18n';
+import { locatedStops, hopsBetween, totalKm, roundDistance, directionsUrl } from '../services/geo';
 import {
   card,
   cardFlat,
@@ -29,6 +31,9 @@ import {
   money
 } from './ui';
 
+// Leaflet only downloads when somebody opens a map.
+const DayMap = lazy(() => import('./DayMap'));
+
 interface ItineraryViewProps {
   trip: Trip;
   onUpdateTrip: (updatedTrip: Trip) => void;
@@ -38,23 +43,23 @@ interface ItineraryViewProps {
   role: TripRole;
 }
 
-// Transport mode → icon, i18n key, google maps travelmode
-const transportModeMeta: Record<TransportMode, { icon: LucideIcon; tKey: string; gmapsMode: string }> = {
-  bts: { icon: TramFront, tKey: 'mode_bts', gmapsMode: 'transit' },
-  mrt: { icon: Train, tKey: 'mode_mrt', gmapsMode: 'transit' },
-  boat: { icon: Ship, tKey: 'mode_boat', gmapsMode: 'transit' },
-  taxi: { icon: Car, tKey: 'mode_taxi', gmapsMode: 'driving' },
-  walk: { icon: Footprints, tKey: 'mode_walk', gmapsMode: 'walking' },
-  bus: { icon: Bus, tKey: 'mode_bus', gmapsMode: 'transit' },
-  train: { icon: Train, tKey: 'mode_train', gmapsMode: 'transit' },
-  airportRail: { icon: Train, tKey: 'mode_airportRail', gmapsMode: 'transit' }
+// Transport mode → icon and i18n key. Which Google travel mode each one opens
+// lives with the rest of the geography in `geo.ts`.
+const transportModeMeta: Record<TransportMode, { icon: LucideIcon; tKey: string }> = {
+  bts: { icon: TramFront, tKey: 'mode_bts' },
+  mrt: { icon: Train, tKey: 'mode_mrt' },
+  boat: { icon: Ship, tKey: 'mode_boat' },
+  taxi: { icon: Car, tKey: 'mode_taxi' },
+  walk: { icon: Footprints, tKey: 'mode_walk' },
+  bus: { icon: Bus, tKey: 'mode_bus' },
+  train: { icon: Train, tKey: 'mode_train' },
+  airportRail: { icon: Train, tKey: 'mode_airportRail' }
 };
 
-const buildDirectionsUrl = (from: string, to: string, gmapsMode?: string) => {
-  const params = new URLSearchParams({ api: '1', origin: from, destination: to });
-  if (gmapsMode) params.set('travelmode', gmapsMode);
-  return `https://www.google.com/maps/dir/?${params.toString()}`;
-};
+// The one live-answer control in the schedule: it opens Google's transit
+// view for the hop, so it carries the 44px floor itself.
+const directionsLink =
+  'inline-flex items-center gap-1 min-h-11 px-1 -mx-1 text-brand hover:underline shrink-0';
 
 /**
  * Which day is today, or -1 when the trip is not running.
@@ -105,8 +110,24 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   );
   const [showAllDays, setShowAllDays] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  // Which days have their map open. Closed by default: the tiles are a
+  // download, and the list is what most visits are for.
+  const [mapOpenIds, setMapOpenIds] = useState<Set<string>>(new Set());
 
   const currentDay: DaySchedule | undefined = trip.days[selectedDayIndex];
+
+  const toggleMap = (dayId: string) => {
+    setMapOpenIds(prev => {
+      const next = new Set(prev);
+      if (next.has(dayId)) next.delete(dayId); else next.add(dayId);
+      return next;
+    });
+  };
+
+  const formatDistance = (km: number) => {
+    const { value, unit } = roundDistance(km);
+    return t(unit === 'km' ? 'distKm' : 'distM', { n: value });
+  };
 
   const toggleExpanded = (activityId: string) => {
     setExpandedIds((prev) => {
@@ -186,20 +207,21 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
   const daysToRender = showAllDays ? trip.days : (currentDay ? [currentDay] : []);
 
-  /** The hop to the next activity: connective tissue, not an item. */
+  /**
+   * The hop to the next activity: connective tissue, not an item. The link
+   * is the point — Google's transit view answers which station to board and
+   * which to leave at, live, which nothing stored in the trip could.
+   */
   const renderTransportConnector = (activity: ActivityItem, nextActivity: ActivityItem) => {
     const transport = activity.transportToNext;
-    const from = activity.locationAddress || activity.locationName;
-    const to = nextActivity.locationAddress || nextActivity.locationName;
-    if (!transport && (!from || !to)) return null;
+    const dirUrl = directionsUrl(activity, nextActivity, transport?.mode);
+    if (!transport && !dirUrl) return null;
 
-    const modeMeta = transport ? transportModeMeta[transport.mode] : null;
-    const ModeIcon = modeMeta?.icon || MapPin;
-    const dirUrl = from && to ? buildDirectionsUrl(from, to, modeMeta?.gmapsMode) : null;
+    const ModeIcon = transport ? transportModeMeta[transport.mode].icon : MapPin;
     const note = transport ? (lang === 'zh' ? (transport.noteZh || transport.note) : transport.note) : null;
 
     return (
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-3 py-1.5 text-[11px] text-faint">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-3 text-[11px] text-faint">
         <ModeIcon className="w-3.5 h-3.5 shrink-0" />
         {transport && (
           <>
@@ -210,12 +232,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           </>
         )}
         {dirUrl && (
-          <a
-            href={dirUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-brand hover:underline shrink-0"
-          >
+          <a href={dirUrl} target="_blank" rel="noopener noreferrer" className={directionsLink}>
             <ExternalLink className="w-3 h-3" />
             <span>{t('directions')}</span>
           </a>
@@ -284,6 +301,10 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           const activities = day.activities || [];
           const dayCost = activities.reduce((sum, a) => sum + (a.cost || 0), 0);
           const isToday = trip.days.indexOf(day) === todayIndex;
+          const stops = locatedStops(activities);
+          const hops = hopsBetween(stops);
+          const unpinned = activities.length - stops.length;
+          const mapOpen = mapOpenIds.has(day.id);
 
           return (
             <div key={day.id} className={`${card} p-4 sm:p-5`}>
@@ -313,6 +334,92 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                   </button>
                 )}
               </div>
+
+              {/* Where the day goes: the pinned stops in order, and how far
+                  each hop is as a straight line. Only offered once a stop has
+                  a pin — there is nothing to draw before that. */}
+              {stops.length > 0 && (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleMap(day.id)}
+                    aria-expanded={mapOpen}
+                    className="w-full min-h-11 flex items-center gap-2 px-3 py-2 rounded-control border border-hairline bg-paper hover:bg-mist text-xs text-muted transition text-left"
+                  >
+                    <MapIcon className="w-4 h-4 text-brand shrink-0" />
+                    {/* Label over the numbers: side by side they fight for
+                        the width at 375px and the total is what loses. */}
+                    <span className="min-w-0 flex flex-col leading-snug">
+                      <span className="font-semibold text-ink">{mapOpen ? t('mapHide') : t('mapShow')}</span>
+                      <span className="truncate text-[11px]">
+                        {t('mapStops', { n: stops.length })}
+                        {hops.length > 0 && (
+                          <>
+                            {' · '}{t('mapTotalLabel')}{' '}
+                            <span className={money}>{formatDistance(totalKm(hops))}</span>
+                          </>
+                        )}
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-faint shrink-0 ml-auto transition-transform duration-200 ${mapOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {mapOpen && (
+                    <div className="mt-2 space-y-2.5">
+                      <Suspense fallback={<div className="h-64 sm:h-80 rounded-control bg-mist animate-pulse" />}>
+                        <DayMap stops={stops} label={t('mapRegion')} />
+                      </Suspense>
+
+                      {hops.length > 0 && (
+                        <ol className="space-y-0.5">
+                          {hops.map(hop => {
+                            const hopUrl = directionsUrl(
+                              hop.from.activity,
+                              hop.to.activity,
+                              hop.from.activity.transportToNext?.mode
+                            );
+                            return (
+                              <li
+                                key={`${hop.from.activity.id}-${hop.to.activity.id}`}
+                                className="flex items-center gap-2 text-xs text-muted min-h-11"
+                              >
+                                <span className="inline-flex items-center gap-1 shrink-0">
+                                  <span className="w-5 h-5 rounded-full bg-brand-tint text-brand text-[10.5px] font-bold inline-flex items-center justify-center">{hop.from.order}</span>
+                                  <span className="text-faint">→</span>
+                                  <span className="w-5 h-5 rounded-full bg-brand-tint text-brand text-[10.5px] font-bold inline-flex items-center justify-center">{hop.to.order}</span>
+                                </span>
+                                <span className="truncate min-w-0">
+                                  {hop.from.activity.title} <span className="text-faint">→</span> {hop.to.activity.title}
+                                </span>
+                                <span className={`ml-auto shrink-0 text-ink font-medium ${money}`}>{formatDistance(hop.km)}</span>
+                                {hopUrl && (
+                                  <a
+                                    href={hopUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label={`${hop.from.activity.title} → ${hop.to.activity.title} · ${t('directions')}`}
+                                    className={`${directionsLink} text-[11px] font-medium`}
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    <span>{t('directions')}</span>
+                                  </a>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      )}
+
+                      <p className="text-[11px] text-faint leading-relaxed">
+                        {t('mapStraightHint')}
+                        {unpinned > 0 && ` ${t('mapUnlocated', { n: unpinned })}`}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Activities */}
               <div className="mt-3 space-y-1.5">

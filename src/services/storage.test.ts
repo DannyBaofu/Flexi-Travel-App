@@ -174,6 +174,45 @@ describe('storageService.getTrips — flights', () => {
   });
 });
 
+describe('storageService.getTrips — activity pins', () => {
+  it('recovers a pin from the Google Maps link an older activity carries', () => {
+    const saved = [{
+      id: 'trip-1',
+      title: 'Bangkok',
+      days: [{
+        id: 'd1', dayNumber: 1, dateString: '', dayOfWeek: '', title: '',
+        activities: [
+          { id: 'a1', time: '10:00', title: 'Wat Pho', category: 'sightseeing', locationName: 'Wat Pho',
+            googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=13.7466,100.4927' },
+          { id: 'a2', time: '12:00', title: 'Lunch', category: 'food', locationName: 'somewhere nearby' }
+        ]
+      }]
+    }];
+    store.set(TRIPS_KEY, JSON.stringify(saved));
+    store.set(PURGE_KEY, '1');
+
+    const [pinned, typed] = storageService.getTrips()[0].days[0].activities;
+    expect(pinned).toMatchObject({ lat: 13.7466, lon: 100.4927 });
+    expect(typed.lat).toBeUndefined();
+  });
+
+  it('leaves a pin that is already there alone, even when the link disagrees', () => {
+    const saved = [{
+      id: 'trip-1',
+      title: 'Bangkok',
+      days: [{
+        id: 'd1', dayNumber: 1, dateString: '', dayOfWeek: '', title: '',
+        activities: [{ id: 'a1', time: '10:00', title: 'X', category: 'other', locationName: 'X',
+          lat: 1, lon: 2, googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=13.7,100.4' }]
+      }]
+    }];
+    store.set(TRIPS_KEY, JSON.stringify(saved));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips()[0].days[0].activities[0]).toMatchObject({ lat: 1, lon: 2 });
+  });
+});
+
 describe('storageService.getTrips — this browser’s own role', () => {
   it('gives a trip saved without a role the admin it has been rendering as', () => {
     // Everything saved before the role was written down is a trip this browser

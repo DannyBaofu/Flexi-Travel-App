@@ -392,6 +392,36 @@ shows only before the trip starts: once it is running, an empty slot above
 today's plan is noise. Members never get an edit control here — the admin-only
 test is deliberate, because flights are trip structure, not planning.
 
+**The day map draws straight lines, and says so.** `DayMap` (Leaflet on
+OpenStreetMap tiles, lazy-loaded so most sessions never download it) sits
+behind a per-day toggle in `ItineraryView` and shows the pinned stops numbered
+in the day's order, joined by a dashed line, with the straight-line distance
+of each hop listed under it. Road distance would need a routing service, and
+the free ones either forbid production use or need a key — the same reason
+location search chose Photon — so the line is labelled a straight line and
+the real route is Google's job: every hop, in the connector between two
+activities and in the list under the map, links to Google Maps directions
+**in transit mode by default**, from pin to pin by coordinates when both ends
+have one. That is deliberate and was chosen over storing station names in
+the trip: which station to board, which to leave at, the next train and the
+fare are live facts Google keeps current for free, and anything written into
+the trip would be stale by the day it is needed. `directionsUrl` in `geo.ts`
+builds the link; a written `transportToNext.mode` of taxi or walk switches
+Google to driving or walking, anything else stays transit. Nothing in the app
+writes `transportToNext` any more — its editor went with the demo trip — but
+the display code is kept because the field is still on the type. A stop is
+pinned only when its place came off the suggestion list: `ActivityModal`
+stores `lat`/`lon` on pick and clears them (with the address and map link)
+the moment the name is typed over, because a stale pin puts the new name in
+the old spot. Activities saved before the fields existed get their pin back
+in `getTrips` from the `query=lat,lon` the app wrote into `googleMapsUrl`.
+Typed-by-hand locations have no pin and simply stay off the map. All the
+geometry lives in `src/services/geo.ts` with tests. Two Leaflet-specific
+things: the map container carries `isolate`, or Leaflet's z-indexes (up to
+1000) float its zoom buttons over the bottom tabs and modals; and the
+markers are `divIcon`s built from theme classes, because the default pin is an
+image whose path breaks under a bundler and a number says more anyway.
+
 Adding a field that existing saved trips won't have? Add a backfill in
 `src/services/storage.ts` — `getTrips()` already migrates older shapes, and
 skipping this silently breaks anyone with a saved trip.

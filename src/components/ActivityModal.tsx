@@ -40,6 +40,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   const [locationName, setLocationName] = useState('');
   const [locationAddress, setLocationAddress] = useState('');
   const [googleMapsUrl, setGoogleMapsUrl] = useState('');
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [cost, setCost] = useState<number | ''>(0);
   const [notes, setNotes] = useState('');
 
@@ -51,6 +52,11 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setLocationName(activityToEdit.locationName);
       setLocationAddress(activityToEdit.locationAddress || '');
       setGoogleMapsUrl(activityToEdit.googleMapsUrl || '');
+      setCoords(
+        typeof activityToEdit.lat === 'number' && typeof activityToEdit.lon === 'number'
+          ? { lat: activityToEdit.lat, lon: activityToEdit.lon }
+          : null
+      );
       setCost(activityToEdit.cost !== undefined ? activityToEdit.cost : 0);
       setNotes(activityToEdit.notes || '');
     } else {
@@ -63,6 +69,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setLocationName('');
       setLocationAddress('');
       setGoogleMapsUrl('');
+      setCoords(null);
       setCost(0);
       setNotes('');
     }
@@ -74,7 +81,22 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
     setLocationName(place.name);
     setLocationAddress(place.address);
     setGoogleMapsUrl(mapsUrlFor(place));
+    setCoords({ lat: place.lat, lon: place.lon });
     if (!title.trim()) setTitle(place.name);
+  };
+
+  /**
+   * Typing over a picked place means it is no longer that place. The address,
+   * the map link and the pin all described the old one, so they go together —
+   * a pin left behind would put the new name on the map in the wrong spot.
+   */
+  const handleLocationChange = (text: string) => {
+    setLocationName(text);
+    if (text !== locationName && (locationAddress || googleMapsUrl || coords)) {
+      setLocationAddress('');
+      setGoogleMapsUrl('');
+      setCoords(null);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -89,6 +111,8 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       locationName: locationName.trim() || title.trim(),
       locationAddress: locationAddress.trim() || undefined,
       googleMapsUrl: googleMapsUrl.trim() || undefined,
+      lat: coords?.lat,
+      lon: coords?.lon,
       cost: cost === '' ? 0 : Number(cost),
       currency: trip.currency,
       notes: notes.trim() || undefined
@@ -139,7 +163,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           <LocationInput
             id="activity-location"
             value={locationName}
-            onChange={setLocationName}
+            onChange={handleLocationChange}
             onPick={handlePickPlace}
             near={trip.destination}
           />

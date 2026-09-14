@@ -1,6 +1,7 @@
 import type { Trip, TripRole } from '../types/travel';
 import { resolveKitty } from './kitty';
 import { emptyFlights } from './flights';
+import { coordsFromMapsUrl } from './geo';
 
 const TRIPS_STORAGE_KEY = 'travelsync_trips_v1';
 const ACTIVE_TRIP_KEY = 'travelsync_active_trip_id_v1';
@@ -84,6 +85,25 @@ function backfillFlights(trips: Trip[]): Trip[] {
   );
 }
 
+// Activities saved before `lat`/`lon` existed still know where they are: a
+// place picked off the suggestion list wrote its pin into `googleMapsUrl` as
+// `query=lat,lon`. Read it back so the map shows every stop that was ever
+// picked, not just the ones added from now on. Typed-by-hand locations have
+// no pin to recover and stay off the map.
+function backfillActivityCoords(trips: Trip[]): Trip[] {
+  return trips.map(trip => ({
+    ...trip,
+    days: (trip.days || []).map(day => ({
+      ...day,
+      activities: (day.activities || []).map(activity => {
+        if (typeof activity.lat === 'number' && typeof activity.lon === 'number') return activity;
+        const pin = coordsFromMapsUrl(activity.googleMapsUrl);
+        return pin ? { ...activity, ...pin } : activity;
+      })
+    }))
+  }));
+}
+
 // Travellers saved before seats existed have no `role`. The trip's owner is
 // its admin; everyone else defaults to the role the house rule assumes —
 // member, which adds and edits but does not delete.
@@ -124,7 +144,9 @@ export const storageService = {
       if (!Array.isArray(parsed)) return [];
       return backfillMyRole(
         backfillTravelerRoles(
-          backfillFlights(backfillIdeas(backfillKitty(dedupeById(purgeSeededSample(parsed)))))
+          backfillActivityCoords(
+            backfillFlights(backfillIdeas(backfillKitty(dedupeById(purgeSeededSample(parsed)))))
+          )
         )
       );
     } catch (e) {

@@ -423,6 +423,25 @@ const dict: Record<string, Entry> = {
   flightsLegDepart: { zh: '起飞时间', en: 'Departs' },
   flightsLegArrive: { zh: '到达时间', en: 'Arrives' },
 
+  // ---- Day map ----
+  mapShow: { zh: '查看地图', en: 'Show map' },
+  mapHide: { zh: '收起地图', en: 'Hide map' },
+  mapStops: { zh: '{n} 个地点', en: '{n} places' },
+  mapTotalLabel: { zh: '直线合计', en: 'Straight-line total' },
+  distKm: { zh: '{n} 公里', en: '{n} km' },
+  distM: { zh: '{n} 米', en: '{n} m' },
+  mapRegion: { zh: '当日地点地图', en: 'Map of the day’s places' },
+  // Honest about what the number is — a straight line, not the road — and
+  // clear about where the real answer is: Google's transit view, live.
+  mapStraightHint: {
+    zh: '距离是两点之间的直线，实际路程会更长。点「查看路线」会在 Google 地图打开公共交通路线：哪一站上车、哪一站下车、要多久、票价多少。',
+    en: 'Distances are straight lines between pins; the real route is longer. “Directions” opens the transit route in Google Maps, with the stations to board and leave at, the time and the fare.'
+  },
+  mapUnlocated: {
+    zh: '另有 {n} 个地点没有定位。编辑活动时从建议列表中选择地点，它就会出现在地图上。',
+    en: '{n} more without a pin. Pick the place from the suggestion list when editing and it will appear on the map.'
+  },
+
   // ---- Undo instead of a confirm dialog ----
   undo: { zh: '撤销', en: 'Undo' },
   deletedActivity: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },

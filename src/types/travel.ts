@@ -51,6 +51,14 @@ export interface ActivityItem {
   locationName: string;
   locationAddress?: string;
   googleMapsUrl?: string;
+  /**
+   * Where the place is, when it came off the suggestion list. Typed-by-hand
+   * locations have none, and the map simply leaves them off. Activities saved
+   * before these fields existed get them back from the pin coordinates in
+   * `googleMapsUrl` — see `storage.ts`.
+   */
+  lat?: number;
+  lon?: number;
   cost?: number; // in destination currency (e.g. THB)
   currency?: string;
   notes?: string;
