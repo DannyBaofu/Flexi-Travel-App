@@ -56,7 +56,8 @@ const dict: Record<string, Entry> = {
   duplicateActivity: { zh: '复制活动', en: 'Duplicate Activity' },
   editDetails: { zh: '编辑详情', en: 'Edit Details' },
   deleteActivity: { zh: '删除活动', en: 'Delete Activity' },
-  noActivities: { zh: '当日没有符合筛选条件的活动。', en: 'No scheduled activities matching filters for this day.' },
+  // Nothing filters this list, so nothing here may blame a filter for it
+  noActivities: { zh: '这天还没有安排。', en: 'Nothing planned for this day yet.' },
   addFirstActivity: { zh: '添加第一个活动', en: 'Add First Activity' },
   // Short enough to sit in a chip on a 375px row
 
@@ -92,14 +93,23 @@ const dict: Record<string, Entry> = {
   saveExpense: { zh: '保存支出', en: 'Save Expense' },
   cancel: { zh: '取消', en: 'Cancel' },
   groupSettlement: { zh: '团队结算摘要', en: 'Group Settlement Summary' },
-  settlementHint: { zh: '智能债务简化算法自动算出最简还款方案。', en: 'Smart debt simplification algorithm calculates exact repayments.' },
+  settlementHint: { zh: '算过之后，只要这几笔就能还清。', en: 'Once it is worked out, these are the only payments left.' },
   allBalanced: { zh: '🎉 当前所有支出已结清！', en: '🎉 All expenses are currently balanced!' },
   individualBalances: { zh: '个人余额', en: 'Individual Balances' },
+  // A balance is a direction, not a sign: the colour and the +/- both vanish
+  // for a reader who cannot see one, so each row says which way it goes.
+  balanceToReceive: { zh: '应收', en: 'to receive' },
+  balanceToPay: { zh: '应付', en: 'to pay' },
+  balanceSettled: { zh: '已结清', en: 'settled' },
   categoryBreakdown: { zh: '类别明细', en: 'Category Breakdown' },
   expenseHistory: { zh: '支出记录', en: 'Expense History' },
   splitByN: { zh: '{n} 人分摊', en: 'Split by {n}' },
   deleteExpense: { zh: '删除支出', en: 'Delete Expense' },
   noExpensesYet: { zh: '还没有记过支出。', en: 'No expenses logged yet.' },
+  noExpensesHint: {
+    zh: '谁付的、付了多少，记下来就会自动算谁欠谁。',
+    en: 'Log who paid and how much, and who owes whom is worked out for you.'
+  },
 
   // ---- Checklist ----
   deleteItem: { zh: '删除物品', en: 'Delete item' },

@@ -53,9 +53,9 @@ const IDEA_BUCKETS: ActivityCategory[] = [
   'other'
 ];
 
-/** Same 40px-in-a-44px-row action button the itinerary uses. */
+/** Same 44px action button the itinerary rows use. */
 const actionBtn =
-  'w-10 h-10 inline-flex items-center justify-center rounded-control text-muted ' +
+  'w-11 h-11 inline-flex items-center justify-center rounded-control text-muted ' +
   'hover:text-ink hover:bg-mist transition';
 
 /** Two people typing the same place should not produce two rows. */
@@ -217,8 +217,10 @@ export const IdeasView: React.FC<IdeasViewProps> = ({
       return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
     });
 
+  // min-w-11 as well as min-h-11: padding alone leaves the shortest label
+  // ("All", against 全部) a 39px-wide target, and the floor is both dimensions.
   const chip = (on: boolean) =>
-    `px-3 py-1.5 min-h-11 rounded-full text-xs font-medium shrink-0 flex items-center justify-center gap-1.5 transition ${
+    `px-3 py-1.5 min-h-11 min-w-11 rounded-full text-xs font-medium shrink-0 flex items-center justify-center gap-1.5 transition ${
       on ? 'bg-brand-tint text-brand' : 'bg-mist text-muted hover:text-ink'
     }`;
 
@@ -264,7 +266,7 @@ export const IdeasView: React.FC<IdeasViewProps> = ({
                 }}
                 onPaste={handlePaste}
                 autoComplete="off"
-                className={`${input} min-h-11`}
+                className={input}
               />
               <button
                 type="submit"
@@ -396,7 +398,7 @@ export const IdeasView: React.FC<IdeasViewProps> = ({
                             }
                             if (e.key === 'Escape') setEditingId(null);
                           }}
-                          className={`${input} min-h-11`}
+                          className={input}
                         />
                       </div>
 

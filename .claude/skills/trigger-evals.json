@@ -3,6 +3,7 @@
   "method": "Three independent judges are given only the skill names + descriptions (as Claude Code sees them) plus these messages in varying order, and asked which skill(s) they would consult. Unanimity across judges indicates the description is unambiguous.",
   "last_run": "2026-08-28",
   "last_result": "45/45 unanimous; 7/7 correct triggers, 8/8 correct declines, 0 false positives, 0 false negatives",
+  "unrun": "Cases 16–22 were added with the ui-design skill on 2026-09-18 and have not been judged yet. The pair to watch is 20 and 21: ui-design and i18n both touch the wording of a control, and ui-design and mobile-check both touch a screen that looks wrong on a phone.",
   "evals": [
     { "id": 1, "query": "ok the food total thing looks right now, push it up so i can show my friend tonight", "expect": ["ship"] },
     { "id": 2, "query": "i added a new button for exporting to calendar but it says 'Export to Calendar' in the chinese view, fix that", "expect": ["i18n"] },
@@ -18,6 +19,13 @@
     { "id": 12, "query": "resize the cover photo on the banner, it's way too tall on my desktop monitor", "expect": [], "note": "near-miss: layout vocabulary, but explicitly desktop" },
     { "id": 13, "query": "can you make the app work offline on the plane", "expect": [], "note": "open-ended feature work" },
     { "id": 14, "query": "can you deploy what we just did", "expect": ["ship"] },
-    { "id": 15, "query": "how much did we budget for food on day 2", "expect": [], "note": "data lookup" }
+    { "id": 15, "query": "how much did we budget for food on day 2", "expect": [], "note": "data lookup" },
+    { "id": 16, "query": "the budget tab looks kind of plain and cluttered at the same time, can you make it look better", "expect": ["ui-design"] },
+    { "id": 17, "query": "im adding a card that shows the hotel check-in details, what should it look like", "expect": ["ui-design"] },
+    { "id": 18, "query": "should the add-expense button be at the top of the tab or floating at the bottom", "expect": ["ui-design"], "note": "placement of an action is a design question, not a layout-width one" },
+    { "id": 19, "query": "what colour is the brand indigo again, i want it for the group chat icon", "expect": [], "note": "near-miss: palette vocabulary, but a lookup for something outside the app" },
+    { "id": 20, "query": "change the save button to say 保存行程 instead", "expect": ["i18n"], "note": "near-miss: a control's wording, but dictionary work — ui-design must not claim it" },
+    { "id": 21, "query": "the new flight card looks cramped on my phone", "expect": ["mobile-check", "ui-design"], "note": "genuine overlap: measure the width first, then judge the design" },
+    { "id": 22, "query": "add a dark mode", "expect": [], "note": "near-miss: theme vocabulary, but a feature decision that precedes any screen design" }
   ]
 }

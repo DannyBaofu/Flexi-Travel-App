@@ -144,12 +144,15 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       <form id="activity-form" onSubmit={handleSubmit} className="p-5 space-y-4">
         <div>
           <label className={label} htmlFor="activity-title">{t('activityTitleLabel')}</label>
+          {/* The dialog's focus trap otherwise lands on the close button, so
+              the app's busiest form opened with the cursor on "cancel". */}
           <input
             id="activity-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className={input}
+            autoFocus
             required
           />
         </div>

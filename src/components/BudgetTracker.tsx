@@ -25,7 +25,6 @@ import {
   cardFlat,
   btnPrimary,
   btnSecondary,
-  btnSecondarySm,
   money
 } from './ui';
 
@@ -239,9 +238,18 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
     writeMe(trip.id, id);
   };
 
+  /**
+   * Every summary on this tab summarises the ledger, so before there is a
+   * ledger they have nothing to say — and said it anyway: six cards, two
+   * identical log buttons, four balances reading zero, and a banner
+   * congratulating the group on settling up before anyone had spent a baht.
+   * Empty is the state every trip starts in, so it gets one card.
+   */
+  const hasExpenses = (trip.expenses?.length ?? 0) > 0;
+
   // The one number people open this tab for. Viewers are looking at
   // someone else's ledger, so they get the group view only.
-  const showPersonal = !isReadOnly && trip.travelers.length > 0;
+  const showPersonal = !isReadOnly && trip.travelers.length > 0 && hasExpenses;
   const myBalance = meId ? Math.round(balances[meId] || 0) : 0;
   const mySettlements = meId ? settlements.filter(s => s.from === meId || s.to === meId) : [];
 
@@ -421,20 +429,34 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         </div>
       )}
 
-      {/* ---- Group total: supporting detail, plus the add button ---- */}
+      {/* ---- Group total: supporting detail, plus the add button. Before the
+              first expense the total is the empty state, so this one card is
+              the whole tab. ---- */}
       <div className={`${card} p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4`}>
-        <div className="min-w-0">
-          <div className="text-[11px] text-faint">{t('groupTotalLabel')}</div>
-          <div className={`text-lg font-semibold text-ink mt-0.5 ${money}`}>
-            {totalSpent.toLocaleString()} {trip.currency}
-            <span className="text-xs font-normal text-muted ml-1.5">
-              ≈ {trip.homeCurrency} {toHome(totalSpent)}
-            </span>
+        {hasExpenses ? (
+          <div className="min-w-0">
+            <div className="text-[11px] text-faint">{t('groupTotalLabel')}</div>
+            <div className={`text-lg font-semibold text-ink mt-0.5 ${money}`}>
+              {totalSpent.toLocaleString()} {trip.currency}
+              <span className="text-xs font-normal text-muted ml-1.5">
+                ≈ {trip.homeCurrency} {toHome(totalSpent)}
+              </span>
+            </div>
+            <div className="text-xs text-muted mt-0.5">
+              {t('splitEvenly', { n: trip.travelers.length })}
+            </div>
           </div>
-          <div className="text-xs text-muted mt-0.5">
-            {t('splitEvenly', { n: trip.travelers.length })}
+        ) : (
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-ink">{t('noExpensesYet')}</div>
+            {/* The hint is an instruction, so it only goes to someone who can
+                follow it. A viewer gets the fact and the read-only note beside
+                it, not a nudge towards a button they have not got. */}
+            {!isReadOnly && (
+              <div className="text-xs text-muted mt-1 leading-relaxed">{t('noExpensesHint')}</div>
+            )}
           </div>
-        </div>
+        )}
 
         {!isReadOnly ? (
           /* Once the form is open this button means "close it", and the form's
@@ -480,111 +502,122 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-5 space-y-4">
-          {/* Full settlement matrix stays an admin tool */}
-          {canEdit && (
-            <div className={`${card} p-4 sm:p-5 space-y-3`}>
-              <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-                <Users className="w-4 h-4 text-muted" /> {t('groupSettlement')}
-              </h3>
-              <p className="text-xs text-muted leading-relaxed">{t('settlementHint')}</p>
+      {hasExpenses && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="lg:col-span-5 space-y-4">
+            {/* Full settlement matrix stays an admin tool */}
+            {canEdit && (
+              <div className={`${card} p-4 sm:p-5 space-y-3`}>
+                <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+                  <Users className="w-4 h-4 text-muted" /> {t('groupSettlement')}
+                </h3>
+                <p className="text-xs text-muted leading-relaxed">{t('settlementHint')}</p>
 
-              <div className="space-y-1.5 pt-1">
-                {settlements.length > 0 ? (
-                  settlements.map((s, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-2.5 bg-mist rounded-control flex items-center justify-between gap-3 text-sm"
-                    >
-                      <span className="text-muted min-w-0 truncate">
-                        {t('settlePersonToPerson', {
-                          from: getTravelerName(s.from),
-                          to: getTravelerName(s.to)
-                        })}
-                      </span>
-                      <span className={`font-semibold text-ink shrink-0 ${money}`}>
-                        {s.amount.toLocaleString()} {trip.currency}
-                      </span>
+                <div className="space-y-1.5 pt-1">
+                  {settlements.length > 0 ? (
+                    settlements.map((s, idx) => (
+                      <div
+                        key={idx}
+                        className="px-3 py-2.5 bg-mist rounded-control flex items-center justify-between gap-3 text-sm"
+                      >
+                        <span className="text-muted min-w-0 truncate">
+                          {t('settlePersonToPerson', {
+                            from: getTravelerName(s.from),
+                            to: getTravelerName(s.to)
+                          })}
+                        </span>
+                        <span className={`font-semibold text-ink shrink-0 ${money}`}>
+                          {s.amount.toLocaleString()} {trip.currency}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-5 text-xs text-faint bg-mist rounded-control">
+                      {t('allBalanced')}
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-5 text-xs text-faint bg-mist rounded-control">
-                    {t('allBalanced')}
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-3 border-t border-hairline space-y-1.5">
-                <div className="text-[11px] font-semibold text-faint uppercase tracking-wider">
-                  {t('individualBalances')}
+                  )}
                 </div>
-                {trip.travelers.map(tv => {
-                  const bal = Math.round(balances[tv.id] || 0);
-                  return (
-                    <div key={tv.id} className="flex items-center justify-between gap-3 text-xs py-0.5">
-                      <span className="flex items-center gap-2 min-w-0">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} />
-                        <span className="text-muted truncate">{tv.name}</span>
-                      </span>
-                      <span className={`font-semibold shrink-0 ${money} ${
-                        bal > 0 ? 'text-brand' : bal < 0 ? 'text-clay' : 'text-faint'
-                      }`}>
-                        {bal > 0 ? `+${bal.toLocaleString()}` : bal.toLocaleString()} {trip.currency}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
-          {/* Category breakdown */}
-          {totalSpent > 0 && (
+                <div className="pt-3 border-t border-hairline space-y-1.5">
+                  <div className="text-[11px] font-semibold text-faint uppercase tracking-wider">
+                    {t('individualBalances')}
+                  </div>
+                  {trip.travelers.map(tv => {
+                    const bal = Math.round(balances[tv.id] || 0);
+                    // The word is what carries this, not the colour and not the
+                    // sign: "+3,080" reads as owed-to and owed-by equally well,
+                    // and both the hue and the glyph are gone for a reader who
+                    // cannot see one.
+                    const direction =
+                      bal > 0 ? t('balanceToReceive') : bal < 0 ? t('balanceToPay') : t('balanceSettled');
+                    return (
+                      <div key={tv.id} className="flex items-center justify-between gap-3 text-xs py-0.5">
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tv.avatarColor }} aria-hidden="true" />
+                          <span className="text-muted truncate">{tv.name}</span>
+                        </span>
+                        <span className={`shrink-0 flex items-baseline gap-1.5 ${
+                          bal > 0 ? 'text-brand' : bal < 0 ? 'text-clay' : 'text-faint'
+                        }`}>
+                          <span className="font-normal">{direction}</span>
+                          {bal !== 0 && (
+                            <span className={`font-semibold ${money}`}>
+                              {Math.abs(bal).toLocaleString()} {trip.currency}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Category breakdown */}
+            {totalSpent > 0 && (
+              <div className={`${card} p-4 sm:p-5 space-y-3`}>
+                <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+                  <PieChart className="w-4 h-4 text-muted" /> {t('categoryBreakdown')}
+                </h3>
+                <div className="space-y-2.5">
+                  {(Object.keys(categoryTotals) as ActivityCategory[]).map(catKey => {
+                    const amt = categoryTotals[catKey] || 0;
+                    const percent = totalSpent > 0 ? Math.round((amt / totalSpent) * 100) : 0;
+                    const meta = categoryMetaMap[catKey] || categoryMetaMap.other;
+                    const Icon = meta.icon;
+
+                    return (
+                      <div key={catKey} className="space-y-1.5">
+                        <div className="flex justify-between gap-3 text-xs">
+                          <span className="text-muted flex items-center gap-1.5 min-w-0">
+                            <Icon className="w-3.5 h-3.5 shrink-0 text-faint" />
+                            <span className="truncate">{lang === 'zh' ? meta.labelZh : meta.label}</span>
+                          </span>
+                          <span className={`text-ink shrink-0 ${money}`}>
+                            {amt.toLocaleString()} · {percent}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-mist rounded-full h-1.5 overflow-hidden">
+                          <div className={`${meta.spine} h-full rounded-full`} style={{ width: `${percent}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Ledger */}
+          <div className="lg:col-span-7">
             <div className={`${card} p-4 sm:p-5 space-y-3`}>
               <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-muted" /> {t('categoryBreakdown')}
+                <Receipt className="w-4 h-4 text-muted" />
+                {t('expenseHistory')} ({trip.expenses?.length || 0})
               </h3>
-              <div className="space-y-2.5">
-                {(Object.keys(categoryTotals) as ActivityCategory[]).map(catKey => {
-                  const amt = categoryTotals[catKey] || 0;
-                  const percent = totalSpent > 0 ? Math.round((amt / totalSpent) * 100) : 0;
-                  const meta = categoryMetaMap[catKey] || categoryMetaMap.other;
-                  const Icon = meta.icon;
 
-                  return (
-                    <div key={catKey} className="space-y-1.5">
-                      <div className="flex justify-between gap-3 text-xs">
-                        <span className="text-muted flex items-center gap-1.5 min-w-0">
-                          <Icon className="w-3.5 h-3.5 shrink-0 text-faint" />
-                          <span className="truncate">{lang === 'zh' ? meta.labelZh : meta.label}</span>
-                        </span>
-                        <span className={`text-ink shrink-0 ${money}`}>
-                          {amt.toLocaleString()} · {percent}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-mist rounded-full h-1.5 overflow-hidden">
-                        <div className={`${meta.spine} h-full rounded-full`} style={{ width: `${percent}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Ledger */}
-        <div className="lg:col-span-7">
-          <div className={`${card} p-4 sm:p-5 space-y-3`}>
-            <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-              <Receipt className="w-4 h-4 text-muted" />
-              {t('expenseHistory')} ({trip.expenses?.length || 0})
-            </h3>
-
-            <div className="space-y-1.5">
-              {trip.expenses && trip.expenses.length > 0 ? (
-                trip.expenses.map((exp) => {
+              <div className="space-y-1.5">
+                {trip.expenses.map((exp) => {
                   const meta = categoryMetaMap[exp.category] || categoryMetaMap.other;
                   const Icon = meta.icon;
 
@@ -634,8 +667,9 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                         {canEdit && (
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
-                            className="w-10 h-10 inline-flex items-center justify-center rounded-control text-faint hover:text-clay hover:bg-clay-tint transition"
+                            className="w-11 h-11 inline-flex items-center justify-center rounded-control text-faint hover:text-clay hover:bg-clay-tint transition"
                             title={t('deleteExpense')}
+                            aria-label={t('deleteExpense')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -643,21 +677,12 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                       </div>
                     </div>
                   );
-                })
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-sm text-muted">{t('noExpensesYet')}</p>
-                  {!isReadOnly && !isAdding && (
-                    <button onClick={() => setIsAdding(true)} className={`${btnSecondarySm} mt-3`}>
-                      <Plus className="w-3.5 h-3.5" /> {t('logNewExpense')}
-                    </button>
-                  )}
-                </div>
-              )}
+                })}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -55,8 +55,10 @@ export const cardFlat = 'bg-paper border border-hairline rounded-card';
 
 // ---- Form controls -------------------------------------------------------
 
+// The same 44px floor the buttons carry. Padding alone left these at 42px,
+// which is why callers had started writing `${input} min-h-11` by hand.
 export const input =
-  'w-full bg-paper border border-hairline rounded-control px-3.5 py-2.5 ' +
+  'w-full bg-paper border border-hairline rounded-control px-3.5 py-2.5 min-h-11 ' +
   'text-ink text-sm placeholder-faint focus:outline-none focus:border-brand transition';
 
 export const inputMono = `${input} font-mono tabular-nums`;

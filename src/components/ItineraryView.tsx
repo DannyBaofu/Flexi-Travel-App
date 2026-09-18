@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus,
   MapPin,
@@ -78,10 +78,11 @@ const findTodayIndex = (startDate: string, dayCount: number): number => {
   }
 };
 
-// A 40px control inside a 44px row keeps the tap target legal without
-// making the action bar look like a toolbar.
+// 44px on a side, like every other icon button. A row catches no taps — only
+// the control does — so sitting inside a 44px row never made a 40px button
+// legal, which is the reasoning the comment here used to give.
 const actionBtn =
-  'w-10 h-10 inline-flex items-center justify-center rounded-control text-muted ' +
+  'w-11 h-11 inline-flex items-center justify-center rounded-control text-muted ' +
   'hover:text-ink hover:bg-mist disabled:opacity-30 disabled:hover:bg-transparent transition';
 
 export const ItineraryView: React.FC<ItineraryViewProps> = ({
@@ -113,6 +114,36 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   // Which days have their map open. Closed by default: the tiles are a
   // download, and the list is what most visits are for.
   const [mapOpenIds, setMapOpenIds] = useState<Set<string>>(new Set());
+
+  /**
+   * ...and then put today where it can be seen. The strip is a horizontal
+   * scroller that starts at 0, so opening on day three of six left the
+   * selected card more than half off the right-hand edge, and day five off it
+   * entirely — the one question the strip exists to answer going unanswered
+   * exactly when the trip is running.
+   *
+   * Centred by nudging the strip's own `scrollLeft`, not by `scrollIntoView`:
+   * that walks up to every scrollable ancestor and would drag the page
+   * vertically too. A plain assignment is also instant, which is what the
+   * reduced-motion default should be anyway.
+   */
+  const stripRef = useRef<HTMLDivElement>(null);
+  const selectedDayRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const strip = stripRef.current;
+    const selected = selectedDayRef.current;
+    if (!strip || !selected) return;
+
+    const stripBox = strip.getBoundingClientRect();
+    const dayBox = selected.getBoundingClientRect();
+    // jsdom and a not-yet-laid-out strip both report zero here; nothing to
+    // centre against, and the assignment below would jump to NaN.
+    if (!stripBox.width || !dayBox.width) return;
+
+    strip.scrollLeft +=
+      dayBox.left + dayBox.width / 2 - (stripBox.left + stripBox.width / 2);
+  }, [selectedDayIndex, showAllDays, trip.days.length]);
 
   const currentDay: DaySchedule | undefined = trip.days[selectedDayIndex];
 
@@ -246,7 +277,10 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
       {/* Day picker */}
       <div className={`${card} p-3 sm:p-4`}>
         {/* Bleed to the screen edge so it reads as scrollable */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-3 px-3 sm:-mx-4 sm:px-4">
+        <div
+          ref={stripRef}
+          className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-3 px-3 sm:-mx-4 sm:px-4"
+        >
           {trip.days.map((day, idx) => {
             const isSelected = !showAllDays && selectedDayIndex === idx;
             const isToday = idx === todayIndex;
@@ -254,11 +288,12 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
             return (
               <button
                 key={day.id}
+                ref={isSelected ? selectedDayRef : undefined}
                 onClick={() => {
                   setSelectedDayIndex(idx);
                   setShowAllDays(false);
                 }}
-                className={`px-3.5 py-2.5 rounded-control text-left shrink-0 flex flex-col items-start min-w-[104px] border transition ${
+                className={`px-3.5 py-2.5 min-h-11 rounded-control text-left shrink-0 flex flex-col items-start min-w-[104px] border transition ${
                   isSelected
                     ? 'bg-brand-tint text-brand border-brand-tint'
                     : 'bg-paper text-muted border-hairline hover:bg-mist'

@@ -567,7 +567,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                           aria-label={`${traveler.name} — ${t('rosterPermission')}`}
                           value={claim?.role ?? traveler.role ?? 'member'}
                           onChange={(e) => handleRoleChange(traveler.id, e.target.value as TripRole)}
-                          className={`${input} py-1.5 min-h-11 text-xs flex-1 min-w-0`}
+                          className={`${input} py-1.5 text-xs flex-1 min-w-0`}
                         >
                           {roleOptions.map(opt => (
                             <option key={opt} value={opt}>

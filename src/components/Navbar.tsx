@@ -14,7 +14,7 @@ import type { Trip, TripRole } from '../types/travel';
 import { emailToId } from '../services/cloudSync';
 import { useI18n } from '../utils/i18n';
 import { TripSwitcher } from './TripSwitcher';
-import { iconBtn, iconBtnSolid } from './ui';
+import { iconBtn } from './ui';
 
 interface NavbarProps {
   trips: Trip[];
@@ -193,11 +193,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               )}
 
+              {/* Outlined, not filled. Solid indigo up here rode along on
+                  every screen and outshouted each tab's own action — on the
+                  phrases tab it was the only brand-filled control on the
+                  page, which made "share" look like the thing to do there.
+                  Sharing is the organiser's occasional errand, not the app's
+                  main verb. */}
               {isAdmin && (
                 <button
                   onClick={onOpenShareModal}
-                  className={iconBtnSolid}
+                  className={iconBtn}
                   title={t('shareTrip')}
+                  aria-label={t('shareTrip')}
                 >
                   <Share2 className="w-[18px] h-[18px]" />
                 </button>

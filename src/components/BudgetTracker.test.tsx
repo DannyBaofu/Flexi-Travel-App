@@ -62,8 +62,7 @@ describe('BudgetTracker — logging an expense', () => {
     localStorage.setItem('travelsync-me', JSON.stringify({ 'trip-1': 't1' }));
     const { onUpdateTrip } = renderBudget();
 
-    // The label appears on the main action and again on the empty ledger
-    await user.click(screen.getAllByRole('button', { name: /记一笔支出/ })[0]);
+    await user.click(screen.getByRole('button', { name: /记一笔支出/ }));
     await user.type(screen.getByLabelText(/花了多少/), '450');
     await user.click(screen.getByRole('button', { name: /保存支出/ }));
 
@@ -92,7 +91,7 @@ describe('BudgetTracker — logging an expense', () => {
     const user = userEvent.setup();
     const { onUpdateTrip } = renderBudget();
 
-    await user.click(screen.getAllByRole('button', { name: /记一笔支出/ })[0]);
+    await user.click(screen.getByRole('button', { name: /记一笔支出/ }));
     await user.click(screen.getByRole('button', { name: /保存支出/ }));
 
     expect(onUpdateTrip).not.toHaveBeenCalled();
@@ -188,5 +187,131 @@ describe('BudgetTracker — the shared fund', () => {
   it('hides the fund settings from a viewer', () => {
     renderBudget(withKitty, 'viewer');
     expect(screen.queryAllByRole('button', { name: /基金设置/ })).toHaveLength(0);
+  });
+});
+
+describe('BudgetTracker — before the first expense', () => {
+  /**
+   * Every summary on this tab summarises the ledger, so with no ledger they
+   * had nothing to say and said it anyway: a zero total, four balances
+   * reading zero, and a banner congratulating the group on settling up
+   * before anyone had spent anything.
+   */
+  it('says what to do and nothing else', () => {
+    renderBudget();
+
+    expect(screen.getByText(/还没有记过支出/)).toBeInTheDocument();
+    expect(screen.queryByText(/全队总花费/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/团队结算摘要/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/个人余额/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/已结清/)).not.toBeInTheDocument();
+  });
+
+  it('offers exactly one way to log the first one', () => {
+    renderBudget();
+    expect(screen.getAllByRole('button', { name: /记一笔支出/ })).toHaveLength(1);
+  });
+
+  it('still shows the whole ledger once there is something in it', () => {
+    renderBudget({
+      expenses: [
+        {
+          id: 'e1',
+          title: 'Dinner',
+          amount: 800,
+          currency: 'THB',
+          category: 'food' as const,
+          date: '2026-09-01',
+          paidByTravelerId: 't1',
+          splitWithTravelerIds: ['t1', 't2']
+        }
+      ]
+    });
+
+    expect(screen.getByText(/全队总花费/)).toBeInTheDocument();
+    expect(screen.getByText(/团队结算摘要/)).toBeInTheDocument();
+    expect(screen.getByText(/个人余额/)).toBeInTheDocument();
+  });
+});
+
+describe('BudgetTracker — a balance says which way it goes', () => {
+  /**
+   * The row used to be a coloured, signed number and nothing else, so the
+   * whole meaning sat in a hue and a "+" — both gone for a reader who cannot
+   * see one, and "+3,080" reads as owed-to and owed-by equally well.
+   */
+  const dinnerPaidByT1 = {
+    expenses: [
+      {
+        id: 'e1',
+        title: 'Dinner',
+        amount: 800,
+        currency: 'THB',
+        category: 'food' as const,
+        date: '2026-09-01',
+        paidByTravelerId: 't1',
+        splitWithTravelerIds: ['t1', 't2']
+      }
+    ]
+  };
+
+  it('names the direction in words, not just in colour', () => {
+    renderBudget(dinnerPaidByT1);
+
+    // Danny paid 800 for two, so he is owed 400 and Wei Ming owes it
+    expect(screen.getAllByText('应收').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('应付').length).toBeGreaterThan(0);
+  });
+
+  it('drops the sign, because the word carries it', () => {
+    renderBudget(dinnerPaidByT1);
+    expect(screen.queryByText(/\+400/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/-400/)).not.toBeInTheDocument();
+  });
+});
+
+describe('BudgetTracker — an empty ledger says different things to different people', () => {
+  /**
+   * The hint under "no expenses yet" is an instruction, and a viewer has no
+   * button to follow it with — so collapsing the tab to its empty state put a
+   * nudge towards a control that is not there in front of the one person who
+   * cannot use it.
+   */
+  it('tells a traveller how to start', () => {
+    renderBudget({}, 'member');
+    expect(screen.getByText(/记下来就会自动算谁欠谁/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /记一笔支出/ })).toBeInTheDocument();
+  });
+
+  it('tells a viewer only the fact, with no instruction attached', () => {
+    renderBudget({}, 'viewer');
+    expect(screen.getByText(/还没有记过支出/)).toBeInTheDocument();
+    expect(screen.queryByText(/记下来就会自动算谁欠谁/)).not.toBeInTheDocument();
+    expect(screen.getByText(/正在查看共享账本/)).toBeInTheDocument();
+  });
+});
+
+describe('BudgetTracker — a settled balance', () => {
+  it('says so in words and shows no number at all', () => {
+    // Both paid 800 and split both bills, so the two come out even
+    const evenly = {
+      expenses: [
+        {
+          id: 'e1', title: 'Dinner', amount: 800, currency: 'THB',
+          category: 'food' as const, date: '2026-09-01',
+          paidByTravelerId: 't1', splitWithTravelerIds: ['t1', 't2']
+        },
+        {
+          id: 'e2', title: 'Lunch', amount: 800, currency: 'THB',
+          category: 'food' as const, date: '2026-09-02',
+          paidByTravelerId: 't2', splitWithTravelerIds: ['t1', 't2']
+        }
+      ]
+    };
+    renderBudget(evenly, 'admin');
+
+    expect(screen.getAllByText('已结清')).toHaveLength(2);
+    expect(screen.queryByText('应收')).not.toBeInTheDocument();
+    expect(screen.queryByText('应付')).not.toBeInTheDocument();
   });
 });
