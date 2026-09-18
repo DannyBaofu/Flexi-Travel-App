@@ -1,4 +1,5 @@
 import type { DaySchedule } from '../types/travel';
+import type { Lang } from '../utils/i18n';
 
 /**
  * Days and dates, kept in step.
@@ -29,6 +30,43 @@ export function dayLabel(d: Date): string {
   const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
   const short = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   return `${weekday} (${short})`;
+}
+
+/**
+ * The trip's dates as one line -- "Nov 14 - Nov 19" -- in the reader's
+ * language. Shared by the trip banner and the trip switcher, because one
+ * trip printing its dates two ways in two places is how they drift.
+ *
+ * Through parseLocalDate, not `new Date(iso)`: the plain constructor reads
+ * a bare date as UTC midnight, which prints the day before for any reader
+ * west of Greenwich.
+ *
+ * The year appears only when the trip is not in the current one, and then on
+ * the end the language puts it: Chinese states a year before the date it
+ * belongs to, English after. A list of finished trips without it reads
+ * "5月21日" against "8月14日" with no way to tell which year is which,
+ * and printing the year on both ends of every range is four wasted words on
+ * the trip somebody is actually on.
+ */
+export function formatDateRange(startDate: string, endDate: string, lang: Lang): string {
+  const start = parseLocalDate(startDate);
+  const end = parseLocalDate(endDate);
+  if (!start || !end) return `${startDate} - ${endDate}`;
+
+  const locale = lang === 'zh' ? 'zh-CN' : 'en-US';
+  const dayOnly: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+  const withYear: Intl.DateTimeFormatOptions = { ...dayOnly, year: 'numeric' };
+
+  const thisYear = new Date().getFullYear();
+  const spansAnotherYear =
+    start.getFullYear() !== thisYear || end.getFullYear() !== thisYear;
+
+  const at = (d: Date, opts: Intl.DateTimeFormatOptions) => d.toLocaleDateString(locale, opts);
+  if (!spansAnotherYear) return `${at(start, dayOnly)} – ${at(end, dayOnly)}`;
+
+  return lang === 'zh'
+    ? `${at(start, withYear)} – ${at(end, dayOnly)}`
+    : `${at(start, dayOnly)} – ${at(end, withYear)}`;
 }
 
 /** A trip longer than this is almost certainly a mistyped year. */

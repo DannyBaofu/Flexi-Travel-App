@@ -2,6 +2,7 @@ import type { Trip, TripRole } from '../types/travel';
 import { resolveKitty } from './kitty';
 import { emptyFlights } from './flights';
 import { coordsFromMapsUrl } from './geo';
+import { preferredTripId } from './tripOrder';
 
 const TRIPS_STORAGE_KEY = 'travelsync_trips_v1';
 const ACTIVE_TRIP_KEY = 'travelsync_active_trip_id_v1';
@@ -165,12 +166,11 @@ export const storageService = {
 
   getActiveTripId(): string {
     try {
-      const activeId = localStorage.getItem(ACTIVE_TRIP_KEY);
-      const trips = this.getTrips();
-      if (activeId && trips.some(t => t.id === activeId)) {
-        return activeId;
-      }
-      return trips[0]?.id || '';
+      // Not simply whatever was open last. That restored a finished trip
+      // forever, so coming back in March greeted you with November's
+      // itinerary -- and its fallback was `trips[0]`, which is storage
+      // order, meaning no order at all.
+      return preferredTripId(this.getTrips(), localStorage.getItem(ACTIVE_TRIP_KEY));
     } catch {
       return '';
     }

@@ -110,6 +110,23 @@ function tripDocument(trip: Trip): Omit<Trip, 'myRole' | 'myTravelerId'> {
 }
 
 /**
+ * The mirror of `tripDocument`: a trip arriving from the server with this
+ * browser's own facts taken back off it.
+ *
+ * `myRole` and `myTravelerId` describe *this* browser's seat, which is why
+ * they never go out. But the trips table is member-writable, and nothing
+ * stops a member writing those two keys straight into the document by hand.
+ * Spreading such a row would then let them mislabel who "me" is in somebody
+ * else's budget tab and suppress that person's seat prompt. The server is
+ * the only thing entitled to say what the pair are, so they come off at the
+ * door and every caller puts back the values it was actually told.
+ */
+function incomingDocument(data: Trip): Trip {
+  const { myRole: _myRole, myTravelerId: _myTravelerId, ...doc } = data;
+  return doc as Trip;
+}
+
+/**
  * The `updated_at` this browser last saw for each trip, used as a compare-and-set
  * token on write.
  *
@@ -134,7 +151,10 @@ async function readTripRow(tripId: string): Promise<{ trip: Trip; updatedAt: str
     .maybeSingle();
   if (error) throw error;
   if (!data?.data) return null;
-  return { trip: data.data as Trip, updatedAt: data.updated_at as string };
+  return {
+    trip: incomingDocument(data.data as Trip),
+    updatedAt: data.updated_at as string
+  };
 }
 
 export async function fetchMyTrips(): Promise<Trip[]> {
@@ -310,7 +330,7 @@ export function subscribeTrip(tripId: string, onRemoteChange: (trip: Trip) => vo
         // Record the version we are being shown, so the next write compares
         // against it rather than against something already superseded.
         rememberServerVersion(tripId, row?.updated_at);
-        if (row?.data) onRemoteChange(row.data);
+        if (row?.data) onRemoteChange(incomingDocument(row.data));
       }
     )
     .subscribe();
@@ -380,7 +400,7 @@ export async function createInvite(tripId: string): Promise<string> {
   const code = randomCode();
   const { error } = await supabase
     .from('trip_invites')
-    .insert({ code, trip_id: tripId, role: 'member' });
+    .insert({ code, trip_id: tripId });
   if (error) throw error;
   return code;
 }

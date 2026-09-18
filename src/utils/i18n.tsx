@@ -24,6 +24,17 @@ const dict: Record<string, Entry> = {
     en: 'Read-only · browse, but no edits'
   },
 
+  // ---- Trip switcher ----
+  myTrips: { zh: '我的行程', en: 'My Trips' },
+  switchTrip: { zh: '切换行程', en: 'Switch trip' },
+  currentTrip: { zh: '当前行程', en: 'Current trip' },
+  // A chip on a 375px row, so both languages stay short. The same gilt as
+  // the itinerary's today badge, because it is the same claim.
+  tripLive: { zh: '进行中', en: 'On now' },
+  tripStartsTomorrow: { zh: '明天出发', en: 'Tomorrow' },
+  tripStartsIn: { zh: '还有 {n} 天', en: 'In {n} days' },
+  pastTripsCount: { zh: '已结束的行程（{n}）', en: 'Past trips ({n})' },
+
   // ---- Trip banner ----
   customizeTrip: { zh: '自定义行程', en: 'Customize Trip' },
   travelers: { zh: '{n} 位旅伴', en: '{n} Travelers' },

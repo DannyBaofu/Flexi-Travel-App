@@ -110,18 +110,47 @@ are pushed to the cloud. A guest opening an invite is signed in anonymously a
 moment later, and treating "no role" as ours uploaded their unrelated local
 trips into the organiser's project under a throwaway account.
 
-**The top bar is two different bars.** An organiser gets a ⋯ menu — create a
-trip, Trip Settings, Print and the account row — with Share beside it. A
-traveller gets the language switch, their own trips, and a bare `+` to start a
-trip of their own: no menu, because a single item behind one is a tap spent on
-nothing. **The account row is the organiser's too.** ID + password is *their*
-sign-in, never something a friend is handed, and a guest who opened an invite
-is signed in anonymously — so the row read `Sign out · ?` and, tapped, threw
-away the anonymous account their seat is bound to, which is the lockout only
-Release can undo. A viewer gets neither menu nor `+`. There is no "you are a
-member" banner — announcing a permission that no longer differs from anyone
-else's was just noise. The read-only banner stays, because that one explains
-why controls are missing.
+**The top bar is two different bars.** An organiser gets a ⋯ menu — Trip
+Settings, Print and the account row — with Share beside it. A traveller gets
+the language switch and the trip name, and nothing else: no menu, because a
+single item behind one is a tap spent on nothing. Starting a trip of your own
+used to be a bare `+` up here and "create a trip" used to head the ⋯ menu;
+both are gone, because that action now sits at the foot of the trip sheet,
+beneath the list it would join. **The account row is the organiser's too.**
+ID + password is *their* sign-in, never something a friend is handed, and a
+guest who opened an invite is signed in anonymously — so the row read
+`Sign out · ?` and, tapped, threw away the anonymous account their seat is
+bound to, which is the lockout only Release can undo. A viewer gets no menu and
+nothing to create. There is no "you are a member" banner — announcing a
+permission that no longer differs from anyone else's was just noise. The
+read-only banner stays, because that one explains why controls are missing.
+
+**The trip name is a door, and the sheet behind it is ordered by time.**
+Tapping it opens `TripSwitcher`: every trip on this browser, live first, then
+upcoming soonest-first, then finished most-recent-first, with the finished ones
+folded behind a disclosure. The ordering is most of the point — the trip
+somebody wants is almost always the first row, so "which trip am I on" is
+answered before anybody taps. It replaced a `<select>` that printed the
+*destination* rather than the title, truncated it to `Bangk…` at 375px, opened
+an iOS wheel picker that reads as a form field rather than as somewhere to go,
+and gave no sign whether a trip was running or three years over. A finished
+trip carries no chip, because the group heading above it already said so.
+
+The phases and the ordering live in `src/services/tripOrder.ts` with tests,
+not in the component, because the same question decides what opens on launch.
+`preferredTripId` keeps whatever was last open while it still matters and hands
+a *finished* trip over to the live one — which is what stopped a March visit
+greeting you with November's itinerary — but only when there is a live or
+upcoming trip to hand over to, or "all my trips are over" would drag somebody
+off the one they were reading. Both `storage.getActiveTripId` and the cloud
+bootstrap in `App` go through it: two places answering "which trip is current"
+must not answer it two ways, and the old fallback in each was `trips[0]`, which
+is storage order and so no order at all.
+
+The sheet is rendered *outside* `<header>` on purpose. `sticky z-40` up there
+makes the header a stacking context, so a z-50 dialog nested inside it still
+paints at z-40 — and `BottomTabs` is a z-40 sibling later in the document, so
+the sheet would open underneath the tabs.
 
 **The app has three doors, and `EntryGate` is two of them.** Before you are on
 a trip you get one of two screens, and which one is the whole point:
@@ -188,6 +217,17 @@ until you seed a trip; see the `mobile-check` skill.
 Piping Python through a bash heredoc breaks on the Thai and Chinese strings in
 this repo (`unexpected EOF`). Write patch scripts to the scratchpad directory and
 run them by path.
+
+**`vercel.json` carries a Content-Security-Policy, and it names every host the
+app talks to** — Supabase over both `https:` and `wss:`, Photon, both
+exchange-rate APIs, and Google Fonts. Add a new API and the browser blocks it
+with nothing in the network tab but a console line, so the `fetch` and the
+header change together. `img-src` is deliberately left open to all of `https:`
+because the cover image is a URL anybody can paste into Trip Settings, and
+`style-src` has to keep `'unsafe-inline'` because both React's `style` prop and
+Leaflet write inline style attributes. `script-src` is `'self'` with no hash or
+nonce, which holds only while the build emits no inline script — it does not
+today. JSON takes no comments, which is why all of this is written here.
 
 Component tests need a DOM, so they carry a `// @vitest-environment jsdom`
 docblock; everything else runs in node. Testing Library's automatic cleanup only
@@ -298,6 +338,28 @@ policy is filtered by *that* table's policies, which is why `member_role` and
 Writing `exists (select 1 from trips ...)` directly into a policy is the bug
 that made trip creation silently fail to write its own membership row.
 
+**An `update` policy with no `with check` tests the new row with `using`.**
+That is Postgres's documented fallback, and it is how `trips_update` let any
+member write `owner_id = auth.uid()`: the row they wrote satisfied the very
+clause that let them in. Owning the trip is what `trip_owner()` answers, and
+three of the `trip_members` policies plus half of `trips_delete` ask it — so
+two calls later a member held admin and could release the organiser's own
+seat. The `trips_guard` trigger now refuses any change to `owner_id` or `id`.
+A trigger rather than a `with check` because it has `old` to compare against;
+saying "unchanged" inside a policy means calling `trip_owner()` back against
+the pre-statement snapshot, which is correct and far too subtle to survive the
+next edit. Add a column to `trips` that grants anything and it needs the same
+guard — the document itself is member-writable by design, and that is only
+safe while nothing *in* it decides permissions.
+
+`member_role` and `trip_owner` are also explicitly granted to `anon,
+authenticated` and revoked from `public`. Postgres grants `execute` on a new
+function to `public` by default, which for a `security definer` function means
+anyone holding the anon key can call it directly rather than only through the
+policies that need it. Both roles are named rather than just `authenticated`
+because a policy's functions run as the querying user: revoking from `anon`
+turns an unauthenticated read from an empty result into an error.
+
 **It is a PWA, and the service worker has one rule worth knowing.** Navigations
 are network-first; built assets are cache-first. That split is deliberate:
 `/assets/index-<hash>.js` is immutable — change the content and the name
@@ -346,7 +408,13 @@ fields from older saved trips so they stop riding along in every cloud push.
 by nothing, ever.
 `myRole` on a Trip is local-only — it describes *this browser's* permission, so
 `tripDocument` strips it (with `myTravelerId`) before any cloud push or share
-payload. It does persist to `localStorage`, which is what lets a role survive a
+payload, and `incomingDocument` strips the pair back off every document
+arriving from the server. Both halves are needed: the trips row is
+member-writable, so nothing stops a member writing those two keys into the
+document by hand, and spreading such a row would let them mislabel who "me" is
+in somebody else's budget tab and suppress that person's seat prompt. The
+server is the only thing entitled to say what the pair are, so they come off at
+the door and each caller puts back what it was actually told. It does persist to `localStorage`, which is what lets a role survive a
 reload offline, and `getTrips` guarantees every stored trip has one.
 
 Two other things are deliberately *not* on the Trip, for the same reason: the UI
@@ -421,6 +489,14 @@ things: the map container carries `isolate`, or Leaflet's z-indexes (up to
 1000) float its zoom buttons over the bottom tabs and modals; and the
 markers are `divIcon`s built from theme classes, because the default pin is an
 image whose path breaks under a bundler and a number says more anyway.
+
+**A trip id is a `crypto.randomUUID()`.** It used to be `trip-${Date.now()}`,
+which two people creating a trip in the same millisecond could collide on — and
+`createTripCloud` reads a duplicate primary key as "already exists", so the
+loser went on to ask for a membership row on a stranger's trip. RLS refused it,
+which was the right answer to the wrong question. Nothing anywhere reads the
+id's shape, so trips saved under the old scheme keep working beside the new
+ones and need no migration.
 
 Adding a field that existing saved trips won't have? Add a backfill in
 `src/services/storage.ts` — `getTrips()` already migrates older shapes, and

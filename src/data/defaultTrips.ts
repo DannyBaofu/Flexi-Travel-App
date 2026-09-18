@@ -15,7 +15,13 @@ export function createNewTrip(
   const days = buildDays(startDate, endDate);
 
   return {
-    id: `trip-${Date.now()}`,
+    // Not a timestamp: two people creating a trip in the same millisecond
+    // collided on a text primary key, and createTripCloud swallows the
+    // duplicate-key error as "already exists" — so the second one went on to
+    // ask for a membership row on somebody else's trip. RLS refused it, which
+    // is the right answer to the wrong question. Nothing reads the id's shape,
+    // so older `trip-<ms>` ids keep working alongside these.
+    id: crypto.randomUUID(),
     title,
     destination,
     country,

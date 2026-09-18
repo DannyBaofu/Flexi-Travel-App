@@ -48,7 +48,10 @@ export function mergeRemoteTrip(local: Trip, remote: Trip): Trip {
     // The draft list is the fastest thing in the app to type into, so it is
     // the likeliest to hold work that has not been sent yet.
     ideas: mergeById<TripIdea>(remote.ideas ?? [], local.ideas ?? []),
-    // Local-only: describes this browser's permission, never travels
-    myRole: local.myRole
+    // Local-only: describe this browser's seat, never travel. Restated here
+    // rather than left to `...remote` because the remote document is
+    // member-writable and may carry either key by hand.
+    myRole: local.myRole,
+    myTravelerId: local.myTravelerId
   };
 }

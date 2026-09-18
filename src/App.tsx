@@ -31,6 +31,7 @@ const SeatPickerModal = lazy(() => import('./components/SeatPickerModal').then(m
 import type { TabId } from './components/TabBar';
 import { useI18n } from './utils/i18n';
 import { mergeRemoteTrip } from './services/mergeTrip';
+import { preferredTripId } from './services/tripOrder';
 import { SyncBar } from './components/SyncBar';
 import { UndoToast } from './components/UndoToast';
 import type { PendingUndo } from './components/UndoToast';
@@ -203,7 +204,11 @@ export function App() {
         if (cancelled || cloudTrips.length === 0) return;
         storageService.saveTrips(cloudTrips);
         setTrips(cloudTrips);
-        setActiveTripId(prev => (cloudTrips.some(ct => ct.id === prev) ? prev : cloudTrips[0].id));
+        // Membership rows arrive in no particular order, so falling back to
+        // `cloudTrips[0]` landed on an arbitrary trip. Same rule as the local
+        // restore: keep what was open while it still matters, else take the
+        // trip most worth opening.
+        setActiveTripId(prev => preferredTripId(cloudTrips, prev));
       } catch (e) {
         console.error('Cloud sync bootstrap failed:', e);
       }
@@ -433,7 +438,11 @@ export function App() {
         const hasUnsent = unsentTripRef.current?.id === remoteTrip.id;
         const merged: Trip = hasUnsent && current
           ? mergeRemoteTrip(current, remoteTrip)
-          : { ...remoteTrip, myRole: current?.myRole ?? 'viewer' };
+          : {
+              ...remoteTrip,
+              myRole: current?.myRole ?? 'viewer',
+              myTravelerId: current?.myTravelerId
+            };
         const next = current
           ? prev.map(pt => (pt.id === remoteTrip.id ? merged : pt))
           : [merged, ...prev];

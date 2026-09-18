@@ -60,6 +60,20 @@ as $$
   select owner_id from trips where id = p_trip_id;
 $$;
 
+-- Postgres grants EXECUTE on a new function to PUBLIC, which for a `security
+-- definer` function means anyone holding the anon key can call it straight
+-- out rather than only through the policies that need it. Neither of these
+-- gives much away on its own — member_role only ever answers about the
+-- caller — but who may call them belongs written down rather than inherited,
+-- so that the next definer function added here is not granted to the world
+-- by habit. Both roles are named because a policy's functions run as the
+-- querying user: revoking from anon would turn an unauthenticated read from
+-- an empty result into an error.
+revoke execute on function public.member_role(text) from public;
+revoke execute on function public.trip_owner(text) from public;
+grant execute on function public.member_role(text) to anon, authenticated;
+grant execute on function public.trip_owner(text) to anon, authenticated;
+
 -- trips: members read; admins+members write; admins delete; owners create
 -- The owner is always allowed through: their membership row is written a moment
 -- after the trip itself, and until it lands they would otherwise be locked out
@@ -79,6 +93,40 @@ create policy trips_update on public.trips
 drop policy if exists trips_delete on public.trips;
 create policy trips_delete on public.trips
   for delete using (public.member_role(id) = 'admin' or owner_id = auth.uid());
+
+-- Owning the trip is what grants admin everywhere else — trip_owner() decides
+-- three of the trip_members policies and half of trips_delete — so owner_id is
+-- not something a write to the document may change.
+--
+-- The update policy cannot say that on its own. `trips_update` has a USING
+-- clause and no WITH CHECK, and Postgres then re-uses USING to test the new
+-- row: a member naming themselves owner produces a row that satisfies it
+-- twice over, so the write is taken. Two calls later they have promoted
+-- themselves through members_update and can release the organiser's own seat.
+--
+-- A trigger rather than a WITH CHECK because a trigger has OLD to compare
+-- against. Saying "unchanged" in a policy means calling trip_owner() back
+-- against the pre-statement snapshot, which is correct and far too subtle to
+-- survive the next edit to this file.
+create or replace function public.trips_guard_immutable()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if new.owner_id is distinct from old.owner_id then
+    raise exception 'OWNER_IMMUTABLE';
+  end if;
+  if new.id is distinct from old.id then
+    raise exception 'ID_IMMUTABLE';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trips_guard on public.trips;
+create trigger trips_guard before update on public.trips
+  for each row execute function public.trips_guard_immutable();
 
 -- trip_members: members can see the roster; admins manage it;
 -- the owner may insert their own admin row right after creating the trip
@@ -132,6 +180,18 @@ create policy invites_insert on public.trip_invites
 drop policy if exists invites_delete on public.trip_invites;
 create policy invites_delete on public.trip_invites
   for delete using (public.member_role(trip_id) = 'admin');
+
+-- `role` on an invite is dead: the link stopped carrying one when claim_seat
+-- took over, and nothing reads the column. It stays rather than being dropped
+-- so the app and the schema can be deployed in either order — a default
+-- covers a client that no longer sends it, and the old value it did send is
+-- still the only one allowed. What changes is that 'admin' is no longer a
+-- permitted value. It was a loaded gun for whoever next decides this table is
+-- worth reading back.
+update public.trip_invites set role = 'member' where role is distinct from 'member';
+alter table public.trip_invites alter column role set default 'member';
+alter table public.trip_invites drop constraint if exists trip_invites_role_check;
+alter table public.trip_invites add constraint trip_invites_role_check check (role = 'member');
 
 -- `join_trip` is gone. It predated seats: it took a code, wrote a membership
 -- row with whatever role the invite carried, and left `traveler_id` null.

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, MapPin, Edit2 } from 'lucide-react';
 import type { Trip, TripRole } from '../types/travel';
+import { formatDateRange } from '../services/tripDays';
 import { useI18n } from '../utils/i18n';
 
 interface TripBannerProps {
@@ -18,17 +19,6 @@ export const TripBanner: React.FC<TripBannerProps> = ({
   const isAdmin = role === 'admin';
 
   const totalActivities = trip.days.reduce((sum, day) => sum + (day.activities?.length || 0), 0);
-
-  const formatDateDisplay = (start: string, end: string) => {
-    const locale = lang === 'zh' ? 'zh-CN' : 'en-US';
-    try {
-      const s = new Date(start);
-      const e = new Date(end);
-      return `${s.toLocaleDateString(locale, { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(locale, { month: 'short', day: 'numeric' })}`;
-    } catch {
-      return `${start} – ${end}`;
-    }
-  };
 
   return (
     <div className="bg-paper border border-hairline rounded-card shadow-lift overflow-hidden mb-5">
@@ -65,7 +55,7 @@ export const TripBanner: React.FC<TripBannerProps> = ({
           <span className="text-hairline">·</span>
           <span className="inline-flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5 shrink-0 text-faint" />
-            {formatDateDisplay(trip.startDate, trip.endDate)}
+            {formatDateRange(trip.startDate, trip.endDate, lang)}
           </span>
           <span className="text-hairline">·</span>
           <span>{t('daysNights', { d: trip.days.length, n: Math.max(trip.days.length - 1, 0) })}</span>

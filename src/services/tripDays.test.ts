@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { reconcileDays, buildDays, countDays, parseLocalDate } from './tripDays';
+import {
+  reconcileDays,
+  buildDays,
+  countDays,
+  parseLocalDate,
+  formatDateRange
+} from './tripDays';
 import type { ActivityItem, DaySchedule } from '../types/travel';
 
 const activity = (id: string): ActivityItem => ({
@@ -100,5 +106,42 @@ describe('buildDays', () => {
     expect(days).toHaveLength(3);
     expect(days.map(d => d.dateString)).toEqual(['2026-09-01', '2026-09-02', '2026-09-03']);
     expect(new Set(days.map(d => d.id)).size).toBe(3);
+  });
+});
+
+describe('formatDateRange', () => {
+  const thisYear = new Date().getFullYear();
+  const iso = (year: number, monthDay: string) => `${year}-${monthDay}`;
+
+  it('leaves the year off a trip in the current year', () => {
+    const line = formatDateRange(iso(thisYear, '11-14'), iso(thisYear, '11-19'), 'en');
+    expect(line).toBe('Nov 14 \u2013 Nov 19');
+    expect(line).not.toContain(String(thisYear));
+  });
+
+  // Two finished trips in a list are otherwise indistinguishable: 'May 21'
+  // and 'Aug 14' say nothing about which year each one happened in.
+  it('carries the year on a trip from another year', () => {
+    const line = formatDateRange(iso(thisYear - 1, '08-14'), iso(thisYear - 1, '08-20'), 'en');
+    expect(line).toContain(String(thisYear - 1));
+  });
+
+  it('puts the year where each language puts it', () => {
+    const en = formatDateRange(iso(thisYear - 1, '08-14'), iso(thisYear - 1, '08-20'), 'en');
+    const zh = formatDateRange(iso(thisYear - 1, '08-14'), iso(thisYear - 1, '08-20'), 'zh');
+    // English states the year after the date, so it lands on the end of the
+    // range; Chinese states it before, so it lands on the start.
+    expect(en.split('\u2013')[1]).toContain(String(thisYear - 1));
+    expect(zh.split('\u2013')[0]).toContain(String(thisYear - 1));
+  });
+
+  it('carries the year for a trip still a year away', () => {
+    const line = formatDateRange(iso(thisYear + 1, '01-02'), iso(thisYear + 1, '01-08'), 'en');
+    expect(line).toContain(String(thisYear + 1));
+  });
+
+  // A mistyped date must still render something rather than "Invalid Date".
+  it('falls back to the raw strings it was given', () => {
+    expect(formatDateRange('not-a-date', 'nor-this', 'en')).toBe('not-a-date - nor-this');
   });
 });
