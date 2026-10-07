@@ -63,6 +63,8 @@ const dict: Record<string, Entry> = {
 
   // ---- Transport connector ----
   approxMinutes: { zh: '约 {n} 分钟', en: '~{n} min' },
+  approxHours: { zh: '约 {h} 小时', en: '~{h} h' },
+  approxHoursMinutes: { zh: '约 {h} 小时 {m} 分钟', en: '~{h} h {m} min' },
   directions: { zh: '查看路线', en: 'Directions' },
   mode_bts: { zh: 'BTS 轻轨', en: 'BTS Skytrain' },
   mode_mrt: { zh: 'MRT 地铁', en: 'MRT Subway' },
@@ -128,6 +130,11 @@ const dict: Record<string, Entry> = {
   locationVenue: { zh: '地点 / 场所名称', en: 'Location / Venue Name' },
   estCostLabel: { zh: '预计花费（{cur}）', en: 'Estimated Cost ({cur})' },
   notesTips: { zh: '备注、小贴士与提醒', en: 'Notes, Tips & Reminders' },
+  // The hop after this activity — shown between it and the next one
+  nextStopMode: { zh: '怎么去下一站', en: 'To the next stop' },
+  nextStopNone: { zh: '不填', en: 'Not set' },
+  nextStopMinutes: { zh: '路上要多久（分钟）', en: 'Travel time (minutes)' },
+  nextStopNote: { zh: '路线备注', en: 'Route note' },
   saveChanges: { zh: '保存修改', en: 'Save Changes' },
 
   // ---- New trip modal ----

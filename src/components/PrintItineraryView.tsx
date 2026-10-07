@@ -2,6 +2,7 @@ import React from 'react';
 import type { Trip, TransportMode } from '../types/travel';
 import { useI18n, translateWeekday } from '../utils/i18n';
 import { hasFlightInfo, journeyDate, formatLegDate } from '../services/flights';
+import { travelTimeLabel } from '../services/travelTime';
 
 const MODE_T_KEYS: Record<TransportMode, string> = {
   bts: 'mode_bts',
@@ -123,9 +124,14 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
                       {act.notes && <div className="text-muted mt-0.5">{act.notes}</div>}
                       {act.transportToNext && (
                         <div className="text-muted mt-0.5 font-medium">
-                          → {t(MODE_T_KEYS[act.transportToNext.mode])} · {t('approxMinutes', { n: act.transportToNext.durationMin })}
+                          → {t(MODE_T_KEYS[act.transportToNext.mode])} · {travelTimeLabel(act.transportToNext.durationMin, t)}
                           {act.transportToNext.costHint ? ` · ${act.transportToNext.costHint}` : ''}
-                          {' · '}{lang === 'zh' ? (act.transportToNext.noteZh || act.transportToNext.note) : act.transportToNext.note}
+                          {/* The note is optional now that people write it, so the separator is too */}
+                          {(() => {
+                            const hop = act.transportToNext;
+                            const note = lang === 'zh' ? (hop.noteZh || hop.note) : hop.note;
+                            return note ? ` · ${note}` : '';
+                          })()}
                         </div>
                       )}
                     </div>

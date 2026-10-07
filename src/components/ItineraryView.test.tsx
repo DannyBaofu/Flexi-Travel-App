@@ -123,3 +123,36 @@ describe('ItineraryView — the day strip survives every shape of trip', () => {
     expect(screen.getByRole('button', { name: /全部总览/ })).toBeInTheDocument();
   });
 });
+
+describe('ItineraryView — the travel time between two activities', () => {
+  const act = (id: string, time: string, over: Partial<DaySchedule['activities'][number]> = {}) => ({
+    id,
+    time,
+    title: id,
+    category: 'transport' as const,
+    locationName: '',
+    ...over
+  });
+
+  it('shows how long the hop takes, in hours and minutes past an hour', () => {
+    renderItinerary({
+      days: [day(1, [
+        act('board', '07:06', { transportToNext: { mode: 'train', durationMin: 100 } }),
+        act('arrive', '07:50')
+      ])]
+    });
+    expect(screen.getByText('火车')).toBeInTheDocument();
+    expect(screen.getByText('约 1 小时 40 分钟')).toBeInTheDocument();
+  });
+
+  /** The hop describes the gap to the next activity; the last one has none to show. */
+  it('shows nothing after the last activity of the day', () => {
+    renderItinerary({
+      days: [day(1, [
+        act('first', '09:00'),
+        act('last', '10:00', { transportToNext: { mode: 'walk', durationMin: 5 } })
+      ])]
+    });
+    expect(screen.queryByText('约 5 分钟')).not.toBeInTheDocument();
+  });
+});

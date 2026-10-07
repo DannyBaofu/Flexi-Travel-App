@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, CalendarPlus } from 'lucide-react';
-import type { ActivityItem, ActivityCategory, DaySchedule, Trip } from '../types/travel';
+import { MapPin, Clock, CalendarPlus, Route } from 'lucide-react';
+import type { ActivityItem, ActivityCategory, DaySchedule, TransportMode, Trip } from '../types/travel';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { mapsUrlFor, type PlaceSuggestion } from '../services/placeSearch';
 import { useI18n, translateWeekday } from '../utils/i18n';
@@ -23,6 +23,9 @@ interface ActivityModalProps {
   prefill?: { title: string; category: ActivityCategory } | null;
 }
 
+/** Most-used first: a select is read top-down, and walking is most hops. */
+const NEXT_STOP_MODES: TransportMode[] = ['walk', 'taxi', 'train', 'bus', 'bts', 'mrt', 'airportRail', 'boat'];
+
 export const ActivityModal: React.FC<ActivityModalProps> = ({
   isOpen,
   onClose,
@@ -43,6 +46,11 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [cost, setCost] = useState<number | ''>(0);
   const [notes, setNotes] = useState('');
+  // The hop to the next activity. An empty mode means none was written, and
+  // then the minutes and note are not asked for.
+  const [nextMode, setNextMode] = useState<TransportMode | ''>('');
+  const [nextMinutes, setNextMinutes] = useState<number | ''>('');
+  const [nextNote, setNextNote] = useState('');
 
   useEffect(() => {
     if (activityToEdit) {
@@ -59,6 +67,10 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       );
       setCost(activityToEdit.cost !== undefined ? activityToEdit.cost : 0);
       setNotes(activityToEdit.notes || '');
+      const hop = activityToEdit.transportToNext;
+      setNextMode(hop?.mode ?? '');
+      setNextMinutes(hop ? hop.durationMin : '');
+      setNextNote(hop ? (hop.note || hop.noteZh || '') : '');
     } else {
       setTime('10:00');
       setTitle(prefill?.title ?? '');
@@ -72,6 +84,9 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setCoords(null);
       setCost(0);
       setNotes('');
+      setNextMode('');
+      setNextMinutes('');
+      setNextNote('');
     }
     setSelectedDayId(currentDayId);
   }, [activityToEdit, currentDayId, isOpen, prefill]);
@@ -102,6 +117,9 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+    // The browser's `required` normally stops this; a hop with no length is
+    // not worth saving if anything gets past it.
+    if (nextMode && !(Number(nextMinutes) >= 1)) return;
 
     const activity: ActivityItem = {
       id: activityToEdit ? activityToEdit.id : `act-${Date.now()}`,
@@ -115,7 +133,19 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       lon: coords?.lon,
       cost: cost === '' ? 0 : Number(cost),
       currency: trip.currency,
-      notes: notes.trim() || undefined
+      notes: notes.trim() || undefined,
+      // Rebuilt from the form, keeping only what the form doesn't show
+      // (`costHint`). The note is one line in whatever language it was typed,
+      // so a `noteZh` left behind would shadow the edit in Chinese.
+      transportToNext: nextMode
+        ? {
+            ...activityToEdit?.transportToNext,
+            mode: nextMode,
+            durationMin: Math.round(Number(nextMinutes)),
+            note: nextNote.trim() || undefined,
+            noteZh: undefined
+          }
+        : undefined
     };
 
     onSave(selectedDayId, activity);
@@ -261,6 +291,57 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
             onChange={(e) => setNotes(e.target.value)}
             className={`${input} resize-none`}
           />
+        </div>
+
+        {/* Ruled off from the fields above: this describes the gap *after*
+            the activity, and it shows between this one and the next. */}
+        <div className="pt-4 border-t border-hairline space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={`${label} flex items-center gap-1.5`} htmlFor="activity-next-mode">
+                <Route className="w-3.5 h-3.5" /> {t('nextStopMode')}
+              </label>
+              <select
+                id="activity-next-mode"
+                value={nextMode}
+                onChange={(e) => setNextMode(e.target.value as TransportMode | '')}
+                className={select}
+              >
+                <option value="">{t('nextStopNone')}</option>
+                {NEXT_STOP_MODES.map((mode) => (
+                  <option key={mode} value={mode}>{t(`mode_${mode}`)}</option>
+                ))}
+              </select>
+            </div>
+            {nextMode && (
+              <div>
+                <label className={label} htmlFor="activity-next-minutes">{t('nextStopMinutes')}</label>
+                <input
+                  id="activity-next-minutes"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  step="1"
+                  value={nextMinutes}
+                  onChange={(e) => setNextMinutes(e.target.value === '' ? '' : Number(e.target.value))}
+                  className={inputMono}
+                  required
+                />
+              </div>
+            )}
+          </div>
+          {nextMode && (
+            <div>
+              <label className={label} htmlFor="activity-next-note">{t('nextStopNote')}</label>
+              <input
+                id="activity-next-note"
+                type="text"
+                value={nextNote}
+                onChange={(e) => setNextNote(e.target.value)}
+                className={input}
+              />
+            </div>
+          )}
         </div>
       </form>
     </Modal>

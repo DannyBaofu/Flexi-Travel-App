@@ -21,6 +21,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { Trip, DaySchedule, ActivityItem, TransportMode, TripRole } from '../types/travel';
 import { useI18n, translateWeekday } from '../utils/i18n';
 import { locatedStops, hopsBetween, totalKm, roundDistance, directionsUrl } from '../services/geo';
+import { travelTimeLabel } from '../services/travelTime';
 import {
   card,
   cardFlat,
@@ -257,7 +258,9 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
         {transport && (
           <>
             <span className="font-medium text-muted">{t(transportModeMeta[transport.mode].tKey)}</span>
-            <span className={money}>{t('approxMinutes', { n: transport.durationMin })}</span>
+            {/* How long it takes is what this line is read for. Not `money`:
+                monospace spaces the Chinese units apart ("约  1  小时"). */}
+            <span className="font-medium text-muted tabular-nums">{travelTimeLabel(transport.durationMin, t)}</span>
             {transport.costHint && <span className={money}>{transport.costHint}</span>}
             {note && <span className="min-w-0 truncate max-w-full">{note}</span>}
           </>
