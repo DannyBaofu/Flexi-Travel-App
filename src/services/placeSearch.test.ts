@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { describePlace, mapsUrlFor } from './placeSearch';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describePlace, mapsUrlFor, searchPlaces } from './placeSearch';
 
 describe('describePlace', () => {
   it('leads with the venue name and puts the address underneath', () => {
@@ -49,5 +49,23 @@ describe('mapsUrlFor', () => {
   it('pins the exact coordinates rather than re-searching the name', () => {
     const url = mapsUrlFor({ id: 'x', name: 'Wat Arun', address: '', lat: 13.7437, lon: 100.4889 });
     expect(url).toBe('https://www.google.com/maps/search/?api=1&query=13.7437,100.4889');
+  });
+});
+
+describe('searchPlaces', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const respond = (features: unknown[]) =>
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ features }) })));
+
+  // Photon returns ICONSIAM twice under one OSM id with different house numbers
+  it('lists one feature once, even when its address comes back two ways', async () => {
+    const iconsiam = (housenumber: string) => ({
+      geometry: { coordinates: [100.5103, 13.7268] },
+      properties: { name: 'ICONSIAM', housenumber, street: 'Charoen Nakhon Road', osm_type: 'W', osm_id: 680735864 }
+    });
+    respond([iconsiam('259'), iconsiam('168')]);
+    const places = await searchPlaces('ICONSIAM', 'Bangkok');
+    expect(places.map(p => p.id)).toEqual(['W-680735864']);
   });
 });

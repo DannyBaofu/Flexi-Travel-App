@@ -31,6 +31,7 @@ const SeatPickerModal = lazy(() => import('./components/SeatPickerModal').then(m
 import type { TabId } from './components/TabBar';
 import { useI18n } from './utils/i18n';
 import { mergeRemoteTrip } from './services/mergeTrip';
+import { placeActivity } from './services/placeActivity';
 import { preferredTripId } from './services/tripOrder';
 import { SyncBar } from './components/SyncBar';
 import { UndoToast } from './components/UndoToast';
@@ -510,19 +511,7 @@ export function App() {
 
   const handleSaveActivity = (dayId: string, activity: ActivityItem) => {
     if (!activeTrip) return;
-    const updatedDays = activeTrip.days.map((day) => {
-      if (day.id !== dayId) return day;
-
-      const existingIndex = day.activities.findIndex(a => a.id === activity.id);
-      let newActivities: ActivityItem[];
-      if (existingIndex >= 0) {
-        newActivities = [...day.activities];
-        newActivities[existingIndex] = activity;
-      } else {
-        newActivities = [...day.activities, activity];
-      }
-      return { ...day, activities: newActivities };
-    });
+    const updatedDays = placeActivity(activeTrip.days, dayId, activity);
 
     // Tick the idea off in the same write, so the draft list and the schedule
     // can never disagree about whether this one got planned.

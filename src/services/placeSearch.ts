@@ -103,10 +103,13 @@ export async function searchPlaces(
     .map(describePlace)
     .filter((p): p is PlaceSuggestion => p !== null)
     .filter(p => {
-      // The same venue often comes back as both a node and a way
+      // The same venue often comes back as both a node and a way, and one
+      // feature can come back twice with different address parts. The list
+      // is keyed by id, so that has to be unique too.
       const key = `${p.name}|${p.address}`;
-      if (seen.has(key)) return false;
+      if (seen.has(key) || seen.has(p.id)) return false;
       seen.add(key);
+      seen.add(p.id);
       return true;
     })
     .slice(0, 5);
