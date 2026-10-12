@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, CalendarPlus, Route } from 'lucide-react';
+import { MapPin, Clock, CalendarPlus, Route, Languages, ChevronDown } from 'lucide-react';
 import type { ActivityItem, ActivityCategory, DaySchedule, TransportMode, Trip } from '../types/travel';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { mapsUrlFor, type PlaceSuggestion } from '../services/placeSearch';
+import { translationStillFits } from '../services/activityText';
 import { useI18n, translateWeekday } from '../utils/i18n';
 import { Modal, btnPrimary, btnGhost, input, inputMono, select, label } from './ui';
 import { LocationInput } from './LocationInput';
@@ -51,6 +52,14 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   const [nextMode, setNextMode] = useState<TransportMode | ''>('');
   const [nextMinutes, setNextMinutes] = useState<number | ''>('');
   const [nextNote, setNextNote] = useState('');
+  // The English copy, folded away by default — most people only ever type the
+  // one language. "Touched" is what lets English typed in this edit survive a
+  // rewrite of the original it translates.
+  const [showEn, setShowEn] = useState(false);
+  const [titleEn, setTitleEn] = useState('');
+  const [notesEn, setNotesEn] = useState('');
+  const [routeNoteEn, setRouteNoteEn] = useState('');
+  const [enTouched, setEnTouched] = useState({ title: false, notes: false, route: false });
 
   useEffect(() => {
     if (activityToEdit) {
@@ -71,6 +80,11 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setNextMode(hop?.mode ?? '');
       setNextMinutes(hop ? hop.durationMin : '');
       setNextNote(hop ? (hop.note || hop.noteZh || '') : '');
+      const en = activityToEdit.translationEn;
+      setTitleEn(en?.title || '');
+      setNotesEn(en?.notes || '');
+      setRouteNoteEn(en?.transportNote || '');
+      setShowEn(!!(en?.title || en?.notes || en?.transportNote));
     } else {
       setTime('10:00');
       setTitle(prefill?.title ?? '');
@@ -87,7 +101,12 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setNextMode('');
       setNextMinutes('');
       setNextNote('');
+      setTitleEn('');
+      setNotesEn('');
+      setRouteNoteEn('');
+      setShowEn(false);
     }
+    setEnTouched({ title: false, notes: false, route: false });
     setSelectedDayId(currentDayId);
   }, [activityToEdit, currentDayId, isOpen, prefill]);
 
@@ -121,6 +140,18 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
     // not worth saving if anything gets past it.
     if (nextMode && !(Number(nextMinutes) >= 1)) return;
 
+    const savedHop = activityToEdit?.transportToNext;
+    const keep = (english: string, touched: boolean, originalNow: string, originalSaved: string | undefined) =>
+      english.trim() && translationStillFits(touched, originalNow, originalSaved) ? english.trim() : undefined;
+    const english = {
+      title: keep(titleEn, enTouched.title, title, activityToEdit?.title),
+      notes: keep(notesEn, enTouched.notes, notes, activityToEdit?.notes),
+      // No hop, no line to translate
+      transportNote: nextMode
+        ? keep(routeNoteEn, enTouched.route, nextNote, savedHop ? savedHop.note || savedHop.noteZh : undefined)
+        : undefined
+    };
+
     const activity: ActivityItem = {
       id: activityToEdit ? activityToEdit.id : `act-${Date.now()}`,
       time: time.trim() || '12:00',
@@ -145,7 +176,8 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
             note: nextNote.trim() || undefined,
             noteZh: undefined
           }
-        : undefined
+        : undefined,
+      translationEn: english.title || english.notes || english.transportNote ? english : undefined
     };
 
     onSave(selectedDayId, activity);
@@ -340,6 +372,60 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                 onChange={(e) => setNextNote(e.target.value)}
                 className={input}
               />
+            </div>
+          )}
+        </div>
+
+        {/* Folded unless there is English to show: most people type one
+            language, and three empty boxes would be one more thing to read past. */}
+        <div className="pt-3 border-t border-hairline">
+          <button
+            type="button"
+            onClick={() => setShowEn(v => !v)}
+            aria-expanded={showEn}
+            className="w-full flex items-center justify-between gap-3 text-left min-h-11"
+          >
+            <span className="text-xs font-semibold text-muted inline-flex items-center gap-1.5">
+              <Languages className="w-3.5 h-3.5" /> {t('translationEnToggle')}
+            </span>
+            <ChevronDown className={`w-3.5 h-3.5 text-faint transition-transform ${showEn ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showEn && (
+            <div className="space-y-3 mt-1">
+              <p className="text-[11px] text-faint leading-relaxed">{t('translationEnHint')}</p>
+              <div>
+                <label className={label} htmlFor="activity-title-en">{t('translationEnTitle')}</label>
+                <input
+                  id="activity-title-en"
+                  type="text"
+                  value={titleEn}
+                  onChange={(e) => { setTitleEn(e.target.value); setEnTouched(s => ({ ...s, title: true })); }}
+                  className={input}
+                />
+              </div>
+              <div>
+                <label className={label} htmlFor="activity-notes-en">{t('translationEnNotes')}</label>
+                <textarea
+                  id="activity-notes-en"
+                  rows={3}
+                  value={notesEn}
+                  onChange={(e) => { setNotesEn(e.target.value); setEnTouched(s => ({ ...s, notes: true })); }}
+                  className={`${input} resize-none`}
+                />
+              </div>
+              {nextMode && (
+                <div>
+                  <label className={label} htmlFor="activity-next-note-en">{t('translationEnRouteNote')}</label>
+                  <input
+                    id="activity-next-note-en"
+                    type="text"
+                    value={routeNoteEn}
+                    onChange={(e) => { setRouteNoteEn(e.target.value); setEnTouched(s => ({ ...s, route: true })); }}
+                    className={input}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

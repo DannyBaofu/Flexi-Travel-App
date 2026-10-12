@@ -135,6 +135,12 @@ const dict: Record<string, Entry> = {
   nextStopNone: { zh: '不填', en: 'Not set' },
   nextStopMinutes: { zh: '路上要多久（分钟）', en: 'Travel time (minutes)' },
   nextStopNote: { zh: '路线备注', en: 'Route note' },
+  // The English copy of what was typed, shown when the app is in English
+  translationEnToggle: { zh: '英文版（可选）', en: 'English version (optional)' },
+  translationEnHint: { zh: '切换到 EN 时显示这些；没填的地方显示原文。', en: 'Shown when the app is in English. Anything left blank shows the original.' },
+  translationEnTitle: { zh: '英文名称', en: 'English title' },
+  translationEnNotes: { zh: '英文备注', en: 'English notes' },
+  translationEnRouteNote: { zh: '英文路线备注', en: 'English route note' },
   saveChanges: { zh: '保存修改', en: 'Save Changes' },
 
   // ---- New trip modal ----

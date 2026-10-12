@@ -156,3 +156,32 @@ describe('ItineraryView — the travel time between two activities', () => {
     expect(screen.queryByText('约 5 分钟')).not.toBeInTheDocument();
   });
 });
+
+describe('ItineraryView — English copies of what was typed', () => {
+  const dinner = {
+    id: 'dinner',
+    time: '19:00',
+    title: '唐人街夜市晚餐',
+    category: 'food' as const,
+    locationName: 'T&K Seafood',
+    transportToNext: { mode: 'taxi' as const, durationMin: 15, note: '叫 3 辆 Grab' },
+    translationEn: { title: 'Chinatown night-market dinner', transportNote: 'Book 3 Grabs' }
+  };
+  const home = { id: 'home', time: '21:45', title: '回住宿休息', category: 'hotel' as const, locationName: '' };
+
+  afterEach(() => localStorage.removeItem('travelsync-lang'));
+
+  it('shows what was typed in Chinese', () => {
+    renderItinerary({ days: [day(1, [dinner, home])] });
+    expect(screen.getByText('唐人街夜市晚餐')).toBeInTheDocument();
+    expect(screen.getByText('叫 3 辆 Grab')).toBeInTheDocument();
+  });
+
+  it('shows the English copy in English, and the original where there is none', () => {
+    localStorage.setItem('travelsync-lang', 'en');
+    renderItinerary({ days: [day(1, [dinner, home])] });
+    expect(screen.getByText('Chinatown night-market dinner')).toBeInTheDocument();
+    expect(screen.getByText('Book 3 Grabs')).toBeInTheDocument();
+    expect(screen.getByText('回住宿休息')).toBeInTheDocument();
+  });
+});

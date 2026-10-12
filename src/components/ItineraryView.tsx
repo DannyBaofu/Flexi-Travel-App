@@ -22,6 +22,7 @@ import type { Trip, DaySchedule, ActivityItem, TransportMode, TripRole } from '.
 import { useI18n, translateWeekday } from '../utils/i18n';
 import { locatedStops, hopsBetween, totalKm, roundDistance, directionsUrl } from '../services/geo';
 import { travelTimeLabel } from '../services/travelTime';
+import { activityText } from '../services/activityText';
 import {
   card,
   cardFlat,
@@ -206,7 +207,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
     onUpdateTrip({ ...trip, days: updatedDays });
 
     // Put it back where it was, not on the end of the day
-    onOfferUndo(trip.id, t('deletedActivity', { name: activity.title }), current => ({
+    onOfferUndo(trip.id, t('deletedActivity', { name: activityText(activity, lang).title }), current => ({
       ...current,
       days: current.days.map(day => {
         if (day.id !== dayId) return day;
@@ -225,8 +226,14 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
       id: `act-${Date.now()}`,
       title: `${activity.title} (Copy)`,
       // The copy lands at the end of the day, so the original's
-      // transport-to-next suggestion no longer applies to it.
-      transportToNext: undefined
+      // transport-to-next suggestion no longer applies to it — nor does
+      // the English for that line.
+      transportToNext: undefined,
+      translationEn: activity.translationEn && {
+        ...activity.translationEn,
+        title: activity.translationEn.title && `${activity.translationEn.title} (Copy)`,
+        transportNote: undefined
+      }
     };
     const updatedDays = trip.days.map(day => {
       if (day.id !== dayId) return day;
@@ -250,7 +257,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
     if (!transport && !dirUrl) return null;
 
     const ModeIcon = transport ? transportModeMeta[transport.mode].icon : MapPin;
-    const note = transport ? (lang === 'zh' ? (transport.noteZh || transport.note) : transport.note) : null;
+    const note = activityText(activity, lang).transportNote;
 
     return (
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-3 text-[11px] text-faint">
@@ -262,7 +269,9 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                 monospace spaces the Chinese units apart ("约  1  小时"). */}
             <span className="font-medium text-muted tabular-nums">{travelTimeLabel(transport.durationMin, t)}</span>
             {transport.costHint && <span className={money}>{transport.costHint}</span>}
-            {note && <span className="min-w-0 truncate max-w-full">{note}</span>}
+            {/* Two lines, not one: the note is often the instruction ("book 3
+                Grabs from the gate"), and English runs longer than Chinese */}
+            {note && <span className="min-w-0 max-w-full line-clamp-2">{note}</span>}
           </>
         )}
         {dirUrl && (
@@ -339,7 +348,8 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           const activities = day.activities || [];
           const dayCost = activities.reduce((sum, a) => sum + (a.cost || 0), 0);
           const isToday = trip.days.indexOf(day) === todayIndex;
-          const stops = locatedStops(activities);
+          // The map and its hop list name stops in the reader's language
+          const stops = locatedStops(activities.map(a => ({ ...a, title: activityText(a, lang).title })));
           const hops = hopsBetween(stops);
           const unpinned = activities.length - stops.length;
           const mapOpen = mapOpenIds.has(day.id);
@@ -466,6 +476,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                     const homeCost = activity.cost ? Math.round(activity.cost / rate) : null;
                     const isExpanded = expandedIds.has(activity.id);
                     const nextActivity = activities[actIdx + 1];
+                    const text = activityText(activity, lang);
 
                     return (
                       <React.Fragment key={activity.id}>
@@ -493,7 +504,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
                             <div className="min-w-0 flex-1">
                               <div className="text-sm font-semibold text-ink leading-snug line-clamp-2">
-                                {activity.title}
+                                {text.title}
                               </div>
 
                               {activity.locationName && (
@@ -540,10 +551,10 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                 )}
                               </div>
 
-                              {activity.notes && (
+                              {text.notes && (
                                 <p className="text-xs text-muted bg-mist p-2.5 rounded-control leading-relaxed">
                                   <span className="font-semibold text-ink">{t('tips')}: </span>
-                                  {activity.notes}
+                                  {text.notes}
                                 </p>
                               )}
 

@@ -102,3 +102,71 @@ describe('ActivityModal — the hop to the next stop', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 });
+
+describe('ActivityModal — the English copy', () => {
+  const translated: ActivityItem = {
+    ...van,
+    notes: '司机在车站出口等',
+    translationEn: { title: 'Van to Hat Yai Airport', notes: 'The driver waits at the station exit', transportNote: 'Straight to the airport' }
+  };
+
+  it('keeps the English folded away until asked for', async () => {
+    renderModal();
+    expect(screen.queryByLabelText('英文名称')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /英文版/ }));
+    expect(screen.getByLabelText('英文名称')).toBeInTheDocument();
+  });
+
+  it('saves English typed alongside a new activity', async () => {
+    const { saved } = renderModal();
+    await userEvent.type(screen.getByLabelText(/活动名称/), '唐人街晚餐');
+    await userEvent.selectOptions(screen.getByLabelText(/怎么去下一站/), 'taxi');
+    await userEvent.type(screen.getByLabelText('路上要多久（分钟）'), '15');
+    await userEvent.type(screen.getByLabelText('路线备注'), '叫 Grab');
+    await userEvent.click(screen.getByRole('button', { name: /英文版/ }));
+    await userEvent.type(screen.getByLabelText('英文名称'), 'Chinatown dinner');
+    await userEvent.type(screen.getByLabelText('英文路线备注'), 'Book a Grab');
+    await userEvent.click(screen.getByRole('button', { name: '添加活动' }));
+    expect(saved().translationEn).toEqual({ title: 'Chinatown dinner', transportNote: 'Book a Grab' });
+  });
+
+  it('opens with the English showing when there is some, and keeps it through an untouched edit', async () => {
+    const { saved } = renderModal(translated);
+    expect(screen.getByLabelText('英文名称')).toHaveValue('Van to Hat Yai Airport');
+    await userEvent.click(screen.getByRole('button', { name: '保存修改' }));
+    expect(saved().translationEn).toEqual(translated.translationEn);
+  });
+
+  /** A translation of text that is gone is worse than showing the Chinese. */
+  it('drops the English for whatever Chinese was rewritten, and only that', async () => {
+    const { saved } = renderModal(translated);
+    const title = screen.getByLabelText(/活动名称/);
+    await userEvent.clear(title);
+    await userEvent.type(title, '包车去合艾机场（改）');
+    await userEvent.click(screen.getByRole('button', { name: '保存修改' }));
+    expect(saved().translationEn).toEqual({
+      notes: 'The driver waits at the station exit',
+      transportNote: 'Straight to the airport'
+    });
+  });
+
+  it('keeps English rewritten in the same edit as its Chinese', async () => {
+    const { saved } = renderModal(translated);
+    const title = screen.getByLabelText(/活动名称/);
+    await userEvent.clear(title);
+    await userEvent.type(title, '包车去机场');
+    const english = screen.getByLabelText('英文名称');
+    await userEvent.clear(english);
+    await userEvent.type(english, 'Van to the airport');
+    await userEvent.click(screen.getByRole('button', { name: '保存修改' }));
+    expect(saved().translationEn?.title).toBe('Van to the airport');
+  });
+
+  it('drops the English route note along with the hop', async () => {
+    const { saved } = renderModal(translated);
+    await userEvent.selectOptions(screen.getByLabelText(/怎么去下一站/), '');
+    await userEvent.click(screen.getByRole('button', { name: '保存修改' }));
+    expect(saved().translationEn?.transportNote).toBeUndefined();
+    expect(saved().translationEn?.title).toBe('Van to Hat Yai Airport');
+  });
+});

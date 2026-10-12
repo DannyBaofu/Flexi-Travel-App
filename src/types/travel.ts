@@ -65,6 +65,22 @@ export interface ActivityItem {
   assignedTravelerIds?: string[];
   photoUrl?: string;
   transportToNext?: TransportSuggestion;
+  /**
+   * The same activity in English, shown when the app is in English. Each
+   * field is optional and falls back to what was typed, so a half-translated
+   * activity reads as a mix rather than as gaps. Absent on activities nobody
+   * translated — `activityText` in `services/activityText.ts` is the one
+   * place that picks between them.
+   */
+  translationEn?: ActivityTranslation;
+}
+
+/** English for the three things on an activity people actually write. */
+export interface ActivityTranslation {
+  title?: string;
+  notes?: string;
+  /** English for `transportToNext.note`; meaningless without a hop. */
+  transportNote?: string;
 }
 
 /**
