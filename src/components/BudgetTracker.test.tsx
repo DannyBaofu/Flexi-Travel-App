@@ -146,7 +146,7 @@ describe('BudgetTracker — the shared fund', () => {
   const withKitty = {
     kitty: {
       enabled: true,
-      perPerson: 300,
+      perPersonCash: 2400,
       holderTravelerId: 't1',
       categories: ['food' as const],
       paidInTravelerIds: ['t1']
@@ -168,11 +168,33 @@ describe('BudgetTracker — the shared fund', () => {
   it('leads with what is left and names who has not paid in', () => {
     renderBudget(withKitty, 'admin');
 
-    // 2 travellers x 300 = 600, minus 800 THB / 8 = 100 -> 500 left
+    // 2 travellers x 2400 THB in cash = 4800, minus the 800 dinner -> 4000
     expect(screen.getByText(/基金还剩/)).toBeInTheDocument();
-    expect(screen.getAllByText(/500/).length).toBeGreaterThan(0);
+    expect(screen.getByText('THB 4,000')).toBeInTheDocument();
     expect(screen.getByText(/还差 Wei Ming 没交/)).toBeInTheDocument();
   });
+
+  it('counts the pot in the cash handed over, with ringgit only as a reference', () => {
+    renderBudget(withKitty, 'admin');
+    // 4000 / 8 = 500, and the "≈" says it is a conversion, not the cash
+    expect(screen.getByText('≈ MYR 500')).toBeInTheDocument();
+    expect(screen.queryByText(/^MYR 500$/)).not.toBeInTheDocument();
+  });
+
+  it('asks for the per-person amount as cash in baht, and saves exactly that', async () => {
+    const user = userEvent.setup();
+    const { onUpdateTrip } = renderBudget(withKitty, 'member');
+
+    await user.click(screen.getByRole('button', { name: /基金设置/ }));
+    const field = screen.getByLabelText(/每人交多少现金（THB）/);
+    await user.clear(field);
+    await user.type(field, '2500');
+    await user.tab();
+
+    const calls = onUpdateTrip.mock.calls;
+    const saved = calls[calls.length - 1][0] as Trip;
+    expect(saved.kitty?.perPersonCash).toBe(2500);
+  }, 20000);
 
   it('marks a fund-paid expense as coming from the fund, not from a person', () => {
     renderBudget(withKitty, 'admin');

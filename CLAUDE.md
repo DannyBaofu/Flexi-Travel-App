@@ -441,8 +441,14 @@ them in both places would overstate every debt in the list, which is the one bug
 to watch for when touching either side. The pot drains **oldest bill first** and
 covers a bill only in full: when it cannot afford one, that bill stays an
 ordinary split expense and the pot keeps its remainder for a smaller one later.
-Contributions are in the **home** currency (what people hand over); spending is
-converted at `exchangeRate`. All of this lives in `src/services/kitty.ts` with
+Everything in the pot is in the trip's **own** currency: `perPersonCash` is the
+baht each person actually hands the holder, so what is left is cash in minus
+bills out — exact, and checkable against the envelope. No rate touches it; the
+`≈ MYR` line under it is a reference. It used to be kept in the home currency
+and converted at the market rate, which no money changer pays, so the baht it
+showed never matched the cash. A pot saved that way still carries `perPerson`
+(ringgit); `resolveKitty` converts it to whole notes at the stored rate and the
+next edit writes it back as cash. All of this lives in `src/services/kitty.ts` with
 tests — change the drawdown rules there, not in the component.
 
 **Flights (`trip.flights`) are the organiser's to write and everyone's to

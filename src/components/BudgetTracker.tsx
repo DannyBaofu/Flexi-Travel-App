@@ -12,8 +12,9 @@ import {
   ChevronUp,
   UserRound
 } from 'lucide-react';
-import type { Trip, ExpenseItem, ActivityCategory, TripRole, TripKitty } from '../types/travel';
+import type { Trip, ExpenseItem, ActivityCategory, TripRole } from '../types/travel';
 import { computeKitty, resolveKitty } from '../services/kitty';
+import type { ResolvedKitty } from '../services/kitty';
 import { toISODate } from '../services/tripDays';
 import { KittyCard } from './KittyCard';
 import { ExpenseForm } from './ExpenseForm';
@@ -88,7 +89,9 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
   const kitty = resolveKitty(trip);
   const kittyState = computeKitty(trip);
 
-  const updateKitty = (patch: Partial<TripKitty>) =>
+  // Writes the resolved pot, so a fund saved in the home currency is stored
+  // in cash from its first edit on, at the figure it was already showing.
+  const updateKitty = (patch: Partial<ResolvedKitty>) =>
     onUpdateTrip({ ...trip, kitty: { ...kitty, ...patch } });
 
 

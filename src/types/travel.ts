@@ -169,11 +169,22 @@ export interface ExpenseItem {
  * A shared cash pot. Everyone hands the holder the same amount up front, and
  * spending in the covered categories comes out of that pot rather than being
  * settled between people afterwards.
+ *
+ * Counted in the trip's own currency, because that is what the holder has in
+ * hand: the baht everyone gave, less the baht spent, is the cash left in the
+ * envelope. No exchange rate touches it — the home-currency figure shown
+ * beside it is a reference and says so with "≈".
  */
 export interface TripKitty {
   enabled: boolean;
-  /** Contribution per traveller, in the trip's HOME currency (what they hand over). */
-  perPerson: number;
+  /** Cash each traveller hands over, in the trip's own currency (THB) — the notes themselves. */
+  perPersonCash?: number;
+  /**
+   * What the fund held per traveller before it counted cash: an amount in the
+   * HOME currency, converted at the market rate. Read only so an older fund
+   * carries over (`resolveKitty` converts it once); nothing writes it now.
+   */
+  perPerson?: number;
   /** Who is physically holding the money. */
   holderTravelerId?: string;
   /** Spending in these categories draws the pot down. */

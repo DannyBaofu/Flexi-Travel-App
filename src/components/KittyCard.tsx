@@ -1,22 +1,23 @@
 import React from 'react';
 import { PiggyBank, Sliders, Check } from 'lucide-react';
-import type { ActivityCategory, Trip, TripKitty } from '../types/travel';
-import type { KittyState } from '../services/kitty';
+import type { ActivityCategory, Trip } from '../types/travel';
+import type { KittyState, ResolvedKitty } from '../services/kitty';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { useI18n } from '../utils/i18n';
 import { card, btnDanger, iconBtn, input, label, money } from './ui';
 
 interface KittyCardProps {
   trip: Trip;
-  kitty: TripKitty;
+  kitty: ResolvedKitty;
   state: KittyState;
   canEdit: boolean;
   meId: string;
+  /** Only for the "≈" reference line: the pot itself is never converted. */
   rate: number;
   editing: boolean;
   onToggleEditing: () => void;
   onOpenEditing: () => void;
-  onUpdate: (patch: Partial<TripKitty>) => void;
+  onUpdate: (patch: Partial<ResolvedKitty>) => void;
   onTurnOff: () => void;
   getTravelerName: (id: string) => string;
 }
@@ -58,16 +59,18 @@ export const KittyCard: React.FC<KittyCardProps> = ({
             <PiggyBank className="w-3.5 h-3.5" />
             {t('kittyRemaining')}
           </div>
+          {/* The cash in the envelope, to the note: what was handed over
+              less what was spent, with no rate anywhere in between */}
           <div
             className={`text-2xl font-semibold mt-1 ${
               kittyState.exhausted ? 'text-clay' : 'text-ink'
             } ${money}`}
           >
-            {trip.homeCurrency} {Math.round(kittyState.remainingHome).toLocaleString()}
+            {trip.currency} {kittyState.remaining.toLocaleString()}
           </div>
-          {/* The number that matters at the stall is the local one */}
+          {/* The home-currency figure is a reference, and the "≈" says so */}
           <div className={`text-xs text-muted ${money}`}>
-            ≈ {trip.currency} {Math.round(kittyState.remainingHome * rate).toLocaleString()}
+            ≈ {trip.homeCurrency} {Math.round(kittyState.remaining / rate).toLocaleString()}
           </div>
         </div>
 
@@ -98,8 +101,8 @@ export const KittyCard: React.FC<KittyCardProps> = ({
         <div className={`flex items-center justify-between gap-3 text-[11px] text-muted mt-1.5 ${money}`}>
           <span className="truncate">
             {t('kittyUsedOf', {
-              used: `${trip.homeCurrency} ${Math.round(kittyState.spentHome).toLocaleString()}`,
-              total: `${trip.homeCurrency} ${Math.round(kittyState.potTotalHome).toLocaleString()}`
+              used: `${trip.currency} ${kittyState.spent.toLocaleString()}`,
+              total: `${trip.currency} ${kittyState.potTotal.toLocaleString()}`
             })}
           </span>
           <span className="shrink-0">{kittyState.usedPercent}%</span>
@@ -129,7 +132,7 @@ export const KittyCard: React.FC<KittyCardProps> = ({
         <span className={money}>
           {t('kittyPotLine', {
             n: trip.travelers.length,
-            per: `${trip.homeCurrency} ${kitty.perPerson.toLocaleString()}`
+            per: `${trip.currency} ${kitty.perPersonCash.toLocaleString()}`
           })}
         </span>
         <span className="text-hairline">·</span>
@@ -155,7 +158,7 @@ export const KittyCard: React.FC<KittyCardProps> = ({
         <div className="pt-3 border-t border-hairline space-y-3.5 animate-riseIn">
           <div>
             <label className={label} htmlFor="kitty-per-person">
-              {t('kittyPerPerson', { cur: trip.homeCurrency })}
+              {t('kittyPerPerson', { cur: trip.currency })}
             </label>
             <input
               id="kitty-per-person"
@@ -163,10 +166,14 @@ export const KittyCard: React.FC<KittyCardProps> = ({
               inputMode="decimal"
               min="0"
               step="any"
-              defaultValue={kitty.perPerson || ''}
-              onBlur={(e) => updateKitty({ perPerson: Number(e.target.value) || 0 })}
+              defaultValue={kitty.perPersonCash || ''}
+              onBlur={(e) => updateKitty({ perPersonCash: Number(e.target.value) || 0 })}
               className={`${input} ${money}`}
+              aria-describedby="kitty-per-person-hint"
             />
+            <p id="kitty-per-person-hint" className="text-[11px] text-faint mt-1.5 leading-relaxed">
+              {t('kittyCashHint')}
+            </p>
           </div>
 
           <div>

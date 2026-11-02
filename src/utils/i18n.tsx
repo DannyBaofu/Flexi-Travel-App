@@ -361,7 +361,10 @@ const dict: Record<string, Entry> = {
   kittySplitBack: { zh: '有 {n} 笔基金付不起，已回到大家分摊。', en: '{n} bills the fund could not cover went back to being split.' },
   kittyFromFund: { zh: '公基金', en: 'From fund' },
   kittySettings: { zh: '基金设置', en: 'Fund settings' },
-  kittyPerPerson: { zh: '每人交多少（{cur}）', en: 'Amount per person ({cur})' },
+  kittyPerPerson: { zh: '每人交多少现金（{cur}）', en: 'Cash per person ({cur})' },
+  // The pot is counted in notes, not converted — the hint says so, because
+  // the old ringgit figure "≈ baht" is exactly what this replaced.
+  kittyCashHint: { zh: '按实际收到的现金填，不用汇率换算。', en: 'The cash actually handed over — no exchange rate involved.' },
   kittyHolder: { zh: '谁保管这笔钱', en: 'Who holds the money' },
   kittyCovers: { zh: '基金支付哪些类别', en: 'What the fund pays for' },
   kittyWhoPaidIn: { zh: '谁已经交了', en: 'Who has handed it over' },
