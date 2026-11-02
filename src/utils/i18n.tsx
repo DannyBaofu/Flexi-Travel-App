@@ -457,6 +457,37 @@ const dict: Record<string, Entry> = {
   flightsLegDepart: { zh: '起飞时间', en: 'Departs' },
   flightsLegArrive: { zh: '到达时间', en: 'Arrives' },
 
+  // ---- Trains ----
+  // The card everyone reads on the schedule tab, under the flights
+  trainsTitle: { zh: '火车信息', en: 'Trains' },
+  trainsOutbound: { zh: '去程', en: 'Outbound' },
+  trainsInbound: { zh: '回程', en: 'Return' },
+  trainsColTrain: { zh: '车次', en: 'Train' },
+  trainsColRoute: { zh: '路线', en: 'Route' },
+  trainsColDepart: { zh: '出发', en: 'Departs' },
+  trainsColArrive: { zh: '到达', en: 'Arrives' },
+  // No wait time: the two tickets at a border change may be an hour apart
+  trainsChange: { zh: '在 {at} 换乘', en: 'Change at {at}' },
+  trainsShow: { zh: '展开火车信息', en: 'Show trains' },
+  trainsHide: { zh: '收起火车信息', en: 'Hide trains' },
+
+  // Trip Settings — the organiser's form
+  trainsSection: { zh: '火车', en: 'Trains' },
+  trainsSettingsHint: {
+    zh: '填好后会显示在行程页顶部、航班信息下方，所有旅伴都能看到。留空则不显示。',
+    en: 'Shown to everyone at the top of the schedule tab, under the flights, once filled in. Leave it empty to hide it.'
+  },
+  trainsOperatorLabel: { zh: '铁路公司（可选）', en: 'Operator (optional)' },
+  trainsNoteLabel: { zh: '集合提醒（可选）', en: 'Meeting note (optional)' },
+  trainsAddLeg: { zh: '添加车次', en: 'Add a train' },
+  trainsRemoveLeg: { zh: '删除这个车次', en: 'Remove this train' },
+  trainsLegN: { zh: '第 {n} 段', en: 'Train {n}' },
+  trainsLegNo: { zh: '车次', en: 'Train no.' },
+  trainsLegFrom: { zh: '出发站', en: 'From' },
+  trainsLegTo: { zh: '到达站', en: 'To' },
+  trainsLegDepart: { zh: '出发时间', en: 'Departs' },
+  trainsLegArrive: { zh: '到达时间', en: 'Arrives' },
+
   // ---- Day map ----
   mapShow: { zh: '查看地图', en: 'Show map' },
   mapHide: { zh: '收起地图', en: 'Hide map' },

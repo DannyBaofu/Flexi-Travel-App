@@ -133,3 +133,58 @@ describe('Trip Settings — flights', () => {
     expect(numbers.map(n => n.value)).toEqual(['SQ 634']);
   });
 });
+
+describe('Trip Settings — trains', () => {
+  it('is only its two add buttons until a train is added', () => {
+    renderSettings();
+    expect(screen.getAllByRole('button', { name: '添加车次' })).toHaveLength(2);
+    expect(screen.queryByLabelText('车次')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('铁路公司（可选）')).not.toBeInTheDocument();
+  });
+
+  it('dates a new outbound train on the trip’s first day and a return on its last', async () => {
+    renderSettings();
+    const [addOut, addBack] = screen.getAllByRole('button', { name: '添加车次' });
+    await userEvent.click(addOut);
+    await userEvent.click(addBack);
+    const dates = screen.getAllByLabelText('日期') as HTMLInputElement[];
+    expect(dates.map(d => d.value)).toEqual(['2026-11-17', '2026-11-24']);
+  });
+
+  it('saves what was typed, trimmed but not capitalised, in the shape the card reads', async () => {
+    const { onSave } = renderSettings();
+    await userEvent.click(screen.getAllByRole('button', { name: '添加车次' })[0]);
+
+    await userEvent.type(screen.getByLabelText('车次'), ' Special Express 46 ');
+    await userEvent.type(screen.getByLabelText('出发站'), 'Padang Besar');
+    await userEvent.type(screen.getByLabelText('到达站'), 'Bangkok');
+    await userEvent.type(screen.getByLabelText('出发时间'), '16:55');
+    await userEvent.type(screen.getByLabelText('到达时间'), '09:50');
+    await userEvent.type(screen.getByLabelText('铁路公司（可选）'), 'SRT');
+    // Two flight notes are always there; the train's appears with its train.
+    const notes = screen.getAllByLabelText('集合提醒（可选）');
+    await userEvent.type(notes[notes.length - 1], '16:30 在 3 号站台集合');
+
+    await userEvent.click(screen.getByRole('button', { name: '保存设置' }));
+
+    const saved = onSave.mock.calls[0][0] as Trip;
+    expect(saved.trains).toEqual({
+      operator: 'SRT',
+      outbound: {
+        note: '16:30 在 3 号站台集合',
+        legs: [
+          expect.objectContaining({
+            trainNo: 'Special Express 46',
+            from: 'Padang Besar',
+            to: 'Bangkok',
+            date: '2026-11-17',
+            departTime: '16:55',
+            arriveTime: '09:50'
+          })
+        ]
+      },
+      inbound: { legs: [] }
+    });
+    expect(saved.flights).toEqual({ outbound: { legs: [] }, inbound: { legs: [] } });
+  });
+});

@@ -113,9 +113,30 @@ export function formatLegDate(iso: string, locale: string): string {
   return day.toLocaleDateString(locale, { month: 'short', day: 'numeric', weekday: 'short' });
 }
 
-/** The first leg's date is the journey's date; a later leg on another day is the exception. */
-export const journeyDate = (journey: FlightJourney): string | undefined =>
+/**
+ * The first leg's date is the journey's date; a later leg on another day is
+ * the exception. Typed on the date alone, because a train journey asks too.
+ */
+export const journeyDate = (journey: { legs: { date: string }[] }): string | undefined =>
   journey.legs.find(leg => leg.date)?.date;
+
+/**
+ * Where the trip stands against today: before it, on its first or last day,
+ * somewhere in the middle, or after. Flights and trains matter at the ends,
+ * which is when their cards open by themselves.
+ */
+export type TravelPhase = 'before' | 'edge' | 'middle' | 'after';
+
+export const travelPhase = (startDate: string, dayCount: number): TravelPhase => {
+  const start = parseLocalDate(startDate);
+  if (!start) return 'before';
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const offset = Math.round((today.getTime() - start.getTime()) / 86400000);
+  if (offset < 0) return 'before';
+  if (offset >= dayCount) return 'after';
+  return offset === 0 || offset === dayCount - 1 ? 'edge' : 'middle';
+};
 
 /**
  * Google's flight-status box answers "SQ 131" directly. Nothing about the

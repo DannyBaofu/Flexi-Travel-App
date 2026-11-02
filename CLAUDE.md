@@ -461,6 +461,17 @@ shows only before the trip starts: once it is running, an empty slot above
 today's plan is noise. Members never get an edit control here — the admin-only
 test is deliberate, because flights are trip structure, not planning.
 
+**Trains (`trip.trains`) are the flights' twin**, with two deliberate
+differences. `TrainCard` never works out the wait at a change of trains: the
+likeliest change for this group is Padang Besar, where the KTM ticket is in
+Malaysian time and the SRT ticket in Thai time, so a subtraction would be an
+hour out — it names the station and stops. And an empty train schedule renders
+nothing for anybody, organiser included, because most trips have no train and
+a second dashed "add" prompt would be noise on all of them; the 火车 section
+sits right under 航班 in Trip Settings. The train number is kept as typed, not
+upper-cased, because "Special Express 46" is not a code. `travelPhase` (which
+card opens by itself when) lives in `flights.ts` and both cards share it.
+
 **The day map draws straight lines, and says so.** `DayMap` (Leaflet on
 OpenStreetMap tiles, lazy-loaded so most sessions never download it) sits
 behind a per-day toggle in `ItineraryView` and shows the pinned stops numbered

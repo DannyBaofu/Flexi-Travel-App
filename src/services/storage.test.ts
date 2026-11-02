@@ -174,6 +174,36 @@ describe('storageService.getTrips — flights', () => {
   });
 });
 
+describe('storageService.getTrips — trains', () => {
+  it('gives a trip saved before the train schedule two empty journeys', () => {
+    store.set(TRIPS_KEY, JSON.stringify([trip('trip-1', 'Bangkok')]));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips()[0].trains).toEqual({
+      outbound: { legs: [] },
+      inbound: { legs: [] }
+    });
+  });
+
+  it('leaves trains the organiser already entered alone', () => {
+    const saved = [{
+      id: 'trip-1',
+      title: 'Bangkok',
+      days: [],
+      trains: {
+        operator: 'KTM ETS',
+        outbound: { legs: [{ id: 't1', trainNo: 'ETS 9421', from: 'KL Sentral', to: 'Padang Besar', date: '2026-10-05', departTime: '08:00', arriveTime: '13:35' }] },
+        inbound: { legs: [] }
+      }
+    }];
+    store.set(TRIPS_KEY, JSON.stringify(saved));
+    store.set(PURGE_KEY, '1');
+
+    expect(storageService.getTrips()[0].trains?.operator).toBe('KTM ETS');
+    expect(storageService.getTrips()[0].trains?.outbound.legs).toHaveLength(1);
+  });
+});
+
 describe('storageService.getTrips — activity pins', () => {
   it('recovers a pin from the Google Maps link an older activity carries', () => {
     const saved = [{

@@ -225,6 +225,48 @@ export interface TripFlights {
   inbound: FlightJourney;
 }
 
+/**
+ * One train, as it reads off the ticket — the flight leg's shape with a train
+ * number in place of a flight number.
+ *
+ * Times are as printed on each ticket, and a change of trains is not always
+ * one clock: changing at Padang Besar, the KTM ticket is in Malaysian time and
+ * the SRT ticket in Thai time, an hour apart. So unlike a flight connection,
+ * the wait at a change is not worked out.
+ */
+export interface TrainLeg {
+  id: string;
+  /** e.g. "ETS 9421", "Special Express 45". Free text, kept as typed. */
+  trainNo: string;
+  /** Station or city, as typed — "KL Sentral", "Padang Besar". */
+  from: string;
+  to: string;
+  /** YYYY-MM-DD, the departure date on the ticket. */
+  date: string;
+  /** HH:MM, 24h. Either may be blank while the booking is still being typed in. */
+  departTime: string;
+  arriveTime: string;
+}
+
+/** Every train in one direction, plus where the group is meeting first. */
+export interface TrainJourney {
+  legs: TrainLeg[];
+  /** "21:30 at platform 3, car 7" — the organiser's one line to the group. */
+  note?: string;
+}
+
+/**
+ * The trip's trains out and back, written by the organiser and read by
+ * everyone, exactly as the flights are. Absent on trips saved before it
+ * existed — `getTrips` backfills an empty one.
+ */
+export interface TripTrains {
+  /** Optional heading for the card — "KTM ETS · SRT". */
+  operator?: string;
+  outbound: TrainJourney;
+  inbound: TrainJourney;
+}
+
 export interface Trip {
   id: string;
   title: string;
@@ -250,6 +292,8 @@ export interface Trip {
   kitty?: TripKitty;
   /** Flights out and back, set by the organiser in Trip Settings. */
   flights?: TripFlights;
+  /** Trains out and back, set by the organiser in Trip Settings. */
+  trains?: TripTrains;
   createdAt: string;
   updatedAt: string;
   // Role of this browser's user for this trip. Always present on a trip that

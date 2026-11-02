@@ -8,9 +8,9 @@ import {
   splitMinutes,
   journeyDate,
   formatLegDate,
-  flightLookupUrl
+  flightLookupUrl,
+  travelPhase
 } from '../services/flights';
-import { parseLocalDate } from '../services/tripDays';
 import { card, btnSecondarySm, money } from './ui';
 
 interface FlightCardProps {
@@ -18,23 +18,6 @@ interface FlightCardProps {
   role: TripRole;
   onOpenSettings: () => void;
 }
-
-/**
- * Where the trip stands against today: before it, on its first or last day,
- * somewhere in the middle, or after. Flights matter at the ends.
- */
-type TripPhase = 'before' | 'edge' | 'middle' | 'after';
-
-const tripPhase = (startDate: string, dayCount: number): TripPhase => {
-  const start = parseLocalDate(startDate);
-  if (!start) return 'before';
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const offset = Math.round((today.getTime() - start.getTime()) / 86400000);
-  if (offset < 0) return 'before';
-  if (offset >= dayCount) return 'after';
-  return offset === 0 || offset === dayCount - 1 ? 'edge' : 'middle';
-};
 
 interface JourneyBlock {
   key: 'outbound' | 'inbound';
@@ -56,7 +39,7 @@ const cellTime = `py-0.5 text-right text-ink ${money}`;
 export const FlightCard: React.FC<FlightCardProps> = ({ trip, role, onOpenSettings }) => {
   const { lang, t } = useI18n();
   const locale = lang === 'zh' ? 'zh-CN' : 'en-US';
-  const phase = tripPhase(trip.startDate, trip.days.length);
+  const phase = travelPhase(trip.startDate, trip.days.length);
   const [open, setOpen] = useState(phase !== 'middle');
 
   const flights = trip.flights;

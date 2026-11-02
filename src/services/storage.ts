@@ -1,6 +1,7 @@
 import type { Trip, TripRole } from '../types/travel';
 import { resolveKitty } from './kitty';
 import { emptyFlights } from './flights';
+import { emptyTrains } from './trains';
 import { coordsFromMapsUrl } from './geo';
 import { preferredTripId } from './tripOrder';
 
@@ -86,6 +87,13 @@ function backfillFlights(trips: Trip[]): Trip[] {
   );
 }
 
+// The same for the train schedule, which arrived after the flights did.
+function backfillTrains(trips: Trip[]): Trip[] {
+  return trips.map(trip =>
+    trip.trains?.outbound && trip.trains?.inbound ? trip : { ...trip, trains: emptyTrains() }
+  );
+}
+
 // Activities saved before `lat`/`lon` existed still know where they are: a
 // place picked off the suggestion list wrote its pin into `googleMapsUrl` as
 // `query=lat,lon`. Read it back so the map shows every stop that was ever
@@ -146,7 +154,9 @@ export const storageService = {
       return backfillMyRole(
         backfillTravelerRoles(
           backfillActivityCoords(
-            backfillFlights(backfillIdeas(backfillKitty(dedupeById(purgeSeededSample(parsed)))))
+            backfillTrains(
+              backfillFlights(backfillIdeas(backfillKitty(dedupeById(purgeSeededSample(parsed)))))
+            )
           )
         )
       );

@@ -2,6 +2,7 @@ import React from 'react';
 import type { Trip, TransportMode } from '../types/travel';
 import { useI18n, translateWeekday } from '../utils/i18n';
 import { hasFlightInfo, journeyDate, formatLegDate } from '../services/flights';
+import { hasTrainInfo } from '../services/trains';
 import { travelTimeLabel } from '../services/travelTime';
 import { activityText } from '../services/activityText';
 
@@ -38,6 +39,14 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
     ? [
         { key: 'out', labelKey: 'flightsOutbound', journey: flights.outbound },
         { key: 'in', labelKey: 'flightsInbound', journey: flights.inbound }
+      ].filter(j => j.journey.legs.length > 0 || !!j.journey.note?.trim())
+    : [];
+
+  const trains = trip.trains;
+  const trainJourneys = trains
+    ? [
+        { key: 'out', labelKey: 'trainsOutbound', journey: trains.outbound },
+        { key: 'in', labelKey: 'trainsInbound', journey: trains.inbound }
       ].filter(j => j.journey.legs.length > 0 || !!j.journey.note?.trim())
     : [];
 
@@ -78,6 +87,41 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
                   {journey.legs.map(leg => (
                     <div key={leg.id} className="flex gap-3 items-baseline">
                       <span className="font-mono tabular-nums font-bold w-16 shrink-0">{leg.flightNo || '—'}</span>
+                      <span className="flex-1 min-w-0">
+                        {leg.from}{leg.from && leg.to ? ' → ' : ''}{leg.to}
+                        {leg.date && leg.date !== date ? ` (${formatLegDate(leg.date, locale)})` : ''}
+                      </span>
+                      <span className="font-mono tabular-nums shrink-0">
+                        {leg.departTime || '—'} – {leg.arriveTime || '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {hasTrainInfo(trains) && (
+        <section className={`border ${RULE} rounded-lg p-4 break-inside-avoid`}>
+          <h2 className={`text-lg font-bold border-b ${RULE} pb-2 mb-3`}>
+            {t('trainsTitle')}
+            {trains?.operator ? ` – ${trains.operator}` : ''}
+          </h2>
+          <div className="grid grid-cols-2 gap-6 text-xs">
+            {trainJourneys.map(({ key, labelKey, journey }) => {
+              const date = journeyDate(journey);
+              return (
+                <div key={key} className="space-y-1.5">
+                  <div className="font-semibold uppercase tracking-wider text-muted">
+                    {t(labelKey)}
+                    {date ? ` · ${formatLegDate(date, locale)}` : ''}
+                  </div>
+                  {journey.note && <div className="italic">{journey.note}</div>}
+                  {journey.legs.map(leg => (
+                    <div key={leg.id} className="flex gap-3 items-baseline">
+                      <span className="font-bold w-24 shrink-0">{leg.trainNo || '—'}</span>
                       <span className="flex-1 min-w-0">
                         {leg.from}{leg.from && leg.to ? ' → ' : ''}{leg.to}
                         {leg.date && leg.date !== date ? ` (${formatLegDate(leg.date, locale)})` : ''}

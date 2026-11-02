@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sliders, Calendar, DollarSign, Image, Users, Plus, Trash2, Plane } from 'lucide-react';
-import type { Trip, Traveler, TripRole, SeatClaim, TripFlights, FlightLeg } from '../types/travel';
+import { X, Sliders, Calendar, DollarSign, Image, Users, Plus, Trash2, Plane, TrainFront } from 'lucide-react';
+import type { Trip, Traveler, TripRole, SeatClaim, TripFlights, FlightLeg, TripTrains, TrainLeg } from '../types/travel';
 import { useI18n } from '../utils/i18n';
 import { reconcileDays } from '../services/tripDays';
 import { emptyFlights, newFlightLeg, tidyFlights } from '../services/flights';
+import { emptyTrains, newTrainLeg, tidyTrains } from '../services/trains';
 import { fetchSeatClaims, releaseSeat, setSeatRole } from '../services/cloudSync';
 import {
   Modal,
@@ -64,6 +65,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
   const [coverImage, setCoverImage] = useState(trip.coverImage);
   const [travelers, setTravelers] = useState<Traveler[]>(trip.travelers || []);
   const [flights, setFlights] = useState<TripFlights>(trip.flights ?? emptyFlights());
+  const [trains, setTrains] = useState<TripTrains>(trip.trains ?? emptyTrains());
   const [newTravelerName, setNewTravelerName] = useState('');
   const [claims, setClaims] = useState<SeatClaim[]>([]);
   const [seatError, setSeatError] = useState<string | null>(null);
@@ -80,6 +82,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
     setCoverImage(trip.coverImage);
     setTravelers(trip.travelers || []);
     setFlights(trip.flights ?? emptyFlights());
+    setTrains(trip.trains ?? emptyTrains());
   }, [trip, isOpen]);
 
   // ---- Flights: two journeys, each a list of legs and a meeting note ----
@@ -102,6 +105,32 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
 
   const handleRemoveLeg = (dir: Direction, id: string) =>
     setLegs(dir, legs => legs.filter(leg => leg.id !== id));
+
+  // ---- Trains: the same two journeys, the same rules for a new leg's date ----
+  const setTrainNote = (dir: Direction, note: string) =>
+    setTrains(prev => ({ ...prev, [dir]: { ...prev[dir], note } }));
+
+  const setTrainLegs = (dir: Direction, change: (legs: TrainLeg[]) => TrainLeg[]) =>
+    setTrains(prev => ({ ...prev, [dir]: { ...prev[dir], legs: change(prev[dir].legs) } }));
+
+  const handleAddTrain = (dir: Direction) =>
+    setTrainLegs(dir, legs => {
+      const fallback = dir === 'outbound' ? startDate : endDate;
+      return [...legs, newTrainLeg(legs[legs.length - 1]?.date || fallback)];
+    });
+
+  const handleTrainChange = (dir: Direction, id: string, patch: Partial<TrainLeg>) =>
+    setTrainLegs(dir, legs => legs.map(leg => (leg.id === id ? { ...leg, ...patch } : leg)));
+
+  const handleRemoveTrain = (dir: Direction, id: string) =>
+    setTrainLegs(dir, legs => legs.filter(leg => leg.id !== id));
+
+  // Most trips have no train, so until one is added the section is just its
+  // two add buttons — the operator and the meeting notes appear with the
+  // first train rather than sitting empty on every trip. One that already
+  // holds text stays visible, so nothing is saved that cannot be seen.
+  const showOperator =
+    trains.outbound.legs.length > 0 || trains.inbound.legs.length > 0 || !!trains.operator;
 
   // Who currently holds each name. Only the server knows, and only for a trip
   // that is actually in the cloud.
@@ -200,6 +229,7 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
       coverImage: coverImage.trim(),
       travelers,
       flights: tidyFlights(flights),
+      trains: tidyTrains(trains),
       updatedAt: new Date().toISOString()
     });
     onClose();
@@ -450,6 +480,153 @@ export const TripSettingsModal: React.FC<TripSettingsModalProps> = ({
                     className={input}
                   />
                 </div>
+              </div>
+            );
+          })}
+        </section>
+
+        {/* Trains — the flights' twin, for a trip that goes by rail */}
+        <section className="space-y-4 pt-5 border-t border-hairline">
+          <div className="space-y-1.5">
+            <h3 className={sectionHeading}>
+              <TrainFront className="w-3.5 h-3.5" /> {t('trainsSection')}
+            </h3>
+            <p className="text-[11px] text-faint leading-relaxed">{t('trainsSettingsHint')}</p>
+          </div>
+
+          {showOperator && (
+            <div>
+              <label className={label} htmlFor="settings-train-operator">{t('trainsOperatorLabel')}</label>
+              <input
+                id="settings-train-operator"
+                type="text"
+                value={trains.operator ?? ''}
+                onChange={(e) => setTrains(prev => ({ ...prev, operator: e.target.value }))}
+                className={input}
+              />
+            </div>
+          )}
+
+          {(['outbound', 'inbound'] as const).map(dir => {
+            const journey = trains[dir];
+            return (
+              <div key={dir} className="space-y-2.5">
+                <h4 className="text-xs font-semibold text-ink">
+                  {t(dir === 'outbound' ? 'trainsOutbound' : 'trainsInbound')}
+                </h4>
+
+                {journey.legs.map((leg, idx) => (
+                  <div
+                    key={leg.id}
+                    className="bg-mist border border-hairline rounded-control px-3 pt-1.5 pb-3 space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-faint uppercase tracking-wider">
+                        {t('trainsLegN', { n: idx + 1 })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTrain(dir, leg.id)}
+                        className="w-11 h-11 -mr-2.5 shrink-0 inline-flex items-center justify-center rounded-full text-faint hover:text-clay hover:bg-clay-tint transition"
+                        title={t('trainsRemoveLeg')}
+                        aria-label={t('trainsRemoveLeg')}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Stations are longer than airport codes — "Padang
+                        Besar" clips in a third of 375px — so on a phone the
+                        number takes its own row and the two stations share
+                        the next. */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className={label} htmlFor={`${leg.id}-no`}>{t('trainsLegNo')}</label>
+                        <input
+                          id={`${leg.id}-no`}
+                          type="text"
+                          value={leg.trainNo}
+                          onChange={(e) => handleTrainChange(dir, leg.id, { trainNo: e.target.value })}
+                          className={input}
+                        />
+                      </div>
+                      <div>
+                        <label className={label} htmlFor={`${leg.id}-from`}>{t('trainsLegFrom')}</label>
+                        <input
+                          id={`${leg.id}-from`}
+                          type="text"
+                          value={leg.from}
+                          onChange={(e) => handleTrainChange(dir, leg.id, { from: e.target.value })}
+                          className={input}
+                        />
+                      </div>
+                      <div>
+                        <label className={label} htmlFor={`${leg.id}-to`}>{t('trainsLegTo')}</label>
+                        <input
+                          id={`${leg.id}-to`}
+                          type="text"
+                          value={leg.to}
+                          onChange={(e) => handleTrainChange(dir, leg.id, { to: e.target.value })}
+                          className={input}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className={label} htmlFor={`${leg.id}-date`}>{t('date')}</label>
+                        <input
+                          id={`${leg.id}-date`}
+                          type="date"
+                          value={leg.date}
+                          onChange={(e) => handleTrainChange(dir, leg.id, { date: e.target.value })}
+                          className={input}
+                        />
+                      </div>
+                      <div>
+                        <label className={label} htmlFor={`${leg.id}-dep`}>{t('trainsLegDepart')}</label>
+                        <input
+                          id={`${leg.id}-dep`}
+                          type="time"
+                          value={leg.departTime}
+                          onChange={(e) => handleTrainChange(dir, leg.id, { departTime: e.target.value })}
+                          className={inputMono}
+                        />
+                      </div>
+                      <div>
+                        <label className={label} htmlFor={`${leg.id}-arr`}>{t('trainsLegArrive')}</label>
+                        <input
+                          id={`${leg.id}-arr`}
+                          type="time"
+                          value={leg.arriveTime}
+                          onChange={(e) => handleTrainChange(dir, leg.id, { arriveTime: e.target.value })}
+                          className={inputMono}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => handleAddTrain(dir)}
+                  className={btnSecondarySm}
+                >
+                  <Plus className="w-3.5 h-3.5" /> {t('trainsAddLeg')}
+                </button>
+
+                {(journey.legs.length > 0 || !!journey.note) && (
+                  <div>
+                    <label className={label} htmlFor={`settings-train-${dir}-note`}>{t('trainsNoteLabel')}</label>
+                    <input
+                      id={`settings-train-${dir}-note`}
+                      type="text"
+                      value={journey.note ?? ''}
+                      onChange={(e) => setTrainNote(dir, e.target.value)}
+                      className={input}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
