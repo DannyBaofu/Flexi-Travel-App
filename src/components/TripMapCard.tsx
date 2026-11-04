@@ -6,6 +6,7 @@ import { tripStops } from '../services/geo';
 import { activityText } from '../services/activityText';
 import { dayTone } from './tripMapTones';
 import { card, btnSecondarySm } from './ui';
+import { ChunkBoundary, MapUnavailable } from './ChunkBoundary';
 
 // Leaflet only downloads when somebody opens the map
 const TripMap = lazy(() => import('./TripMap'));
@@ -77,14 +78,18 @@ export const TripMapCard: React.FC<TripMapCardProps> = ({ trip }) => {
       {open && (
         <div className="px-4 pb-4 sm:px-5 pt-3 border-t border-hairline space-y-3">
           <div ref={mapBox}>
-            <Suspense fallback={<div className="h-72 sm:h-96 rounded-control bg-mist animate-pulse" />}>
-              <TripMap
-                days={days}
-                focusDayId={focusDayId}
-                label={t('tripMapRegion')}
-                dayLabel={n => t('dayN', { n })}
-              />
-            </Suspense>
+            {/* A map that cannot download (no signal, or an older build)
+                says so in this box rather than taking the app down */}
+            <ChunkBoundary fallback={<MapUnavailable className="h-72 sm:h-96" />}>
+              <Suspense fallback={<div className="h-72 sm:h-96 rounded-control bg-mist animate-pulse" />}>
+                <TripMap
+                  days={days}
+                  focusDayId={focusDayId}
+                  label={t('tripMapRegion')}
+                  dayLabel={n => t('dayN', { n })}
+                />
+              </Suspense>
+            </ChunkBoundary>
           </div>
 
           {/* One fixed-height line under the map, so zooming in or out never

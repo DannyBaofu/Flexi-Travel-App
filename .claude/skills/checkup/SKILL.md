@@ -28,7 +28,7 @@ Chained so the first failure stops the line.
 
 **Baselines** — anything beyond these is new and worth reading:
 
-- **294 tests, 28 files** (November 2026). The number only grows as features
+- **323 tests, 32 files** (November 2026). The number only grows as features
   land, so a *higher* count is normal — update this line when you notice. A
   *lower* count is as suspicious as a failure; it usually means a test file
   stopped being picked up, not that work vanished.

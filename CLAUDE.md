@@ -375,6 +375,21 @@ verbatim by Vite, and `main.tsx` registers it **only** under `import.meta.env.PR
 `travelsync-preview` entry in `.claude/launch.json`) and stop the server to
 test offline for real.
 
+**A part that downloads on first use must not crash the app.** The two maps
+and every dialog are `React.lazy`, and that download failed two ways that both
+ended on the app-wide "something broke" page. A phone still running an older
+build asks for a file name the deploy removed, and the catch-all rewrite
+answers it with index.html. A phone with no signal cannot fetch a part it has
+never opened. `services/chunkRecovery.ts` answers both. On Vite's
+`vite:preloadError` it reloads once — only online, at most once per 30 s, and
+never while an edit is unsent, because `unsentTripRef` lives in memory and a
+reload would drop it silently. A few seconds after the worker is ready, it
+downloads every part listed in `src/lazyChunks.ts` so the worker has them
+(~70 kB gzipped, once per deploy). Whatever is left is caught by
+`ChunkBoundary` around each map and around the dialogs, which says so in place.
+Add a `lazy()` and it goes in `lazyChunks.ts` as well; `lazyChunks.test.ts`
+fails until it does.
+
 ## Data model notes
 
 **The draft list (`trip.ideas`) is a wishlist, not half an itinerary.** One

@@ -17,6 +17,7 @@ import { useI18n, translateWeekday } from '../utils/i18n';
 import { locatedStops, hopsBetween, totalKm, roundDistance, directionsUrl } from '../services/geo';
 import { travelTimeLabel } from '../services/travelTime';
 import { activityText } from '../services/activityText';
+import { ChunkBoundary, MapUnavailable } from './ChunkBoundary';
 import {
   card,
   cardFlat,
@@ -392,9 +393,13 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
                   {mapOpen && (
                     <div className="mt-2 space-y-2.5">
-                      <Suspense fallback={<div className="h-64 sm:h-80 rounded-control bg-mist animate-pulse" />}>
-                        <DayMap stops={stops} label={t('mapRegion')} />
-                      </Suspense>
+                      {/* A map that cannot download (no signal, or an older
+                          build) says so in this box, not app-wide */}
+                      <ChunkBoundary fallback={<MapUnavailable className="h-64 sm:h-80" />}>
+                        <Suspense fallback={<div className="h-64 sm:h-80 rounded-control bg-mist animate-pulse" />}>
+                          <DayMap stops={stops} label={t('mapRegion')} />
+                        </Suspense>
+                      </ChunkBoundary>
 
                       {hops.length > 0 && (
                         <ol className="space-y-0.5">

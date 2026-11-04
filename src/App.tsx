@@ -14,6 +14,8 @@ import { FlightCard } from './components/FlightCard';
 import { TrainCard } from './components/TrainCard';
 import { TransitRoutesCard } from './components/TransitRoutesCard';
 import { TripMapCard } from './components/TripMapCard';
+import { ChunkBoundary, DialogUnavailable } from './components/ChunkBoundary';
+import { setUnsentWorkProbe } from './services/chunkRecovery';
 import { ItineraryView } from './components/ItineraryView';
 import { IdeasView } from './components/IdeasView';
 import { BudgetTracker } from './components/BudgetTracker';
@@ -111,6 +113,14 @@ export function App() {
   // it. Track it, show it, retry it.
   const [syncState, setSyncState] = useState<SyncState>('idle');
   const unsentTripRef = useRef<Trip | null>(null);
+
+  // The automatic reload for a part that will not load (chunkRecovery) must
+  // not fire while an edit is on its way: this ref is the only record of it.
+  // A push still waiting out its 600 ms debounce counts too, because the ref
+  // is set the moment the edit is made, not when the push starts.
+  useEffect(() => {
+    setUnsentWorkProbe(() => unsentTripRef.current !== null);
+  }, []);
 
   const [pendingUndo, setPendingUndo] = useState<PendingUndo | null>(null);
   // Undo acts on the trip as it stands when Undo is pressed, not on the copy
@@ -310,6 +320,26 @@ export function App() {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloudMode, activeTrip?.id, activeTrip?.myRole, activeTrip?.myTravelerId, seatPrompt]);
+
+  // Which dialogs are open, as one value: when it changes, a dialog notice
+  // from ChunkBoundary clears, so dismissing it does not leave it stuck.
+  const dialogsKey = [
+    isActivityModalOpen, isShareModalOpen, isSettingsModalOpen,
+    isNewTripModalOpen, isAuthModalOpen, !!seatPrompt
+  ].map(Number).join('');
+
+  // A dialog that could not download: close whatever was opening, so the
+  // screen behind it works again. The seat prompt is left alone — it is not
+  // something the guest chose to open, and the reload in the notice is what
+  // gets them a seat.
+  const closeAllDialogs = () => {
+    setIsActivityModalOpen(false);
+    setIdeaBeingPlanned(null);
+    setIsShareModalOpen(false);
+    setIsSettingsModalOpen(false);
+    setIsNewTripModalOpen(false);
+    setIsAuthModalOpen(false);
+  };
 
   // Switch trip
   const handleSelectTrip = (tripId: string) => {
@@ -597,29 +627,31 @@ export function App() {
           onSignOut={handleSignOut}
         />
 
-        <Suspense fallback={null}>
-          {isNewTripModalOpen && (
-            <NewTripModal
-              isOpen
-              onClose={() => setIsNewTripModalOpen(false)}
-              onCreateTrip={handleCreateTrip}
-            />
-          )}
-          {isAuthModalOpen && (
-            <AuthModal isOpen onClose={() => setIsAuthModalOpen(false)} />
-          )}
-          {seatPrompt && (
-            <SeatPickerModal
-              isOpen
-              tripTitle={seatPrompt.tripTitle}
-              seats={seatPrompt.seats}
-              busySeatId={seatBusyId}
-              error={seatError}
-              onPick={handlePickSeat}
-              onCancel={() => { setSeatPrompt(null); setSeatError(null); }}
-            />
-          )}
-        </Suspense>
+        <ChunkBoundary resetKey={dialogsKey} fallback={<DialogUnavailable onDismiss={closeAllDialogs} />}>
+          <Suspense fallback={null}>
+            {isNewTripModalOpen && (
+              <NewTripModal
+                isOpen
+                onClose={() => setIsNewTripModalOpen(false)}
+                onCreateTrip={handleCreateTrip}
+              />
+            )}
+            {isAuthModalOpen && (
+              <AuthModal isOpen onClose={() => setIsAuthModalOpen(false)} />
+            )}
+            {seatPrompt && (
+              <SeatPickerModal
+                isOpen
+                tripTitle={seatPrompt.tripTitle}
+                seats={seatPrompt.seats}
+                busySeatId={seatBusyId}
+                error={seatError}
+                onPick={handlePickSeat}
+                onCancel={() => { setSeatPrompt(null); setSeatError(null); }}
+              />
+            )}
+          </Suspense>
+        </ChunkBoundary>
       </div>
     );
   }
@@ -753,7 +785,9 @@ export function App() {
       <PrintItineraryView trip={activeTrip} />
 
       {/* Dialogs are mounted only while open: a lazy component still has to
-          download before it can render, even to render nothing. */}
+          download before it can render, even to render nothing. One that
+          cannot download says so above the tabs instead of crashing the app. */}
+      <ChunkBoundary resetKey={dialogsKey} fallback={<DialogUnavailable onDismiss={closeAllDialogs} />}>
       <Suspense fallback={null}>
         {isActivityModalOpen && (
           <ActivityModal
@@ -817,6 +851,7 @@ export function App() {
           />
         )}
       </Suspense>
+      </ChunkBoundary>
     </div>
   );
 }

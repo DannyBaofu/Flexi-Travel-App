@@ -547,6 +547,19 @@ const dict: Record<string, Entry> = {
     en: 'The number in each pin is the day. Lines join each day’s stops in order as straight lines, not the real route.'
   },
 
+  // ---- A part that could not load ----
+  // A map or dialog downloads the first time it is opened; with no signal
+  // and nothing saved yet, that fails. Said in place, with the way back.
+  chunkMapFailed: {
+    zh: '地图暂时打不开，可能是没有网络。连上网后点「重新载入」，行程不会丢失。',
+    en: 'The map could not open — probably no connection. Reload once you are online; nothing in the trip is lost.'
+  },
+  chunkDialogFailed: {
+    zh: '这个窗口暂时打不开，可能是没有网络。连上网后点「重新载入」，行程不会丢失。',
+    en: 'This could not open — probably no connection. Reload once you are online; nothing in the trip is lost.'
+  },
+  chunkReload: { zh: '重新载入', en: 'Reload' },
+
   // ---- Undo instead of a confirm dialog ----
   undo: { zh: '撤销', en: 'Undo' },
   deletedActivity: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },
