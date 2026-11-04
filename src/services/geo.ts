@@ -1,4 +1,4 @@
-import type { ActivityItem, TransportMode } from '../types/travel';
+import type { ActivityItem, DaySchedule, TransportMode } from '../types/travel';
 
 /**
  * The day on a map: which stops have a pin, in what order, and how far apart
@@ -37,6 +37,31 @@ export function locatedStops(activities: ActivityItem[]): MapStop[] {
       ? [{ activity, order: idx + 1, lat: activity.lat, lon: activity.lon }]
       : []
   );
+}
+
+/** One day's worth of the whole-trip map. */
+export interface TripMapDay {
+  day: DaySchedule;
+  stops: MapStop[];
+}
+
+/**
+ * The whole trip on one map: every day that has at least one pin, in the
+ * trip's order, each with its pinned stops in the day's order. A day with no
+ * pin is left out rather than shown empty — there is nothing of it to draw,
+ * and its own day card already lists what it holds.
+ *
+ * `localize` lets the caller swap in the reader's language for the titles
+ * before they reach a popup or the list under the map.
+ */
+export function tripStops(
+  days: DaySchedule[],
+  localize: (activity: ActivityItem) => ActivityItem = a => a
+): TripMapDay[] {
+  return days.flatMap(day => {
+    const stops = locatedStops((day.activities ?? []).map(localize));
+    return stops.length > 0 ? [{ day, stops }] : [];
+  });
 }
 
 const EARTH_RADIUS_KM = 6371;

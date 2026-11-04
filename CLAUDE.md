@@ -538,6 +538,20 @@ things: the map container carries `isolate`, or Leaflet's z-indexes (up to
 markers are `divIcon`s built from theme classes, because the default pin is an
 image whose path breaks under a bundler and a number says more anyway.
 
+**The whole-trip map is the same pins, all at once.** `TripMapCard` sits above
+the day strip for everyone, collapsed, and renders nothing on a trip with no
+pin. It stores nothing: `tripStops` in `geo.ts` reads the pins the days already
+carry. On it a pin's number is the *day*, not the stop — a stop's place in its
+day is in the popup and the list — and each day takes a tone from
+`tripMapTones.ts`: brand, gilt, clay, muted, ink, the five tokens white text
+clears AA on, wrapping round on a sixth day. The number is the meaning and the
+tone only a second cue, which is why a wrapped tone is acceptable and a new
+colour is not. Under the map, one row per day lists its stops; tapping a row
+zooms to that day and fades the others, because a trip that starts in Penang
+shows Bangkok as one cluster otherwise. `TripMap` is lazy like `DayMap`, and
+the tones live in their own file so the card can colour its list without
+pulling Leaflet into the main bundle.
+
 **A trip id is a `crypto.randomUUID()`.** It used to be `trip-${Date.now()}`,
 which two people creating a trip in the same millisecond could collide on — and
 `createTripCloud` reads a duplicate primary key as "already exists", so the

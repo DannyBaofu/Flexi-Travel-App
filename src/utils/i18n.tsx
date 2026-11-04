@@ -530,6 +530,23 @@ const dict: Record<string, Entry> = {
     en: '{n} more without a pin. Pick the place from the suggestion list when editing and it will appear on the map.'
   },
 
+  // ---- Whole-trip map ----
+  // Every pinned stop of every day on one map, above the day strip. Pins
+  // carry the day number; the colour per day is a second cue, never the only
+  tripMapTitle: { zh: '全程路线图', en: 'Whole-trip map' },
+  tripMapSummary: { zh: '{days} 天 · {n} 个地点', en: '{n} places over {days} days' },
+  tripMapShow: { zh: '展开全程路线图', en: 'Show the whole-trip map' },
+  tripMapHide: { zh: '收起全程路线图', en: 'Hide the whole-trip map' },
+  tripMapRegion: { zh: '全程地点地图', en: 'Map of every place on the trip' },
+  tripMapPickDay: { zh: '点下面某一天，地图会放大到那一天。', en: 'Tap a day below to zoom the map to it.' },
+  tripMapShowAll: { zh: '看全程', en: 'Whole trip' },
+  tripMapFocusDay: { zh: '在地图上看这一天', en: 'Show this day on the map' },
+  // Pins are numbered by day here, not by stop as on a day's own map
+  tripMapPinHint: {
+    zh: '圆点里的数字是第几天，线按当天的先后顺序直线相连，不是实际路线。',
+    en: 'The number in each pin is the day. Lines join each day’s stops in order as straight lines, not the real route.'
+  },
+
   // ---- Undo instead of a confirm dialog ----
   undo: { zh: '撤销', en: 'Undo' },
   deletedActivity: { zh: '已删除「{name}」', en: 'Deleted “{name}”' },

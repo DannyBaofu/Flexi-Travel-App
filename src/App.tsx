@@ -13,6 +13,7 @@ import { TripBanner } from './components/TripBanner';
 import { FlightCard } from './components/FlightCard';
 import { TrainCard } from './components/TrainCard';
 import { TransitRoutesCard } from './components/TransitRoutesCard';
+import { TripMapCard } from './components/TripMapCard';
 import { ItineraryView } from './components/ItineraryView';
 import { IdeasView } from './components/IdeasView';
 import { BudgetTracker } from './components/BudgetTracker';
@@ -699,6 +700,9 @@ export function App() {
             {/* The organiser's own sheet of every train and boat leg; renders
                 nothing for anyone else, or on a trip with no such leg */}
             <TransitRoutesCard key={`routes-${activeTrip.id}`} trip={activeTrip} role={role} />
+            {/* Every pinned stop of every day on one map, for everyone;
+                renders nothing on a trip with no pin */}
+            <TripMapCard key={`map-${activeTrip.id}`} trip={activeTrip} />
             <ItineraryView
               key={activeTrip.id}
               trip={activeTrip}

@@ -7,9 +7,10 @@ import {
   roundDistance,
   coordsFromMapsUrl,
   directionsUrl,
-  travelModeFor
+  travelModeFor,
+  tripStops
 } from './geo';
-import type { ActivityItem } from '../types/travel';
+import type { ActivityItem, DaySchedule } from '../types/travel';
 
 const act = (over: Partial<ActivityItem> = {}): ActivityItem => ({
   id: over.id ?? 'a',
@@ -37,6 +38,49 @@ describe('locatedStops', () => {
 
   it('refuses coordinates that cannot be on the globe', () => {
     expect(locatedStops([act({ lat: 91, lon: 0 }), act({ lat: 0, lon: 181 }), act({ lat: NaN, lon: 1 })])).toEqual([]);
+  });
+});
+
+describe('tripStops', () => {
+  const day = (id: string, dayNumber: number, activities: ActivityItem[]): DaySchedule => ({
+    id,
+    dayNumber,
+    dateString: '',
+    dayOfWeek: '',
+    title: '',
+    activities
+  });
+
+  it('gathers every day that has a pin, in trip order, each with its stops in day order', () => {
+    const days = tripStops([
+      day('d1', 1, [act({ id: 'a', ...watPho }), act({ id: 'b' }), act({ id: 'c', ...grandPalace })]),
+      day('d2', 2, [act({ id: 'd', ...jodd })])
+    ]);
+    expect(days.map(d => d.day.id)).toEqual(['d1', 'd2']);
+    // Order counts the unpinned stop too, so it matches the day's own map
+    expect(days[0].stops.map(s => [s.activity.id, s.order])).toEqual([['a', 1], ['c', 3]]);
+    expect(days[1].stops.map(s => s.activity.id)).toEqual(['d']);
+  });
+
+  it('leaves out a day with nothing pinned rather than showing it empty', () => {
+    const days = tripStops([
+      day('d1', 1, [act({ id: 'a' })]),
+      day('d2', 2, [act({ id: 'b', ...jodd })]),
+      day('d3', 3, [])
+    ]);
+    expect(days.map(d => d.day.id)).toEqual(['d2']);
+  });
+
+  it('is empty for a trip with no pins at all', () => {
+    expect(tripStops([day('d1', 1, [act()])])).toEqual([]);
+  });
+
+  it('names the stops in whatever language the caller asks for', () => {
+    const days = tripStops([day('d1', 1, [act({ id: 'a', title: '卧佛寺', ...watPho })])], a => ({
+      ...a,
+      title: 'Wat Pho'
+    }));
+    expect(days[0].stops[0].activity.title).toBe('Wat Pho');
   });
 });
 
