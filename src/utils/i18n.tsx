@@ -311,7 +311,6 @@ const dict: Record<string, Entry> = {
   more: { zh: '更多', en: 'More' },
 
   // ---- Invite code entry on the first screen ----
-  haveInviteCode: { zh: '朋友给了你邀请码？', en: 'Got an invite code from a friend?' },
   gateTitle: { zh: '输入邀请码', en: 'Enter your invite code' },
   gateHint: {
     zh: '朋友会发给你一条链接或一个 6 位邀请码，打开后选出你自己的名字就能加入。',
@@ -381,8 +380,6 @@ const dict: Record<string, Entry> = {
   personalYourShare: { zh: '你应分摊', en: 'Your share' },
 
   // ---- Signing in from the first screen (a returning user has no navbar) ----
-  emptyHaveAccount: { zh: '已经有账号？', en: 'Already have an account?' },
-  emptySignIn: { zh: '登录取回你的行程', en: 'Sign in to get your trips back' },
   emptyNoCloudTrips: { zh: '这个账号下还没有行程。', en: 'This account has no trips yet.' },
 
   // ---- Sync state ----

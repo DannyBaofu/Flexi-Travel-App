@@ -5,13 +5,14 @@ description: Run TravelSync locally and verify the whole app is healthy — test
 
 # Checking TravelSync is actually fine
 
-Four layers, cheapest first. Stop at the first hard failure — a broken build
-makes everything below it meaningless.
+Four layers, cheapest first, plus one more before a trip. Stop at the first
+hard failure — a broken build makes everything below it meaningless.
 
 1. **Local** — does it compile, test and lint
 2. **Live** — is the deployed site running *this* commit
 3. **Cloud** — is Supabase awake and configured
 4. **Drift** — have the conventions quietly rotted
+5. **Abroad** — does it still work on a phone with bad or no signal (section 7)
 
 The failures worth catching here are the quiet ones. Nothing in this app
 announces that the database paused, or that a deploy shipped without its keys,
@@ -27,15 +28,19 @@ Chained so the first failure stops the line.
 
 **Baselines** — anything beyond these is new and worth reading:
 
-- **75 tests, 10 files.** A *lower* count is as suspicious as a failure; it
-  usually means a test file stopped being picked up, not that work vanished.
+- **294 tests, 28 files** (November 2026). The number only grows as features
+  land, so a *higher* count is normal — update this line when you notice. A
+  *lower* count is as suspicious as a failure; it usually means a test file
+  stopped being picked up, not that work vanished.
 - **6 lint warnings, all known**: `react(set-state-in-effect)` in
   `ActivityModal`, `ShareModal`, `TripSettingsModal`, `UndoToast` and
   `LocationInput`, plus `react(only-export-components)` in `i18n.tsx`. The
   first four sync form state to a prop when a dialog opens; `LocationInput`
   is a debounced fetch, which is the external-system case the rule exists for.
   Do not chase these.
-- **Bundle around 520kB** for the main chunk, plus small per-dialog chunks.
+- **Bundle around 550kB** for the main chunk with the Supabase keys set, plus
+  a lazy `DayMap` chunk (~150kB, Leaflet) and small per-dialog chunks. Vite's
+  "larger than 500 kB" warning is expected and not part of shipping.
 
 **The bundle size trap.** It roughly doubles once `VITE_SUPABASE_*` are set,
 because without keys `isCloudEnabled` folds to `false` at build time and the
@@ -119,27 +124,41 @@ back would mean RLS is off, which is a real problem.
 A timeout or connection error usually means the **project has paused**. Restore
 it from the Supabase dashboard; data is intact, it just stops answering.
 
-Invite codes depend on one function, and it fails silently if the schema was
-only half applied:
+Joining a trip runs through two functions, `invite_roster` (which names are
+behind a code) and `claim_seat` (take one). Both fail silently if the schema
+was only half applied. And `join_trip` must stay **gone** — it was dropped on
+purpose because it let a code holder join with no seat at all (see
+`schema.sql`):
 
 ```bash
-curl -s -m 25 "$URL/rest/v1/rpc/join_trip" -H "apikey: $KEY" \
-  -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' \
-  -d '{"p_code":"ZZZZZZ"}'
+for fn in join_trip invite_roster claim_seat; do
+  printf '%-14s ' "$fn"
+  body='{"p_code":"ZZZZZZ"}'
+  [ "$fn" = claim_seat ] && body='{"p_trip_id":"x","p_traveler_id":"y","p_code":"ZZZZZZ"}'
+  curl -s -m 25 -w ' [%{http_code}]\n' "$URL/rest/v1/rpc/$fn" -H "apikey: $KEY" \
+    -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' -d "$body"
+done
 ```
 
-`{"code":"P0001",...,"message":"INVALID_INVITE"}` is **correct** — the function
-exists and rejected a fake code. "Function not found" means re-run
-`supabase/schema.sql`.
+Healthy is exactly:
 
-Two auth toggles have to stay as they are or nobody can log in:
+- `join_trip` → `PGRST202` "Could not find the function" `[404]`. If this ever
+  answers, the old door is back — re-run `supabase/schema.sql`.
+- `invite_roster` → `[] [200]`: it exists and a fake code reveals nothing.
+- `claim_seat` → `"message":"NOT_SIGNED_IN"` `[400]`: it exists and refuses a
+  caller with no account.
+
+"Function not found" on either of the last two means re-run the schema.
+
+Three auth settings have to stay as they are or nobody can get in:
 
 ```bash
 curl -s -m 25 "$URL/auth/v1/settings" -H "apikey: $KEY" | python -c "
 import json,sys; s=json.load(sys.stdin)
 print('email provider  :', s.get('external',{}).get('email'), '(must be True)')
+print('anonymous users :', s.get('external',{}).get('anonymous_users'), '(must be True)')
 print('confirm email   :', s.get('mailer_autoconfirm'), '(True means OFF, which is required)')
-print('signups open    :', not s.get('disable_signup'), '(close once everyone has registered)')
+print('signups open    :', not s.get('disable_signup'), '(must be True while a trip is running)')
 "
 ```
 
@@ -147,6 +166,14 @@ Sign-in is ID + password mapped onto `<id>@travellor.app`, an address that can
 never receive mail. If **Confirm email** is ever switched back on, accounts get
 created and then nobody can log in — the app reports it, but it is a confusing
 way to find out.
+
+**Keep sign-ups open.** It is tempting to close them "once everyone has
+registered", but Supabase's anonymous sign-in refuses with `signup_disabled`
+when sign-ups are off — and every guest who opens an invite *is* an anonymous
+sign-up. So is a friend whose phone lost its site data mid-trip and has to
+rejoin. The ID + password fallback cannot help either, because that is a
+sign-up too. Closed sign-ups lock out every new or returning guest, silently,
+at exactly the moment they need the app.
 
 ## 5. Is the keep-alive still running
 
@@ -156,10 +183,21 @@ configuration — it falls back to the public URL and anon key.
 
 **GitHub disables scheduled workflows on a repository with no activity for 60
 days.** So the thing preventing the pause can quietly stop, and the database
-goes down a week later. After any long gap, open the repo's **Actions** tab:
+goes down a week later. The repo is public, so GitHub's API answers without
+`gh` (which this machine does not have):
 
-- Is the workflow enabled, and did it run in the last few days?
-- If not, **Run workflow** manually and push something to wake the schedule.
+```bash
+API='https://api.github.com/repos/DannyBaofu/Flexi-Travel-App/actions/workflows/supabase-keepalive.yml'
+curl -s -m 25 "$API" | python -c "import json,sys; print('state:', json.load(sys.stdin).get('state'))"
+curl -s -m 25 "$API/runs?per_page=3" | python -c "
+import json,sys
+for r in json.load(sys.stdin).get('workflow_runs',[]): print(r['created_at'], r['event'], r['conclusion'])"
+```
+
+Healthy is `state: active` and a `success` within the last three or four days.
+If not, open the repo's **Actions** tab, **Run workflow** manually, and push
+something to wake the schedule. `git log -1 --format=%cd` tells you how close
+the 60-day clock is.
 
 ## 6. Has anything drifted
 
@@ -186,51 +224,117 @@ label already says what a field is. Anything a person reads comes from `t()`.
 
 **Dead or missing dictionary keys.** Deleting a feature leaves its strings
 behind, and one such orphan shipped live promising a packing list that no longer
-existed. Scan every `t('...')` against the dictionary, allow-listing the keys
-reached through variables (`mode_*`, `shareAs*`, `viewer*`, `docTitle`, and the
-`tab*`/`tab*Short` pairs the TabBar renders from its array):
+existed. Two questions, asked of non-test source only:
+
+- **missing**: a literal `t('key')` whose key is not in the dictionary.
+- **unused**: a dictionary key never written in quotes anywhere. Counting any
+  quoted mention as a use covers keys reached through a variable (the TabBar's
+  array, `shareAs*`, `viewer*`) without an allow-list that rots; keys built
+  from a template such as ``t(`mode_${m}`)`` are covered by their prefix.
 
 ```bash
 python - <<'EOF'
 import io, os, re
-DYNAMIC = {'mode_bts','mode_mrt','mode_boat','mode_taxi','mode_walk','mode_bus','mode_train',
- 'mode_airportRail','shareAsAdmin','shareAsAdminDesc','shareAsMember','shareAsMemberDesc',
- 'viewerReadOnly','viewerDesc','docTitle','tabItinerary','tabBudget','tabPhrases',
- 'tabItineraryShort','tabBudgetShort','tabPhrasesShort'}
-used = set(DYNAMIC)
+src = []
 for root,_,files in os.walk('src'):
     for f in files:
-        if f.endswith(('.ts','.tsx')) and f != 'i18n.tsx':
-            used |= set(re.findall(r"t\(\s*'([A-Za-z0-9_]+)'", io.open(os.path.join(root,f),encoding='utf-8').read()))
+        if f.endswith(('.ts','.tsx')) and f != 'i18n.tsx' and '.test.' not in f:
+            src.append(io.open(os.path.join(root,f),encoding='utf-8').read())
+code = '\n'.join(src)
 s = io.open('src/utils/i18n.tsx',encoding='utf-8').read()
 declared = re.findall(r"^\s{2}([A-Za-z0-9_]+):\s*\{\s*zh:", s, flags=re.M)
-print('unused  :', [k for k in declared if k not in used] or 'none')
-print('missing :', sorted(k for k in used if k not in declared) or 'none')
+called = set(re.findall(r"\bt\(\s*'([A-Za-z0-9_]+)'", code))
+prefixes = set(re.findall(r"\bt\(\s*`([A-Za-z0-9_]+)\$\{", code))
+unused = [k for k in declared
+          if not re.search(r"['\"`]%s['\"`]" % re.escape(k), code)
+          and not any(k.startswith(p) for p in prefixes)]
+print('unused  :', unused or 'none')
+print('missing :', sorted(called - set(declared)) or 'none')
 EOF
 ```
 
-Both lists should read `none`. This check earns its place: it caught six keys
-orphaned by replacing the delete confirmation with an undo, within minutes of
-those commits landing.
+Both lists should read `none`. The `\b` before `t(` is a regex word boundary,
+typed as a backslash and a `b`. An earlier copy of this script had it saved as
+a literal backspace control character, which matched nothing, and retyping it
+without the `\b` reads `split('a')` and `get('b')` as translations. If the
+scan ever reports dozens of nonsense keys, or every key as unused, check that
+first. This check earns its place: it caught six keys orphaned by replacing
+the delete confirmation with an undo, within minutes of those commits landing.
+
+## 7. Will it work abroad
+
+Run this before a trip, or whenever the user asks whether the app is fine to
+take overseas. The group uses it on roaming data, hotel Wi-Fi and in the metro,
+so "works on my desk" is not the question.
+
+**Every outside service answers, and the CSP lets the browser reach it.**
+
+```bash
+grep -rhoE "https://[a-zA-Z0-9.-]+" src/ --include=*.ts --include=*.tsx | sort -u
+curl -sI https://travellor.vercel.app/ | grep -i content-security-policy
+curl -s -m 20 "https://open.er-api.com/v6/latest/THB" | python -c "import json,sys; d=json.load(sys.stdin); print('er-api     MYR per THB', d['rates']['MYR'])"
+curl -s -m 20 "https://api.frankfurter.dev/v1/latest?base=THB&symbols=MYR"; echo
+curl -s -m 20 -o /dev/null -w 'photon     %{http_code}\n' "https://photon.komoot.io/api/?q=Wat%20Arun&limit=1"
+for p in /sw.js /manifest.webmanifest; do curl -s -m 20 -o /dev/null -w "$p %{http_code}\n" "https://travellor.vercel.app$p"; done
+```
+
+Every host the code `fetch`es (Supabase, Photon, both rate APIs) must appear in
+`connect-src`. Image hosts (Unsplash covers, OSM tiles) fall under the open
+`img-src https:`, and `google.com` is only ever a link, so neither needs one.
+The two rate APIs should agree to about the fourth decimal.
+
+**The phone test, through Playwright at 375 × 812 against the live site.**
+Seed a *synthetic* trip into localStorage (the browser is `--isolated`, and
+nobody is signed in, so nothing reaches the cloud), then with
+`browser_run_code_unsafe`:
+
+1. `navigator.serviceWorker.ready`, reload, and confirm
+   `navigator.serviceWorker.controller` is set — the page is under the worker.
+2. `page.context().setOffline(true)`, reload. The itinerary must render, on
+   **today** if the seeded dates span it, with costs still converted. Trips
+   load from localStorage before any network call, so this is what a phone in
+   airplane mode sees.
+3. Back online, click through all four tabs (`行程` `想去` `预算` `泰语`):
+   `document.documentElement.scrollWidth` ≤ 375 on each, and no visible
+   button, link or input under 44px tall. Chip rows and the day strip scroll
+   sideways *inside* themselves on purpose — only page-level width counts.
+4. `localStorage.clear()` and close the browser when done.
+
+Offline, six console errors are **expected**: two Google Fonts files, the cover
+photo, and the two rate APIs. The app falls back to system fonts and the
+stored rate, which is the design. Online there should be **zero** — a
+`Refused to connect` line is a CSP gap.
+
+Seed with the real field names or the budget tab lies to you. An expense is
+`paidByTravelerId` and `splitWithTravelerIds`; get those wrong and the
+settlement reads "X 付给 Unknown", which looks like an app bug and is not.
+
+**What to tell the group before they fly**: open the trip once on Wi-Fi and add
+the app to the home screen. iOS clears a site's data after about a week
+without a visit, and a friend who loses it arrives as a new anonymous account
+whose seat the organiser has to Release.
 
 ## What "good" looks like
 
 Report it plainly, and never infer a layer you did not actually check:
 
-- 75 tests pass, build clean, 6 known lint warnings
+- All tests pass (294+), build clean, 6 known lint warnings
 - Live bundle hash matches a local build of this commit
-- Three tables answer `[]` with 200; `join_trip` says `INVALID_INVITE`
-- Email provider on, confirm email off
-- Keep-alive ran within the last few days
+- Three tables answer `[]` with 200; `join_trip` is 404, `invite_roster` is
+  `[]`, `claim_seat` says `NOT_SIGNED_IN`
+- Email provider on, anonymous users on, confirm email off, sign-ups open
+- Keep-alive `active` with a success in the last few days
 - No raw shades, no orphaned strings
+- Before a trip: rate APIs, Photon and the CSP line up; the worker controls
+  the page; a saved trip opens offline; four tabs fit 375px
 
 ## Two invariants worth re-reading before touching money or sync
 
 **The pot and the splitter are two halves of one sum.** `computeKitty` returns
 `coveredIds`, and `BudgetTracker` skips exactly those expenses when building
 balances. Counting them in both places overstates every debt in the list.
-Twelve tests guard the drawdown rules — change them in `kitty.ts`, not in a
-component.
+The tests in `kitty.test.ts` guard the drawdown rules — change them in
+`kitty.ts`, not in a component.
 
 **Writes are compare-and-set.** `upsertTripCloud` sends the `updated_at` this
 browser last saw and retries through `mergeRemoteTrip` if the row moved. A
