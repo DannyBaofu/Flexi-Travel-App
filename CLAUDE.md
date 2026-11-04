@@ -448,8 +448,21 @@ bills out — exact, and checkable against the envelope. No rate touches it; the
 and converted at the market rate, which no money changer pays, so the baht it
 showed never matched the cash. A pot saved that way still carries `perPerson`
 (ringgit); `resolveKitty` converts it to whole notes at the stored rate and the
-next edit writes it back as cash. All of this lives in `src/services/kitty.ts` with
-tests — change the drawdown rules there, not in the component.
+next edit writes it back as cash.
+
+**The pot can be a ringgit transfer instead**, chosen in its settings
+(`potCurrency: 'home'`): everyone sends the holder ringgit, and the holder pays
+the baht bills by card or e-wallet from that account. That pot really is
+ringgit, so it is counted in ringgit, and each baht bill comes off at the trip
+rate, rounded to the sen. The figure is then an estimate — no card pays the
+market rate — so the card puts "≈" on what went through the rate and says the
+holder's bank app is the real number. This is *not* the old ringgit pot come
+back: cash stays the default, and stays exact. The two amounts live in separate
+fields (`perPersonCash`, `perPersonHome`) so switching back and forth never
+reads 300 ringgit as 300 baht, and a pot with no `potCurrency` is cash. One
+currency per pot, not per person — mixing them would break "everyone hands over
+the same amount". All of this lives in `src/services/kitty.ts` with tests —
+change the drawdown rules there, not in the component.
 
 **Flights (`trip.flights`) are the organiser's to write and everyone's to
 read.** Two journeys, `outbound` and `inbound`, each a list of legs plus one

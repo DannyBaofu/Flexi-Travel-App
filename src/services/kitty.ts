@@ -12,24 +12,51 @@ import type { ExpenseItem, Trip, TripKitty } from '../types/travel';
  * That is the whole point of the feature: you can see the fund run out, and
  * you can see food going back to being split.
  *
- * Every sum here is in the trip's own currency. The pot is a stack of real
+ * Every sum here is in the pot's own currency, and there are two.
+ *
+ * A cash pot (the default) is in the trip's currency. It is a stack of real
  * notes, and expenses are logged in the same currency, so the remainder is a
  * subtraction — exact, and checkable against the envelope. It used to be kept
  * in the home currency and converted at the market rate, which no money
  * changer pays, so the "baht left" it showed never matched the cash.
+ *
+ * A transfer pot is in the home currency, because that is what sits in the
+ * holder's account: everyone sends ringgit, and the holder pays baht bills by
+ * card or e-wallet out of it. Bills are still logged in baht — that is what
+ * the receipt says — so each one is converted at the trip's rate, to the sen,
+ * before it comes off. That makes the remainder an estimate: a card charges
+ * its own rate, a percent or two off the market's. The holder's bank app is
+ * the real figure, and the card says as much.
  */
 
-/** The pot as the rest of the app reads it: the cash amount always present. */
-export type ResolvedKitty = Omit<TripKitty, 'perPerson' | 'perPersonCash'> & {
+export type PotCurrency = 'trip' | 'home';
+
+/** The pot as the rest of the app reads it: both amounts and the currency always present. */
+export type ResolvedKitty = Omit<
+  TripKitty,
+  'perPerson' | 'perPersonCash' | 'perPersonHome' | 'potCurrency'
+> & {
+  potCurrency: PotCurrency;
   perPersonCash: number;
+  perPersonHome: number;
 };
 
 export const DEFAULT_KITTY: ResolvedKitty = {
   enabled: false,
+  potCurrency: 'trip',
   perPersonCash: 0,
+  perPersonHome: 0,
   categories: ['food'],
   paidInTravelerIds: []
 };
+
+const positive = (n: unknown): number => {
+  const v = Number(n);
+  return Number.isFinite(v) && v > 0 ? v : 0;
+};
+
+/** To the cent (or sen, or satang): what a card statement actually prints. */
+const toCents = (n: number): number => Math.round(n * 100) / 100;
 
 /**
  * Trips saved before the pot existed, or arriving over a share link, have none.
@@ -51,7 +78,11 @@ export function resolveKitty(
       : Math.round((Number(k.perPerson) || 0) * rate);
   return {
     enabled: Boolean(k.enabled),
-    perPersonCash: Number.isFinite(cash) && cash > 0 ? cash : 0,
+    // Anything but an explicit 'home' is cash, so a pot from before the
+    // choice — or a malformed one — keeps counting the notes it always did
+    potCurrency: k.potCurrency === 'home' ? 'home' : 'trip',
+    perPersonCash: positive(cash),
+    perPersonHome: positive(k.perPersonHome),
     holderTravelerId: k.holderTravelerId,
     categories:
       Array.isArray(k.categories) && k.categories.length > 0
@@ -63,7 +94,13 @@ export function resolveKitty(
 
 export interface KittyState {
   enabled: boolean;
-  /** Everything below is in the trip's own currency — the cash itself. */
+  /**
+   * Which currency every sum below is in. With `home`, `spent` and
+   * `remaining` went through the exchange rate and are estimates.
+   */
+  potCurrency: PotCurrency;
+  /** What each traveller hands over, in the pot's currency. */
+  perPerson: number;
   potTotal: number;
   collected: number;
   spent: number;
@@ -95,10 +132,19 @@ export function computeKitty(trip: Trip): KittyState {
   const kitty = resolveKitty(trip);
   const travellers = trip.travelers ?? [];
 
-  const potTotal = kitty.perPersonCash * travellers.length;
+  const inHome = kitty.potCurrency === 'home';
+  const perPerson = inHome ? kitty.perPersonHome : kitty.perPersonCash;
+  const potTotal = toCents(perPerson * travellers.length);
+
+  // Bills are logged in the trip's currency. A cash pot takes them off as
+  // they are; a transfer pot pays them at the trip's rate (trip currency per
+  // one unit of home currency), rounded to the sen as a card would charge.
+  const rate = trip.exchangeRate && trip.exchangeRate > 0 ? trip.exchangeRate : 1;
+  const costOf = (exp: ExpenseItem): number =>
+    inHome ? toCents(exp.amount / rate) : exp.amount;
 
   const paidIn = new Set(kitty.paidInTravelerIds);
-  const collected = kitty.perPersonCash * travellers.filter(tv => paidIn.has(tv.id)).length;
+  const collected = toCents(perPerson * travellers.filter(tv => paidIn.has(tv.id)).length);
   const unpaidTravelerIds = travellers.filter(tv => !paidIn.has(tv.id)).map(tv => tv.id);
 
   const coveredIds = new Set<string>();
@@ -114,16 +160,19 @@ export function computeKitty(trip: Trip): KittyState {
       // All of a bill or none of it. Paying half a dinner from the pot and
       // splitting the rest is accurate but impossible to follow on a phone,
       // and a smaller later bill may still fit in what is left.
-      if (spent + exp.amount <= potTotal) {
+      // Summing to the cent keeps float dust (0.1 + 0.2) from refusing a
+      // bill that fits the pot exactly.
+      const cost = costOf(exp);
+      if (toCents(spent + cost) <= potTotal) {
         coveredIds.add(exp.id);
-        spent += exp.amount;
+        spent = toCents(spent + cost);
       } else {
         uncoveredCount += 1;
       }
     }
   }
 
-  const remaining = Math.max(potTotal - spent, 0);
+  const remaining = Math.max(toCents(potTotal - spent), 0);
   const usedPercent =
     potTotal > 0 ? Math.min(100, Math.round((spent / potTotal) * 100)) : 0;
 
@@ -139,6 +188,8 @@ export function computeKitty(trip: Trip): KittyState {
 
   return {
     enabled: kitty.enabled,
+    potCurrency: kitty.potCurrency,
+    perPerson,
     potTotal,
     collected,
     spent,

@@ -166,19 +166,36 @@ export interface ExpenseItem {
 }
 
 /**
- * A shared cash pot. Everyone hands the holder the same amount up front, and
+ * A shared pot. Everyone hands the holder the same amount up front, and
  * spending in the covered categories comes out of that pot rather than being
  * settled between people afterwards.
  *
- * Counted in the trip's own currency, because that is what the holder has in
- * hand: the baht everyone gave, less the baht spent, is the cash left in the
- * envelope. No exchange rate touches it — the home-currency figure shown
- * beside it is a reference and says so with "≈".
+ * By default it is counted in the trip's own currency, because that is what
+ * the holder has in hand: the baht everyone gave, less the baht spent, is the
+ * cash left in the envelope. No exchange rate touches it — the home-currency
+ * figure shown beside it is a reference and says so with "≈".
+ *
+ * The other way to fund it is a bank transfer in the home currency, which the
+ * holder then spends by card or e-wallet. That pot really is ringgit, so it is
+ * counted in ringgit, and each baht bill is taken off at the trip's rate — an
+ * estimate, because no card pays the market rate, and the card says so.
  */
 export interface TripKitty {
   enabled: boolean;
+  /**
+   * What the shares were handed over in: `trip` is cash in the trip's own
+   * currency, `home` a transfer in the home currency. Absent means `trip`,
+   * which is every pot saved before the choice existed.
+   */
+  potCurrency?: 'trip' | 'home';
   /** Cash each traveller hands over, in the trip's own currency (THB) — the notes themselves. */
   perPersonCash?: number;
+  /**
+   * Each traveller's transfer in the HOME currency (MYR), read only while
+   * `potCurrency` is `home`. Kept apart from the cash figure so switching
+   * back and forth never reads 300 ringgit as 300 baht.
+   */
+  perPersonHome?: number;
   /**
    * What the fund held per traveller before it counted cash: an amount in the
    * HOME currency, converted at the market rate. Read only so an older fund

@@ -1,7 +1,7 @@
 import React from 'react';
-import { PiggyBank, Sliders, Check } from 'lucide-react';
+import { PiggyBank, Sliders, Check, Banknote, Landmark } from 'lucide-react';
 import type { ActivityCategory, Trip } from '../types/travel';
-import type { KittyState, ResolvedKitty } from '../services/kitty';
+import type { KittyState, PotCurrency, ResolvedKitty } from '../services/kitty';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { useI18n } from '../utils/i18n';
 import { card, btnDanger, iconBtn, input, label, money } from './ui';
@@ -12,7 +12,7 @@ interface KittyCardProps {
   state: KittyState;
   canEdit: boolean;
   meId: string;
-  /** Only for the "≈" reference line: the pot itself is never converted. */
+  /** For the "≈" reference line; computeKitty already converted any bills it had to. */
   rate: number;
   editing: boolean;
   onToggleEditing: () => void;
@@ -48,6 +48,26 @@ export const KittyCard: React.FC<KittyCardProps> = ({
   const toggleInList = <T,>(list: T[], value: T): T[] =>
     list.includes(value) ? list.filter(v => v !== value) : [...list, value];
 
+  // A cash pot is counted in the trip's notes, exactly. A transfer pot is
+  // counted in the home currency, and what it has spent went through the
+  // rate — so those figures carry "≈" and round to whole units, because
+  // sen would claim a precision a card's own rate does not have.
+  const inHome = kittyState.potCurrency === 'home';
+  const potCur = inHome ? trip.homeCurrency : trip.currency;
+  const converted = (n: number) =>
+    inHome
+      ? `≈ ${potCur} ${Math.round(n).toLocaleString()}`
+      : `${potCur} ${n.toLocaleString()}`;
+  const reference = inHome
+    ? `≈ ${trip.currency} ${Math.round(kittyState.remaining * rate).toLocaleString()}`
+    : `≈ ${trip.homeCurrency} ${Math.round(kittyState.remaining / rate).toLocaleString()}`;
+
+  const potCurrencyOptions: { value: PotCurrency; text: string; Icon: typeof Banknote }[] = [
+    { value: 'trip', text: t('kittyAsCash', { cur: trip.currency }), Icon: Banknote },
+    { value: 'home', text: t('kittyAsTransfer', { cur: trip.homeCurrency }), Icon: Landmark }
+  ];
+  const editingHome = kitty.potCurrency === 'home';
+
   return (
     <>
   {/* ---- Shared pot: "have we still got food money?" ---- */}
@@ -59,19 +79,23 @@ export const KittyCard: React.FC<KittyCardProps> = ({
             <PiggyBank className="w-3.5 h-3.5" />
             {t('kittyRemaining')}
           </div>
-          {/* The cash in the envelope, to the note: what was handed over
-              less what was spent, with no rate anywhere in between */}
+          {/* Cash: what is in the envelope, to the note, no rate in between.
+              Transfer: what is left in the holder's account, near enough */}
           <div
             className={`text-2xl font-semibold mt-1 ${
               kittyState.exhausted ? 'text-clay' : 'text-ink'
             } ${money}`}
           >
-            {trip.currency} {kittyState.remaining.toLocaleString()}
+            {/* At this size a full-weight "≈" outshouts the figure it qualifies */}
+            {inHome && <span className="text-lg text-muted font-normal">≈ </span>}
+            {potCur} {(inHome ? Math.round(kittyState.remaining) : kittyState.remaining).toLocaleString()}
           </div>
-          {/* The home-currency figure is a reference, and the "≈" says so */}
-          <div className={`text-xs text-muted ${money}`}>
-            ≈ {trip.homeCurrency} {Math.round(kittyState.remaining / rate).toLocaleString()}
-          </div>
+          {/* The other currency is a reference, and the "≈" says so. On a
+              transfer pot it is the useful one at the table: baht to spend */}
+          <div className={`text-xs text-muted ${money}`}>{reference}</div>
+          {inHome && (
+            <p className="text-[11px] text-faint mt-1 leading-relaxed">{t('kittyEstimateNote')}</p>
+          )}
         </div>
 
         {canEdit && (
@@ -101,8 +125,8 @@ export const KittyCard: React.FC<KittyCardProps> = ({
         <div className={`flex items-center justify-between gap-3 text-[11px] text-muted mt-1.5 ${money}`}>
           <span className="truncate">
             {t('kittyUsedOf', {
-              used: `${trip.currency} ${kittyState.spent.toLocaleString()}`,
-              total: `${trip.currency} ${kittyState.potTotal.toLocaleString()}`
+              used: converted(kittyState.spent),
+              total: `${potCur} ${kittyState.potTotal.toLocaleString()}`
             })}
           </span>
           <span className="shrink-0">{kittyState.usedPercent}%</span>
@@ -132,7 +156,7 @@ export const KittyCard: React.FC<KittyCardProps> = ({
         <span className={money}>
           {t('kittyPotLine', {
             n: trip.travelers.length,
-            per: `${trip.currency} ${kitty.perPersonCash.toLocaleString()}`
+            per: `${potCur} ${kittyState.perPerson.toLocaleString()}`
           })}
         </span>
         <span className="text-hairline">·</span>
@@ -157,22 +181,58 @@ export const KittyCard: React.FC<KittyCardProps> = ({
       {canEdit && kittyEditing && (
         <div className="pt-3 border-t border-hairline space-y-3.5 animate-riseIn">
           <div>
+            <span className={label} id="kitty-currency-label">{t('kittyPaidAs')}</span>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="kitty-currency-label">
+              {potCurrencyOptions.map(({ value, text, Icon }) => {
+                const on = kitty.potCurrency === value;
+                return (
+                  <button
+                    type="button"
+                    key={value}
+                    onClick={() => updateKitty({ potCurrency: value })}
+                    aria-pressed={on}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 min-h-11 rounded-control text-xs font-semibold border transition ${
+                      on
+                        ? 'bg-brand-tint border-brand-tint text-brand'
+                        : 'bg-paper border-hairline text-muted hover:bg-mist'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    {text}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
             <label className={label} htmlFor="kitty-per-person">
-              {t('kittyPerPerson', { cur: trip.currency })}
+              {editingHome
+                ? t('kittyPerPersonTransfer', { cur: trip.homeCurrency })
+                : t('kittyPerPerson', { cur: trip.currency })}
             </label>
+            {/* Each currency keeps its own amount, and the key swaps the
+                uncontrolled field over when the choice above changes —
+                otherwise it would go on showing the other one's figure */}
             <input
+              key={kitty.potCurrency}
               id="kitty-per-person"
               type="number"
               inputMode="decimal"
               min="0"
               step="any"
-              defaultValue={kitty.perPersonCash || ''}
-              onBlur={(e) => updateKitty({ perPersonCash: Number(e.target.value) || 0 })}
+              defaultValue={(editingHome ? kitty.perPersonHome : kitty.perPersonCash) || ''}
+              onBlur={(e) => {
+                const value = Number(e.target.value) || 0;
+                updateKitty(editingHome ? { perPersonHome: value } : { perPersonCash: value });
+              }}
               className={`${input} ${money}`}
               aria-describedby="kitty-per-person-hint"
             />
             <p id="kitty-per-person-hint" className="text-[11px] text-faint mt-1.5 leading-relaxed">
-              {t('kittyCashHint')}
+              {editingHome
+                ? t('kittyTransferHint', { cur: trip.currency })
+                : t('kittyCashHint')}
             </p>
           </div>
 

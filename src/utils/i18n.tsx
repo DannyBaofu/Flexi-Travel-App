@@ -364,6 +364,17 @@ const dict: Record<string, Entry> = {
   // The pot is counted in notes, not converted — the hint says so, because
   // the old ringgit figure "≈ baht" is exactly what this replaced.
   kittyCashHint: { zh: '按实际收到的现金填，不用汇率换算。', en: 'The cash actually handed over — no exchange rate involved.' },
+  // Cash in the trip's currency, or a transfer in the home one that the
+  // holder spends by card or e-wallet. {cur} is the trip's own codes, never a
+  // written-in 泰铢/令吉, because the home currency is per-trip.
+  kittyPaidAs: { zh: '大家怎么交', en: 'How everyone pays in' },
+  kittyAsCash: { zh: '{cur} 现金', en: '{cur} cash' },
+  kittyAsTransfer: { zh: '{cur} 转账', en: '{cur} transfer' },
+  kittyPerPersonTransfer: { zh: '每人转账多少（{cur}）', en: 'Transfer per person ({cur})' },
+  kittyTransferHint: { zh: '账单照样按 {cur} 记，按汇率换算后从基金里扣。', en: 'Bills are still logged in {cur} and come off the fund at the trip\'s rate.' },
+  // A card never pays the market rate, so the ringgit left is a near miss,
+  // and this line is what stops it being read as the bank balance.
+  kittyEstimateNote: { zh: '按汇率估算，以保管人的银行记录为准', en: 'Estimated at the trip\'s rate — the holder\'s bank app has the exact figure' },
   kittyHolder: { zh: '谁保管这笔钱', en: 'Who holds the money' },
   kittyCovers: { zh: '基金支付哪些类别', en: 'What the fund pays for' },
   kittyWhoPaidIn: { zh: '谁已经交了', en: 'Who has handed it over' },

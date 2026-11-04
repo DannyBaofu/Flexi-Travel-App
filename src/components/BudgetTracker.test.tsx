@@ -196,6 +196,62 @@ describe('BudgetTracker — the shared fund', () => {
     expect(saved.kitty?.perPersonCash).toBe(2500);
   }, 20000);
 
+  // The same pot, but everyone sent the holder MYR 350 by transfer: a MYR 700
+  // pot, and the 800 THB dinner comes off at 8 THB per MYR, as MYR 100.
+  const withTransfer = {
+    ...withKitty,
+    kitty: { ...withKitty.kitty, potCurrency: 'home' as const, perPersonHome: 350 }
+  };
+
+  it('counts a transfer-funded pot in ringgit and says the figure is an estimate', () => {
+    renderBudget(withTransfer, 'admin');
+
+    // The headline's "≈" sits in its own lighter span, so match the whole line
+    const headline = screen.getByText((_, el) => el?.textContent === '≈ MYR 600' && el.tagName === 'DIV');
+    expect(headline).toBeInTheDocument();
+    // The baht still to spend is the reference now, the other way round
+    expect(screen.getByText('≈ THB 4,800')).toBeInTheDocument();
+    expect(screen.getByText(/已用 ≈ MYR 100 \/ 共 MYR 700/)).toBeInTheDocument();
+    expect(screen.getByText(/2 人 × MYR 350/)).toBeInTheDocument();
+    expect(screen.getByText(/以保管人的银行记录为准/)).toBeInTheDocument();
+  });
+
+  it('says nothing about an estimate on a cash pot, because there is none', () => {
+    renderBudget(withKitty, 'admin');
+    expect(screen.queryByText(/以保管人的银行记录为准/)).not.toBeInTheDocument();
+  });
+
+  it('switches the pot to a ringgit transfer from its settings', async () => {
+    const user = userEvent.setup();
+    const { onUpdateTrip } = renderBudget(withKitty, 'member');
+
+    await user.click(screen.getByRole('button', { name: /基金设置/ }));
+    await user.click(screen.getByRole('button', { name: /MYR 转账/ }));
+
+    const calls = onUpdateTrip.mock.calls;
+    const saved = calls[calls.length - 1][0] as Trip;
+    expect(saved.kitty?.potCurrency).toBe('home');
+    // The cash figure is kept, not converted or thrown away
+    expect(saved.kitty?.perPersonCash).toBe(2400);
+  }, 20000);
+
+  it('asks a transfer pot for ringgit, and leaves the cash amount alone', async () => {
+    const user = userEvent.setup();
+    const { onUpdateTrip } = renderBudget(withTransfer, 'member');
+
+    await user.click(screen.getByRole('button', { name: /基金设置/ }));
+    const field = screen.getByLabelText(/每人转账多少（MYR）/);
+    expect(field).toHaveValue(350);
+    await user.clear(field);
+    await user.type(field, '300');
+    await user.tab();
+
+    const calls = onUpdateTrip.mock.calls;
+    const saved = calls[calls.length - 1][0] as Trip;
+    expect(saved.kitty?.perPersonHome).toBe(300);
+    expect(saved.kitty?.perPersonCash).toBe(2400);
+  }, 20000);
+
   it('marks a fund-paid expense as coming from the fund, not from a person', () => {
     renderBudget(withKitty, 'admin');
     expect(screen.getAllByText('公基金').length).toBeGreaterThan(0);
