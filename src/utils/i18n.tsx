@@ -491,6 +491,18 @@ const dict: Record<string, Entry> = {
   trainsLegDepart: { zh: '出发时间', en: 'Departs' },
   trainsLegArrive: { zh: '到达时间', en: 'Arrives' },
 
+  // ---- Train & boat routes ----
+  // The organiser's own card on the schedule tab: every train and boat leg in
+  // the plan, read off the hops, so it never disagrees with the days below it
+  routesTitle: { zh: '火车和船路线', en: 'Train & boat routes' },
+  routesOnlyOrganiser: { zh: '只有组织者看得到', en: 'Only the organiser sees this' },
+  routesCount: { zh: '{n} 段', en: '{n} legs' },
+  routesCountOne: { zh: '1 段', en: '1 leg' },
+  // The hop is a Grab or a walk; its note offers a train or boat instead
+  routesOption: { zh: '有火车 / 船备选', en: 'Train or boat option' },
+  routesShow: { zh: '展开火车和船路线', en: 'Show train & boat routes' },
+  routesHide: { zh: '收起火车和船路线', en: 'Hide train & boat routes' },
+
   // ---- Day map ----
   mapShow: { zh: '查看地图', en: 'Show map' },
   mapHide: { zh: '收起地图', en: 'Hide map' },

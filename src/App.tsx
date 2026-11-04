@@ -12,6 +12,7 @@ import { Navbar } from './components/Navbar';
 import { TripBanner } from './components/TripBanner';
 import { FlightCard } from './components/FlightCard';
 import { TrainCard } from './components/TrainCard';
+import { TransitRoutesCard } from './components/TransitRoutesCard';
 import { ItineraryView } from './components/ItineraryView';
 import { IdeasView } from './components/IdeasView';
 import { BudgetTracker } from './components/BudgetTracker';
@@ -695,6 +696,9 @@ export function App() {
               onOpenSettings={() => setIsSettingsModalOpen(true)}
             />
             <TrainCard key={`trains-${activeTrip.id}`} trip={activeTrip} />
+            {/* The organiser's own sheet of every train and boat leg; renders
+                nothing for anyone else, or on a trip with no such leg */}
+            <TransitRoutesCard key={`routes-${activeTrip.id}`} trip={activeTrip} role={role} />
             <ItineraryView
               key={activeTrip.id}
               trip={activeTrip}

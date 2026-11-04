@@ -478,6 +478,23 @@ sits right under 航班 in Trip Settings. The train number is kept as typed, not
 upper-cased, because "Special Express 46" is not a code. `travelPhase` (which
 card opens by itself when) lives in `flights.ts` and both cards share it.
 
+**The train & boat routes card is the organiser's alone, and stores
+nothing.** `TransitRoutesCard` sits under the trains on the schedule tab and
+lists every train, MRT, BTS and boat leg in the plan, day by day, from where
+to where. It is read off each activity's `transportToNext` by
+`services/transitLegs.ts`, so it cannot drift from the days below it. A hop
+whose mode is a Grab or a walk still shows when its note *names* a line or a
+boat ("或坐 BTS…", "or the orange-flag boat…"), marked as an option rather
+than the plan — that is how an alternative gets written down without a second
+hop on one activity. Names only: a bare 码头 or "pier" is not a route, because
+"walk to the pier" for a longtail ride would list itself. A route from the
+accommodation needs an activity at the accommodation to hang its hop on (the
+`出门` stops on the Bangkok trip), since the first activity of a day has no
+hop leading into it. Members and viewers get nothing, by the organiser's
+request: they read each leg in its own day already. A trip with no such leg
+renders nothing, organiser included, which is why the card appears on
+Bangkok and not on a trip with no trains.
+
 **The day map draws straight lines, and says so.** `DayMap` (Leaflet on
 OpenStreetMap tiles, lazy-loaded so most sessions never download it) sits
 behind a per-day toggle in `ItineraryView` and shows the pinned stops numbered

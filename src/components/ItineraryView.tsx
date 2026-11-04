@@ -9,16 +9,10 @@ import {
   Copy,
   ArrowUp,
   ArrowDown,
-  ChevronDown,
-  Train,
-  TramFront,
-  Ship,
-  Car,
-  Bus,
-  Footprints
+  ChevronDown
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import type { Trip, DaySchedule, ActivityItem, TransportMode, TripRole } from '../types/travel';
+import type { Trip, DaySchedule, ActivityItem, TripRole } from '../types/travel';
+import { transportModeMeta, directionsLink } from './transportModes';
 import { useI18n, translateWeekday } from '../utils/i18n';
 import { locatedStops, hopsBetween, totalKm, roundDistance, directionsUrl } from '../services/geo';
 import { travelTimeLabel } from '../services/travelTime';
@@ -44,24 +38,6 @@ interface ItineraryViewProps {
   onOfferUndo: (tripId: string, message: string, restore: (current: Trip) => Trip) => void;
   role: TripRole;
 }
-
-// Transport mode → icon and i18n key. Which Google travel mode each one opens
-// lives with the rest of the geography in `geo.ts`.
-const transportModeMeta: Record<TransportMode, { icon: LucideIcon; tKey: string }> = {
-  bts: { icon: TramFront, tKey: 'mode_bts' },
-  mrt: { icon: Train, tKey: 'mode_mrt' },
-  boat: { icon: Ship, tKey: 'mode_boat' },
-  taxi: { icon: Car, tKey: 'mode_taxi' },
-  walk: { icon: Footprints, tKey: 'mode_walk' },
-  bus: { icon: Bus, tKey: 'mode_bus' },
-  train: { icon: Train, tKey: 'mode_train' },
-  airportRail: { icon: Train, tKey: 'mode_airportRail' }
-};
-
-// The one live-answer control in the schedule: it opens Google's transit
-// view for the hop, so it carries the 44px floor itself.
-const directionsLink =
-  'inline-flex items-center gap-1 min-h-11 px-1 -mx-1 text-brand hover:underline shrink-0';
 
 /**
  * Which day is today, or -1 when the trip is not running.
