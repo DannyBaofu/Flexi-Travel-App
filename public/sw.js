@@ -32,6 +32,12 @@
  * A picture from another site arrives opaque — the worker can store it but
  * cannot tell a photo from an error page. So the page says when one failed to
  * draw (`forget-photo`), and that copy is dropped rather than kept for good.
+ *
+ * Fetching one from here is judged by the `connect-src` served with THIS
+ * file, not the page's and not `img-src` — vercel.json gives /sw.js its own
+ * policy for that. A browser keeps the policy it installed the worker with,
+ * and only installs again when these bytes change: so a change to that
+ * policy ships with a change to this file, or nobody picks it up.
  */
 
 const VERSION = 'travelsync-v1';
