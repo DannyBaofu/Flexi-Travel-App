@@ -186,6 +186,26 @@ describe('ItineraryView — English copies of what was typed', () => {
   });
 });
 
+describe('ItineraryView — the place line', () => {
+  const at = (title: string, locationName: string): DaySchedule['activities'][number] => ({
+    id: title,
+    time: '10:00',
+    title,
+    category: 'sightseeing',
+    locationName
+  });
+
+  it('is left out when it only repeats the title', () => {
+    renderItinerary({ days: [day(1, [at('瑞巌寺', '瑞巌寺')])] });
+    expect(screen.getAllByText('瑞巌寺')).toHaveLength(1);
+  });
+
+  it('shows a place that says something the title does not', () => {
+    renderItinerary({ days: [day(1, [at('午餐', '松岛鱼市场')])] });
+    expect(screen.getByText('松岛鱼市场')).toBeTruthy();
+  });
+});
+
 describe('ItineraryView — side stops', () => {
   const stop = (id: string, title: string, side?: boolean): DaySchedule['activities'][number] => ({
     id,

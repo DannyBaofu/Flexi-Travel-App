@@ -505,7 +505,11 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                 {text.title}
                               </div>
 
-                              {activity.locationName && (
+                              {/* A place left blank is saved as the title, and a
+                                  line repeating the title says nothing — worse,
+                                  it stays in the typed language when the title
+                                  above it has switched to English. */}
+                              {activity.locationName && activity.locationName !== activity.title && (
                                 <div className="text-xs text-muted mt-0.5 flex items-start gap-1">
                                   <MapPin className="w-3 h-3 shrink-0 mt-0.5 text-faint" />
                                   <span className="line-clamp-1">{activity.locationName}</span>

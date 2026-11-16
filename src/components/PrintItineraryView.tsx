@@ -168,7 +168,7 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
                         {act.side ? '↳ ' : ''}{text.title}
                         {act.cost ? ` (${act.cost.toLocaleString()} ${trip.currency})` : ''}
                       </div>
-                      {act.locationName && <div className="text-muted">{act.locationName}</div>}
+                      {act.locationName && act.locationName !== act.title && <div className="text-muted">{act.locationName}</div>}
                       {text.notes && <div className="text-muted mt-0.5">{text.notes}</div>}
                       {act.transportToNext && (
                         <div className="text-muted mt-0.5 font-medium">
