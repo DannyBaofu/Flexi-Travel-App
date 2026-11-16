@@ -64,6 +64,17 @@ a small box was fine "inside a 44px row" was wrong: a row catches no taps, only
 the control does. A new tappable thing with a hand-written class needs the
 floor written in.
 
+**The last tab is a phrasebook in the language of the trip.** `phrasebookFor`
+in `src/data/phrasebooks.ts` picks it off `trip.currency` — yen gets Japanese,
+everything else the Thai book — because the currency is the one field that
+already says which country a trip is in; the destination is free text. The
+book carries its own tab-label keys, so the tab reads `日语` or `泰语` to match.
+Phrases are shown *to* someone, so each is rendered with `lang` set and its own
+display utility (`ja-display`, `thai-display`): the app's font stack leads with
+a Simplified Chinese face, and without both, Japanese kanji come out in their
+Chinese shapes. A new language is a new book, two tab keys, a hint key and a
+display utility.
+
 **No sample text in inputs.** Placeholders that read `e.g. Bangkok` were removed
 on purpose — the label says what the field is, and a fake example is one more
 thing to read past.

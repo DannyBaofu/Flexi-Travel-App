@@ -91,6 +91,16 @@
   line-height: 1.5;
 }
 
+/* Japanese for the same job. The app's own stack leads with a Simplified
+   Chinese face, which draws kanji in their Chinese shapes (直, 写, 海), so
+   this names Japanese faces first and falls back to the system's — which
+   picks its Japanese glyphs from lang="ja" on the element. Nothing to
+   download: every phone already carries one. */
+@utility ja-display {
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Noto Sans JP", "Noto Sans CJK JP", sans-serif;
+  line-height: 1.5;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

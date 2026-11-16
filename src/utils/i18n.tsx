@@ -305,6 +305,9 @@ const dict: Record<string, Entry> = {
   // ---- Phrasebook ----
   tabPhrases: { zh: '泰语速查', en: 'Thai Phrases' },
   phrasesHint: { zh: '直接把泰文大字出示给当地人看也可以！小贴士：男生句尾加 "krap (ครับ)"、女生加 "ka (ค่ะ)" 更有礼貌。', en: 'You can simply show the big Thai text to locals! Tip: men end sentences with "krap (ครับ)", women with "ka (ค่ะ)" to be polite.' },
+  // A yen trip gets the Japanese book instead; see phrasebookFor
+  tabPhrasesJa: { zh: '日语速查', en: 'Japanese Phrases' },
+  phrasesHintJa: { zh: '直接把日文大字出示给对方看也可以！小贴士：开口先说「すみません」(sumimasen)，这里每一句都已经是礼貌说法。领御朱印请备好零钱。', en: 'You can simply show the big Japanese text to someone! Tip: open with "sumimasen" — every phrase here is already in the polite form. Have coins ready for goshuin.' },
 
   // ---- Live exchange rate ----
 
@@ -318,6 +321,7 @@ const dict: Record<string, Entry> = {
   tabIdeasShort: { zh: '想去', en: 'Ideas' },
   tabBudgetShort: { zh: '预算', en: 'Budget' },
   tabPhrasesShort: { zh: '泰语', en: 'Thai' },
+  tabPhrasesShortJa: { zh: '日语', en: 'Japanese' },
 
   // ---- Shared controls ----
   close: { zh: '关闭', en: 'Close' },

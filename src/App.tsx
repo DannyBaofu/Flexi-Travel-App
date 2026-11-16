@@ -21,6 +21,7 @@ import { IdeasView } from './components/IdeasView';
 import { BudgetTracker } from './components/BudgetTracker';
 import { PrintItineraryView } from './components/PrintItineraryView';
 import { PhrasesTab } from './components/PhrasesTab';
+import { phrasebookFor } from './data/phrasebooks';
 import { TopTabs, BottomTabs } from './components/TabBar';
 import { EntryGate } from './components/EntryGate';
 
@@ -295,6 +296,9 @@ export function App() {
   // missing, and the safe reading of one that is missing is read-only: an
   // unknown role must not be the most powerful one.
   const role: TripRole = activeTrip?.myRole ?? 'viewer';
+  // The last tab is a phrasebook in the language of the trip you are on
+  const phrasebook = phrasebookFor(activeTrip?.currency);
+  const phraseKeys = { long: phrasebook.tabKey, short: phrasebook.tabShortKey };
 
   // On a trip but with no name against it — every membership made before seats
   // existed, and the organiser's own trips from before this version. Same
@@ -714,7 +718,7 @@ export function App() {
           />
         )}
 
-        <TopTabs active={activeTab} onChange={setActiveTab} />
+        <TopTabs active={activeTab} onChange={setActiveTab} phraseKeys={phraseKeys} />
 
         {/* Tab Views */}
         {activeTab === 'itinerary' && (
@@ -768,7 +772,7 @@ export function App() {
           />
         )}
 
-        {activeTab === 'phrases' && <PhrasesTab />}
+        {activeTab === 'phrases' && <PhrasesTab key={phrasebook.lang} book={phrasebook} />}
       </main>
 
       {/* Footer */}
@@ -777,7 +781,7 @@ export function App() {
       </footer>
 
       {/* Phone: the four tabs sit within the thumb arc, not at the top */}
-      <BottomTabs active={activeTab} onChange={setActiveTab} />
+      <BottomTabs active={activeTab} onChange={setActiveTab} phraseKeys={phraseKeys} />
 
       <UndoToast pending={pendingUndo} onDismiss={() => setPendingUndo(null)} />
 

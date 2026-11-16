@@ -18,10 +18,12 @@ const TABS: { id: TabId; icon: LucideIcon; longKey: string; shortKey: string }[]
 interface TabsProps {
   active: TabId;
   onChange: (id: TabId) => void;
+  /** The last tab names the language this trip's phrasebook is in. */
+  phraseKeys?: { long: string; short: string };
 }
 
 /** Desktop and tablet: a quiet segmented row under the banner. */
-export const TopTabs: React.FC<TabsProps> = ({ active, onChange }) => {
+export const TopTabs: React.FC<TabsProps> = ({ active, onChange, phraseKeys }) => {
   const { t } = useI18n();
   return (
     <div className="hidden sm:flex items-center gap-1.5 mb-6 no-print">
@@ -39,7 +41,7 @@ export const TopTabs: React.FC<TabsProps> = ({ active, onChange }) => {
             }`}
           >
             <Icon className="w-4 h-4" />
-            <span>{t(longKey)}</span>
+            <span>{t(id === 'phrases' && phraseKeys ? phraseKeys.long : longKey)}</span>
           </button>
         );
       })}
@@ -52,7 +54,7 @@ export const TopTabs: React.FC<TabsProps> = ({ active, onChange }) => {
  * most-used control in the app; the top of the screen is the hardest
  * place to reach one-handed.
  */
-export const BottomTabs: React.FC<TabsProps> = ({ active, onChange }) => {
+export const BottomTabs: React.FC<TabsProps> = ({ active, onChange, phraseKeys }) => {
   const { t } = useI18n();
   return (
     <nav className="sm:hidden fixed inset-x-0 bottom-0 z-40 bg-paper/95 backdrop-blur border-t border-hairline no-print pb-[env(safe-area-inset-bottom)]">
@@ -69,7 +71,9 @@ export const BottomTabs: React.FC<TabsProps> = ({ active, onChange }) => {
               }`}
             >
               <Icon className="w-[18px] h-[18px]" />
-              <span className="text-[10.5px] font-medium leading-none">{t(shortKey)}</span>
+              <span className="text-[10.5px] font-medium leading-none">
+                {t(id === 'phrases' && phraseKeys ? phraseKeys.short : shortKey)}
+              </span>
             </button>
           );
         })}
