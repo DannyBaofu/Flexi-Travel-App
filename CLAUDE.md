@@ -368,7 +368,15 @@ changes — so serving it from cache can never be stale, while a cached
 *document* is how a PWA ends up stuck three deploys behind, and this app
 deploys on every push. Everything cross-origin is left alone; caching Supabase
 responses would mean showing a stale trip while claiming to be in sync, which
-is the one failure this app cannot have. `public/sw.js` is plain JS copied
+is the one failure this app cannot have. Pictures are the one exception: an
+activity photo or cover, once opened, is kept in its own cache
+(`travelsync-photos-v1`, oldest out past 150) so the next look needs no
+download and no signal. Map tiles are excluded by host — add a tile provider
+and it goes in `TILE_HOSTS`, or panning a map evicts the photos. A picture
+from another site is opaque to the worker, which cannot tell a photo from an
+error page, so the `<img>`'s `onError` posts `forget-photo` and that copy is
+dropped; a new place that draws a pasted picture owes the same message.
+`public/sw.js` is plain JS copied
 verbatim by Vite, and `main.tsx` registers it **only** under `import.meta.env.PROD`
 — in dev it would sit in front of Vite's module server and fight HMR. So
 `npm run dev` never exercises it: use `npm run preview` (there is a

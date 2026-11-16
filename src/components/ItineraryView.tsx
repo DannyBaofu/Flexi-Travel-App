@@ -562,7 +562,16 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                   alt={t('photoOf', { title: text.title })}
                                   loading="lazy"
                                   referrerPolicy="no-referrer"
-                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    // The worker keeps opened pictures and
+                                    // cannot see a bad one; tell it, so the
+                                    // next look tries the network again.
+                                    navigator.serviceWorker?.controller?.postMessage({
+                                      type: 'forget-photo',
+                                      url: e.currentTarget.src
+                                    });
+                                  }}
                                   className="w-full max-h-72 object-contain bg-mist rounded-control border border-hairline"
                                 />
                               )}
