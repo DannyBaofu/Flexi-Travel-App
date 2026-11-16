@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, CalendarPlus, Route, Languages, ChevronDown } from 'lucide-react';
-import type { ActivityItem, ActivityCategory, DaySchedule, TransportMode, Trip } from '../types/travel';
+import type { ActivityItem, ActivityAdvice, ActivityCategory, DaySchedule, TransportMode, Trip } from '../types/travel';
+import { ACTIVITY_ADVICE } from '../types/travel';
 import { categoryMetaMap } from '../utils/categoryHelpers';
 import { mapsUrlFor, type PlaceSuggestion } from '../services/placeSearch';
 import { translationStillFits } from '../services/activityText';
@@ -49,6 +50,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   const [notes, setNotes] = useState('');
   const [side, setSide] = useState(false);
   const [photoUrl, setPhotoUrl] = useState('');
+  const [advice, setAdvice] = useState<ActivityAdvice | ''>('');
   // The hop to the next activity. An empty mode means none was written, and
   // then the minutes and note are not asked for.
   const [nextMode, setNextMode] = useState<TransportMode | ''>('');
@@ -80,6 +82,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setNotes(activityToEdit.notes || '');
       setSide(!!activityToEdit.side);
       setPhotoUrl(activityToEdit.photoUrl || '');
+      setAdvice(ACTIVITY_ADVICE.find(a => a === activityToEdit.advice) ?? '');
       const hop = activityToEdit.transportToNext;
       setNextMode(hop?.mode ?? '');
       setNextMinutes(hop ? hop.durationMin : '');
@@ -104,6 +107,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setNotes('');
       setSide(false);
       setPhotoUrl('');
+      setAdvice('');
       setNextMode('');
       setNextMinutes('');
       setNextNote('');
@@ -173,6 +177,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       notes: notes.trim() || undefined,
       side: side || undefined,
       photoUrl: photoUrl.trim() || undefined,
+      advice: advice || undefined,
       // Rebuilt from the form, keeping only what the form doesn't show
       // (`costHint`). The note is one line in whatever language it was typed,
       // so a `noteZh` left behind would shadow the edit in Chinese.
@@ -347,6 +352,24 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
             onChange={(e) => setNotes(e.target.value)}
             className={`${input} resize-none`}
           />
+        </div>
+
+        {/* Sits under the notes on purpose: the card shows only the word, and
+            the notes are where the reason goes. */}
+        <div>
+          <label className={label} htmlFor="activity-advice">{t('adviceLabel')}</label>
+          <select
+            id="activity-advice"
+            value={advice}
+            onChange={(e) => setAdvice(e.target.value as ActivityAdvice | '')}
+            className={select}
+          >
+            <option value="">{t('adviceNone')}</option>
+            {ACTIVITY_ADVICE.map((a) => (
+              <option key={a} value={a}>{t(`advice_${a}`)}</option>
+            ))}
+          </select>
+          <p className="text-[11px] text-faint mt-1.5 leading-relaxed">{t('adviceHint')}</p>
         </div>
 
         {/* A link, not an upload: the trip document is what syncs, and a

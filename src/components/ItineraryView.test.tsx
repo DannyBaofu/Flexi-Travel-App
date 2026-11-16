@@ -231,6 +231,34 @@ describe('ItineraryView — side stops', () => {
   });
 });
 
+describe('ItineraryView — go or skip', () => {
+  const advised = (advice: unknown): DaySchedule['activities'][number] => ({
+    id: 'c',
+    time: '10:00',
+    title: '井盖卡',
+    category: 'sightseeing',
+    locationName: '',
+    advice: advice as DaySchedule['activities'][number]['advice']
+  });
+
+  /** Asserted as words, because the tone is only the second cue. */
+  it('says go, maybe or skip on the card without opening it', () => {
+    renderItinerary({ days: [day(1, [advised('skip')])] });
+    expect(screen.getByText('建议跳过')).toBeTruthy();
+    cleanup();
+    renderItinerary({ days: [day(1, [advised('go')])] });
+    expect(screen.getByText('建议去')).toBeTruthy();
+  });
+
+  it('shows nothing when nobody has said, or for a value it does not know', () => {
+    renderItinerary({ days: [day(1, [advised(undefined)])] });
+    expect(screen.queryByText(/建议|看情况/)).toBeNull();
+    cleanup();
+    renderItinerary({ days: [day(1, [advised('definitely')])] });
+    expect(screen.queryByText(/建议|看情况/)).toBeNull();
+  });
+});
+
 describe('ItineraryView — an activity photo', () => {
   const withPhoto = (photoUrl: string): DaySchedule['activities'][number] => ({
     id: 'p',

@@ -77,6 +77,7 @@ const chipBase =
 export const chipBrand = `${chipBase} bg-brand-tint text-brand`;
 export const chipGilt = `${chipBase} bg-gilt-tint text-gilt`;
 export const chipPlain = `${chipBase} bg-mist text-muted`;
+export const chipClay = `${chipBase} bg-clay-tint text-clay`;
 
 // ---- Money ---------------------------------------------------------------
 // The budget tab is a column of numbers people compare down the page;

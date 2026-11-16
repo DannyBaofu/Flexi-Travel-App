@@ -10,9 +10,13 @@ import {
   ArrowUp,
   ArrowDown,
   ChevronDown,
-  CornerDownRight
+  CornerDownRight,
+  Check,
+  CircleHelp,
+  X
 } from 'lucide-react';
-import type { Trip, DaySchedule, ActivityItem, TripRole } from '../types/travel';
+import type { Trip, DaySchedule, ActivityItem, ActivityAdvice, TripRole } from '../types/travel';
+import { ACTIVITY_ADVICE } from '../types/travel';
 import { transportModeMeta, directionsLink } from './transportModes';
 import { useI18n, translateWeekday } from '../utils/i18n';
 import { locatedStops, hopsBetween, totalKm, roundDistance, directionsUrl } from '../services/geo';
@@ -26,8 +30,16 @@ import {
   btnSecondarySm,
   chipGilt,
   chipPlain,
+  chipClay,
   money
 } from './ui';
+
+// The word is the answer; the icon and the tone only repeat it.
+const adviceMeta: Record<ActivityAdvice, { chip: string; Icon: typeof Check }> = {
+  go: { chip: chipGilt, Icon: Check },
+  maybe: { chip: chipPlain, Icon: CircleHelp },
+  skip: { chip: chipClay, Icon: X }
+};
 
 // Leaflet only downloads when somebody opens a map.
 const DayMap = lazy(() => import('./DayMap'));
@@ -460,7 +472,10 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                     const isExpanded = expandedIds.has(activity.id);
                     const nextActivity = activities[actIdx + 1];
                     const text = activityText(activity, lang);
-                    // Two rules, two tones — but only on a trip that uses side
+                    // Checked against the list: the document is
+                    // member-writable, so the value is not trusted to be one
+                    // of the three.
+                    const advice = ACTIVITY_ADVICE.find(a => a === activity.advice);                    // Two rules, two tones — but only on a trip that uses side
                     // stops at all, so a plan with none looks as it always
                     // did. The indent and the chip say the same thing the
                     // colour does.
@@ -495,11 +510,21 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                             </span>
 
                             <div className="min-w-0 flex-1">
-                              {activity.side && (
-                                <span className={`${chipPlain} mb-1`}>
-                                  <CornerDownRight className="w-3 h-3" aria-hidden="true" />
-                                  {t('sideStopChip')}
-                                </span>
+                              {(activity.side || advice) && (
+                                <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                                  {activity.side && (
+                                    <span className={chipPlain}>
+                                      <CornerDownRight className="w-3 h-3" aria-hidden="true" />
+                                      {t('sideStopChip')}
+                                    </span>
+                                  )}
+                                  {advice && (
+                                    <span className={adviceMeta[advice].chip}>
+                                      {React.createElement(adviceMeta[advice].Icon, { className: 'w-3 h-3', 'aria-hidden': true })}
+                                      {t(`advice_${advice}`)}
+                                    </span>
+                                  )}
+                                </div>
                               )}
                               <div className="text-sm font-semibold text-ink leading-snug line-clamp-2">
                                 {text.title}

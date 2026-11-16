@@ -1,5 +1,6 @@
 import React from 'react';
-import type { Trip, TransportMode } from '../types/travel';
+import type { Trip, TransportMode, ActivityAdvice } from '../types/travel';
+import { ACTIVITY_ADVICE } from '../types/travel';
 import { useI18n, translateWeekday } from '../utils/i18n';
 import { hasFlightInfo, journeyDate, formatLegDate } from '../services/flights';
 import { hasTrainInfo } from '../services/trains';
@@ -167,6 +168,7 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
                         {/* Paper has no second colour to lean on: an arrow and an indent */}
                         {act.side ? '↳ ' : ''}{text.title}
                         {act.cost ? ` (${act.cost.toLocaleString()} ${trip.currency})` : ''}
+                        {ACTIVITY_ADVICE.includes(act.advice as ActivityAdvice) ? ` [${t(`advice_${act.advice as ActivityAdvice}`)}]` : ''}
                       </div>
                       {act.locationName && act.locationName !== act.title && <div className="text-muted">{act.locationName}</div>}
                       {text.notes && <div className="text-muted mt-0.5">{text.notes}</div>}

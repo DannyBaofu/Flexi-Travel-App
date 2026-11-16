@@ -475,6 +475,19 @@ backfill. The chip and the indent carry the meaning; the colour is the second
 cue, and the print view uses an arrow and an indent because paper has no
 second colour.
 
+**Go or skip (`activity.advice`) is one word, and the reason is the notes.**
+`go`, `maybe` or `skip`, picked in the activity form and shown as a chip on
+the closed card — a tick, a question mark or a cross beside the word, in gilt,
+plain or clay — so "is this worth the detour" is answered without opening
+anything. It is written by a person: the app works nothing out, because the
+things that decide it (is the counter open that day, is there stock, how long
+is the group there) are not in the trip. There is deliberately no reason
+field. The notes already hold it and already have an English copy, and a
+second free-text line would need its own translation and its own
+stale-translation rule. Absent means nobody has said and nothing is drawn, so
+there is no backfill; `ItineraryView` checks the value against
+`ACTIVITY_ADVICE` because the document is member-writable.
+
 **An activity photo (`activity.photoUrl`) is a link, never an upload.** The
 trip document is what syncs, and a picture inside it would ride along in every
 push. The form takes an `https://` link and the opened card shows it whole

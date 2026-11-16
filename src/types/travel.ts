@@ -73,6 +73,13 @@ export interface ActivityItem {
    */
   side?: boolean;
   /**
+   * Whether this stop is worth it: go, only if things line up, or skip. It is
+   * one word on the card so the answer is there without opening anything; the
+   * reason is written in `notes`, which already has an English copy. Absent
+   * means nobody has said, and nothing is shown.
+   */
+  advice?: ActivityAdvice;
+  /**
    * The same activity in English, shown when the app is in English. Each
    * field is optional and falls back to what was typed, so a half-translated
    * activity reads as a mix rather than as gaps. Absent on activities nobody
@@ -81,6 +88,11 @@ export interface ActivityItem {
    */
   translationEn?: ActivityTranslation;
 }
+
+export type ActivityAdvice = 'go' | 'maybe' | 'skip';
+
+/** In the order a person weighs them. Also what a stored value is checked against. */
+export const ACTIVITY_ADVICE: ActivityAdvice[] = ['go', 'maybe', 'skip'];
 
 /** English for the three things on an activity people actually write. */
 export interface ActivityTranslation {

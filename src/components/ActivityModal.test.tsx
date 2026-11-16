@@ -209,3 +209,22 @@ describe('ActivityModal — a photo link', () => {
     expect(onSave.mock.calls[0][1].photoUrl).toBeUndefined();
   });
 });
+
+describe('ActivityModal — go or skip', () => {
+  it('keeps the advice through an edit that never touched it', async () => {
+    const { onSave } = renderModal({ ...van, advice: 'skip' });
+    await userEvent.click(screen.getByRole('button', { name: /保存/ }));
+    expect(onSave.mock.calls[0][1].advice).toBe('skip');
+  });
+
+  it('saves a choice, and saves none when it is left unset', async () => {
+    const { onSave } = renderModal(van);
+    await userEvent.selectOptions(screen.getByLabelText(/值不值得去/), 'go');
+    await userEvent.click(screen.getByRole('button', { name: /保存/ }));
+    expect(onSave.mock.calls[0][1].advice).toBe('go');
+    cleanup();
+    const second = renderModal(van);
+    await userEvent.click(screen.getByRole('button', { name: /保存/ }));
+    expect(second.onSave.mock.calls[0][1].advice).toBeUndefined();
+  });
+});

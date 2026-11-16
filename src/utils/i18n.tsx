@@ -136,6 +136,13 @@ const dict: Record<string, Entry> = {
   sideStopChip: { zh: '顺路', en: 'Side stop' },
   sideStopToggle: { zh: '顺路可做，不是主行程', en: 'Side stop, not part of the main plan' },
   sideStopHint: { zh: '会缩进显示在上一个主行程下面，用另一种颜色标出。', en: 'Shown indented under the main stop above it, in a second colour.' },
+  // Go or skip: one word on the card, the reason stays in the notes
+  adviceLabel: { zh: '值不值得去', en: 'Worth going?' },
+  adviceNone: { zh: '不标', en: 'Not set' },
+  advice_go: { zh: '建议去', en: 'Go' },
+  advice_maybe: { zh: '看情况', en: 'Maybe' },
+  advice_skip: { zh: '建议跳过', en: 'Skip' },
+  adviceHint: { zh: '卡片上只显示这几个字，原因请写在备注里。', en: 'The card shows only this word. Write the reason in the notes.' },
   // The hop after this activity — shown between it and the next one
   nextStopMode: { zh: '怎么去下一站', en: 'To the next stop' },
   nextStopNone: { zh: '不填', en: 'Not set' },
