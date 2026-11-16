@@ -47,6 +47,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [cost, setCost] = useState<number | ''>(0);
   const [notes, setNotes] = useState('');
+  const [side, setSide] = useState(false);
   // The hop to the next activity. An empty mode means none was written, and
   // then the minutes and note are not asked for.
   const [nextMode, setNextMode] = useState<TransportMode | ''>('');
@@ -76,6 +77,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       );
       setCost(activityToEdit.cost !== undefined ? activityToEdit.cost : 0);
       setNotes(activityToEdit.notes || '');
+      setSide(!!activityToEdit.side);
       const hop = activityToEdit.transportToNext;
       setNextMode(hop?.mode ?? '');
       setNextMinutes(hop ? hop.durationMin : '');
@@ -98,6 +100,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setCoords(null);
       setCost(0);
       setNotes('');
+      setSide(false);
       setNextMode('');
       setNextMinutes('');
       setNextNote('');
@@ -165,6 +168,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       cost: cost === '' ? 0 : Number(cost),
       currency: trip.currency,
       notes: notes.trim() || undefined,
+      side: side || undefined,
       // Rebuilt from the form, keeping only what the form doesn't show
       // (`costHint`). The note is one line in whatever language it was typed,
       // so a `noteZh` left behind would shadow the edit in Chinese.
@@ -218,6 +222,22 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
             required
           />
         </div>
+
+        {/* A real checkbox, not a styled button: it is a yes/no about the
+            activity, and the label beside it is the whole tap target. */}
+        <label htmlFor="activity-side" className="flex items-start gap-3 min-h-11 py-1 cursor-pointer">
+          <input
+            id="activity-side"
+            type="checkbox"
+            checked={side}
+            onChange={(e) => setSide(e.target.checked)}
+            className="mt-0.5 w-5 h-5 shrink-0 accent-brand"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-ink">{t('sideStopToggle')}</span>
+            <span className="block text-[11px] text-faint leading-relaxed">{t('sideStopHint')}</span>
+          </span>
+        </label>
 
         {/* Type a place, pick it off the list, and the address and map link
             come with it. Typing freely still works. */}

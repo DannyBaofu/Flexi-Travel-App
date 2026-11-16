@@ -9,7 +9,8 @@ import {
   Copy,
   ArrowUp,
   ArrowDown,
-  ChevronDown
+  ChevronDown,
+  CornerDownRight
 } from 'lucide-react';
 import type { Trip, DaySchedule, ActivityItem, TripRole } from '../types/travel';
 import { transportModeMeta, directionsLink } from './transportModes';
@@ -323,6 +324,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
       <div className="space-y-4">
         {daysToRender.map((day) => {
           const activities = day.activities || [];
+          const hasSideStops = trip.days.some(d => (d.activities || []).some(a => a.side));
           const dayCost = activities.reduce((sum, a) => sum + (a.cost || 0), 0);
           const isToday = trip.days.indexOf(day) === todayIndex;
           // The map and its hop list name stops in the reader's language
@@ -458,10 +460,19 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                     const isExpanded = expandedIds.has(activity.id);
                     const nextActivity = activities[actIdx + 1];
                     const text = activityText(activity, lang);
+                    // Two rules, two tones — but only on a trip that uses side
+                    // stops at all, so a plan with none looks as it always
+                    // did. The indent and the chip say the same thing the
+                    // colour does.
+                    const rule = !hasSideStops
+                      ? ''
+                      : activity.side
+                        ? 'ml-6 border-l-[3px] border-l-spine-2'
+                        : 'border-l-[3px] border-l-spine-1';
 
                     return (
                       <React.Fragment key={activity.id}>
-                        <div className={`${cardFlat} overflow-hidden`}>
+                        <div className={`${cardFlat} ${rule} overflow-hidden`}>
                           <div
                             role="button"
                             tabIndex={0}
@@ -484,6 +495,12 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                             </span>
 
                             <div className="min-w-0 flex-1">
+                              {activity.side && (
+                                <span className={`${chipPlain} mb-1`}>
+                                  <CornerDownRight className="w-3 h-3" aria-hidden="true" />
+                                  {t('sideStopChip')}
+                                </span>
+                              )}
                               <div className="text-sm font-semibold text-ink leading-snug line-clamp-2">
                                 {text.title}
                               </div>

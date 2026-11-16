@@ -160,11 +160,12 @@ export const PrintItineraryView: React.FC<PrintItineraryViewProps> = ({ trip }) 
                 {day.activities.map((act) => {
                   const text = activityText(act, lang);
                   return (
-                  <div key={act.id} className={`text-xs flex gap-3 items-start border-l-2 ${RULE} pl-2.5`}>
+                  <div key={act.id} className={`text-xs flex gap-3 items-start border-l-2 ${RULE} pl-2.5 ${act.side ? 'ml-5' : ''}`}>
                     <span className="font-mono tabular-nums font-bold w-16 shrink-0">{act.time}</span>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold">
-                        {text.title}
+                        {/* Paper has no second colour to lean on: an arrow and an indent */}
+                        {act.side ? '↳ ' : ''}{text.title}
                         {act.cost ? ` (${act.cost.toLocaleString()} ${trip.currency})` : ''}
                       </div>
                       {act.locationName && <div className="text-muted">{act.locationName}</div>}

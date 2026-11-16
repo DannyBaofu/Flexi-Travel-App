@@ -130,6 +130,10 @@ const dict: Record<string, Entry> = {
   locationVenue: { zh: '地点 / 场所名称', en: 'Location / Venue Name' },
   estCostLabel: { zh: '预计花费（{cur}）', en: 'Estimated Cost ({cur})' },
   notesTips: { zh: '备注、小贴士与提醒', en: 'Notes, Tips & Reminders' },
+  // A side stop sits indented under the main stop it belongs to
+  sideStopChip: { zh: '顺路', en: 'Side stop' },
+  sideStopToggle: { zh: '顺路可做，不是主行程', en: 'Side stop, not part of the main plan' },
+  sideStopHint: { zh: '会缩进显示在上一个主行程下面，用另一种颜色标出。', en: 'Shown indented under the main stop above it, in a second colour.' },
   // The hop after this activity — shown between it and the next one
   nextStopMode: { zh: '怎么去下一站', en: 'To the next stop' },
   nextStopNone: { zh: '不填', en: 'Not set' },

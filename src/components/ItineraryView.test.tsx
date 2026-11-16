@@ -185,3 +185,28 @@ describe('ItineraryView — English copies of what was typed', () => {
     expect(screen.getByText('回住宿休息')).toBeInTheDocument();
   });
 });
+
+describe('ItineraryView — side stops', () => {
+  const stop = (id: string, title: string, side?: boolean): DaySchedule['activities'][number] => ({
+    id,
+    time: '10:00',
+    title,
+    category: 'sightseeing',
+    locationName: '',
+    side
+  });
+
+  /**
+   * The colour is a second cue. What has to survive a grey screen is the
+   * word, so that is what is asserted.
+   */
+  it('labels a side stop in words, and leaves a main stop unlabelled', () => {
+    renderItinerary({ days: [day(1, [stop('a', '日光东照宫'), stop('b', '御朱印', true)])] });
+    expect(screen.getAllByText('顺路')).toHaveLength(1);
+  });
+
+  it('adds nothing to a trip that has no side stops', () => {
+    renderItinerary({ days: [day(1, [stop('a', '日光东照宫')])] });
+    expect(screen.queryByText('顺路')).toBeNull();
+  });
+});

@@ -448,6 +448,18 @@ else — its date likewise defaults to *today*, not to `trip.startDate`.
 day, so the last activity of each day has none, and a duplicated activity must
 have it cleared.
 
+**A side stop (`activity.side`) is a flag, not a child.** It marks something
+one person can do while the group is at the stop above it — a stamp to collect,
+a cover to photograph — and `ItineraryView` draws it indented with the
+`spine-2` rule and a `顺路` chip, against the `spine-1` rule on main stops.
+Nothing links it to the stop it sits under: position in the day is the whole
+relationship, so moving, duplicating and deleting need no new rules. The two
+rules only appear on a trip that has at least one side stop, which is why the
+Bangkok trip looks as it always did. Absent means main, so there is no
+backfill. The chip and the indent carry the meaning; the colour is the second
+cue, and the print view uses an arrow and an indent because paper has no
+second colour.
+
 **The shared pot (`trip.kitty`) and the splitter are two halves of one sum.**
 Everyone hands the holder the same amount up front, so money the pot paid for is
 money *already settled* — `computeKitty` returns `coveredIds`, and

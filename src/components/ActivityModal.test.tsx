@@ -170,3 +170,28 @@ describe('ActivityModal — the English copy', () => {
     expect(saved().translationEn?.title).toBe('Van to Hat Yai Airport');
   });
 });
+
+describe('ActivityModal — a side stop', () => {
+  it('saves a new activity as a main stop unless the box is ticked', async () => {
+    const { onSave } = renderModal();
+    await userEvent.type(screen.getByLabelText(/活动名称|Activity/), '增上寺');
+    await userEvent.click(screen.getByRole('button', { name: /添加活动/ }));
+    expect(onSave.mock.calls[0][1].side).toBeUndefined();
+  });
+
+  it('saves the tick, and shows it again when the activity is edited', async () => {
+    const { onSave } = renderModal({ ...van, side: true });
+    const box = screen.getByRole('checkbox');
+    expect((box as HTMLInputElement).checked).toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: /保存/ }));
+    expect(onSave.mock.calls[0][1].side).toBe(true);
+  });
+
+  it('saves a tick made on a new activity', async () => {
+    const { onSave } = renderModal();
+    await userEvent.type(screen.getByLabelText(/活动名称|Activity/), '御朱印');
+    await userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('button', { name: /添加活动/ }));
+    expect(onSave.mock.calls[0][1].side).toBe(true);
+  });
+});

@@ -66,6 +66,13 @@ export interface ActivityItem {
   photoUrl?: string;
   transportToNext?: TransportSuggestion;
   /**
+   * A side stop: something one person can do while the group is at the stop
+   * above it — a stamp to collect, a cover to photograph — rather than a stop
+   * of the plan itself. Absent means a main stop, which is every activity
+   * saved before the flag existed, so nothing needs backfilling.
+   */
+  side?: boolean;
+  /**
    * The same activity in English, shown when the app is in English. Each
    * field is optional and falls back to what was typed, so a half-translated
    * activity reads as a mix rather than as gaps. Absent on activities nobody
