@@ -553,6 +553,20 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                                 )}
                               </div>
 
+                              {/* Shown whole rather than cropped: the picture is
+                                  there to recognise the thing by. One that fails
+                                  to load takes itself away. */}
+                              {activity.photoUrl?.startsWith('https://') && (
+                                <img
+                                  src={activity.photoUrl}
+                                  alt={t('photoOf', { title: text.title })}
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                  className="w-full max-h-72 object-contain bg-mist rounded-control border border-hairline"
+                                />
+                              )}
+
                               {text.notes && (
                                 <p className="text-xs text-muted bg-mist p-2.5 rounded-control leading-relaxed">
                                   <span className="font-semibold text-ink">{t('tips')}: </span>

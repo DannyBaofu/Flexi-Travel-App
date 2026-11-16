@@ -130,6 +130,8 @@ const dict: Record<string, Entry> = {
   locationVenue: { zh: '地点 / 场所名称', en: 'Location / Venue Name' },
   estCostLabel: { zh: '预计花费（{cur}）', en: 'Estimated Cost ({cur})' },
   notesTips: { zh: '备注、小贴士与提醒', en: 'Notes, Tips & Reminders' },
+  photoLinkLabel: { zh: '照片链接（可选，https 开头）', en: 'Photo link (optional, starts with https)' },
+  photoOf: { zh: '{title} 的照片', en: 'Photo of {title}' },
   // A side stop sits indented under the main stop it belongs to
   sideStopChip: { zh: '顺路', en: 'Side stop' },
   sideStopToggle: { zh: '顺路可做，不是主行程', en: 'Side stop, not part of the main plan' },

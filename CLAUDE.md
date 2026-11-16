@@ -460,6 +460,15 @@ backfill. The chip and the indent carry the meaning; the colour is the second
 cue, and the print view uses an arrow and an indent because paper has no
 second colour.
 
+**An activity photo (`activity.photoUrl`) is a link, never an upload.** The
+trip document is what syncs, and a picture inside it would ride along in every
+push. The form takes an `https://` link and the opened card shows it whole
+(`object-contain`), because it is there to recognise something by — a manhole
+cover, a shop front. `ItineraryView` checks the `https://` prefix itself rather
+than trusting the form: the document is member-writable, and the CSP's
+`img-src` only lets `https:` through anyway. A picture that fails to load hides
+itself.
+
 **The shared pot (`trip.kitty`) and the splitter are two halves of one sum.**
 Everyone hands the holder the same amount up front, so money the pot paid for is
 money *already settled* — `computeKitty` returns `coveredIds`, and

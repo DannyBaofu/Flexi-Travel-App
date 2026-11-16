@@ -195,3 +195,17 @@ describe('ActivityModal — a side stop', () => {
     expect(onSave.mock.calls[0][1].side).toBe(true);
   });
 });
+
+describe('ActivityModal — a photo link', () => {
+  it('keeps the link through an edit that never touched it', async () => {
+    const { onSave } = renderModal({ ...van, photoUrl: 'https://example.com/lid.jpg' });
+    await userEvent.click(screen.getByRole('button', { name: /保存/ }));
+    expect(onSave.mock.calls[0][1].photoUrl).toBe('https://example.com/lid.jpg');
+  });
+
+  it('saves none when the field is left empty', async () => {
+    const { onSave } = renderModal(van);
+    await userEvent.click(screen.getByRole('button', { name: /保存/ }));
+    expect(onSave.mock.calls[0][1].photoUrl).toBeUndefined();
+  });
+});

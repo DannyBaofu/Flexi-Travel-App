@@ -48,6 +48,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   const [cost, setCost] = useState<number | ''>(0);
   const [notes, setNotes] = useState('');
   const [side, setSide] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState('');
   // The hop to the next activity. An empty mode means none was written, and
   // then the minutes and note are not asked for.
   const [nextMode, setNextMode] = useState<TransportMode | ''>('');
@@ -78,6 +79,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setCost(activityToEdit.cost !== undefined ? activityToEdit.cost : 0);
       setNotes(activityToEdit.notes || '');
       setSide(!!activityToEdit.side);
+      setPhotoUrl(activityToEdit.photoUrl || '');
       const hop = activityToEdit.transportToNext;
       setNextMode(hop?.mode ?? '');
       setNextMinutes(hop ? hop.durationMin : '');
@@ -101,6 +103,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setCost(0);
       setNotes('');
       setSide(false);
+      setPhotoUrl('');
       setNextMode('');
       setNextMinutes('');
       setNextNote('');
@@ -169,6 +172,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       currency: trip.currency,
       notes: notes.trim() || undefined,
       side: side || undefined,
+      photoUrl: photoUrl.trim() || undefined,
       // Rebuilt from the form, keeping only what the form doesn't show
       // (`costHint`). The note is one line in whatever language it was typed,
       // so a `noteZh` left behind would shadow the edit in Chinese.
@@ -342,6 +346,22 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className={`${input} resize-none`}
+          />
+        </div>
+
+        {/* A link, not an upload: the trip document is what syncs, and a
+            picture inside it would ride along in every push. https only,
+            because that is all the page's image policy lets through. */}
+        <div>
+          <label className={label} htmlFor="activity-photo">{t('photoLinkLabel')}</label>
+          <input
+            id="activity-photo"
+            type="url"
+            inputMode="url"
+            pattern="https://.+"
+            value={photoUrl}
+            onChange={(e) => setPhotoUrl(e.target.value)}
+            className={input}
           />
         </div>
 

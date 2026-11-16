@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { ItineraryView } from './ItineraryView';
 import { I18nProvider } from '../utils/i18n';
 import { toISODate } from '../services/tripDays';
@@ -228,5 +228,30 @@ describe('ItineraryView — side stops', () => {
   it('adds nothing to a trip that has no side stops', () => {
     renderItinerary({ days: [day(1, [stop('a', '日光东照宫')])] });
     expect(screen.queryByText('顺路')).toBeNull();
+  });
+});
+
+describe('ItineraryView — an activity photo', () => {
+  const withPhoto = (photoUrl: string): DaySchedule['activities'][number] => ({
+    id: 'p',
+    time: '10:00',
+    title: '井盖',
+    category: 'sightseeing',
+    locationName: '',
+    photoUrl
+  });
+
+  it('shows the picture once the card is opened', () => {
+    renderItinerary({ days: [day(1, [withPhoto('https://example.com/lid.jpg')])] });
+    expect(screen.queryByRole('img', { name: /井盖/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /井盖/ }));
+    expect(screen.getByRole('img', { name: /井盖/ }).getAttribute('src')).toBe('https://example.com/lid.jpg');
+  });
+
+  /** The document is member-writable, so the link is not trusted to be https. */
+  it('draws nothing for a link that is not https', () => {
+    renderItinerary({ days: [day(1, [withPhoto('http://example.com/lid.jpg')])] });
+    fireEvent.click(screen.getByRole('button', { name: /井盖/ }));
+    expect(screen.queryByRole('img', { name: /井盖/ })).toBeNull();
   });
 });
