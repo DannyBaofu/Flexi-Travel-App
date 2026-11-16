@@ -376,6 +376,13 @@ and it goes in `TILE_HOSTS`, or panning a map evicts the photos. A picture
 from another site is opaque to the worker, which cannot tell a photo from an
 error page, so the `<img>`'s `onError` posts `forget-photo` and that copy is
 dropped; a new place that draws a pasted picture owes the same message.
+A worker runs under the policy served with *its own script*, and its `fetch`
+is judged by `connect-src` even when the request is for an image — so
+`vercel.json` gives `/sw.js` a second header block whose `connect-src` allows
+`https:`, and the page's block is matched by `/((?!sw\.js).*)` so the two
+never both apply. Without it every pasted picture fails on the live site and
+works in `npm run preview`, which serves no policy at all. The page's own
+`connect-src` stays the short list.
 `public/sw.js` is plain JS copied
 verbatim by Vite, and `main.tsx` registers it **only** under `import.meta.env.PROD`
 — in dev it would sit in front of Vite's module server and fight HMR. So
